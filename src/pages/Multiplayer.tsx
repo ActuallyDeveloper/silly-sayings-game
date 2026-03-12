@@ -151,9 +151,16 @@ const Multiplayer = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              <Users className="w-4 h-4 text-muted-foreground" />
+              {p.ready ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : (
+                <Circle className="w-4 h-4 text-muted-foreground" />
+              )}
               <span className="font-bold text-foreground">{p.display_name}</span>
-              {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent ml-auto" />}
+              <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest ${p.ready ? "text-green-500" : "text-muted-foreground/50"}`}>
+                {p.ready ? "Ready" : "Not Ready"}
+              </span>
+              {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
             </motion.div>
           ))}
         </div>
