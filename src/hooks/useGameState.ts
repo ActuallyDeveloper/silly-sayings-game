@@ -7,7 +7,7 @@ export interface AIPlayerState {
   id: number;
   name: string;
   score: number;
-  avatar: string;
+  icon: string;
   color: string;
   personality: AIPersonality;
 }
