@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { BlackCard, WhiteCard, blackCards, whiteCards, shuffle } from "@/data/cards";
+import { BlackCard, WhiteCard, blackCards, whiteCards, shuffle, getCardsByPacks, type PackId } from "@/data/cards";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GameState {
@@ -21,9 +21,10 @@ interface GameState {
 
 const HAND_SIZE = 7;
 
-function createInitialState(maxRounds: number): GameState {
-  const blackDeck = shuffle(blackCards);
-  const whiteDeck = shuffle(whiteCards);
+function createInitialState(maxRounds: number, packs: PackId[]): GameState {
+  const { blacks, whites } = getCardsByPacks(packs);
+  const blackDeck = shuffle(blacks);
+  const whiteDeck = shuffle(whites);
   const hand = whiteDeck.splice(0, HAND_SIZE);
   const currentBlackCard = blackDeck.shift() || null;
   return {
@@ -44,9 +45,11 @@ function createInitialState(maxRounds: number): GameState {
   };
 }
 
-export function useGameState(maxRounds = 10) {
-  const [state, setState] = useState<GameState>(() => createInitialState(maxRounds));
+export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
+  const [state, setState] = useState<GameState>(() => createInitialState(maxRounds, packs));
   const dynamicCardsAdded = useRef(false);
+  const packsRef = useRef(packs);
+  packsRef.current = packs;
 
   const selectCard = useCallback((card: WhiteCard) => {
     setState((prev) => {
@@ -172,10 +175,12 @@ export function useGameState(maxRounds = 10) {
             id: maxBlackId + i + 1,
             text: c.text,
             pick: c.pick || 1,
+            pack: "classic" as const,
           }));
           const newWhites: WhiteCard[] = data.whiteCards.map((c: any, i: number) => ({
             id: maxWhiteId + i + 1,
             text: c.text,
+            pack: "classic" as const,
           }));
           return {
             ...prev,
@@ -189,7 +194,7 @@ export function useGameState(maxRounds = 10) {
 
   const resetGame = useCallback(() => {
     dynamicCardsAdded.current = false;
-    setState(createInitialState(maxRounds));
+    setState(createInitialState(maxRounds, packsRef.current));
   }, [maxRounds]);
 
   return { ...state, selectCard, submitCards, judgeWithAI, nextRound, resetGame, generateNewCards };

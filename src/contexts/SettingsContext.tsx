@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import type { PackId } from "@/data/cards";
 
 type Theme = "dark" | "light";
 
@@ -6,24 +7,34 @@ interface Settings {
   soundEnabled: boolean;
   maxRounds: number;
   theme: Theme;
+  selectedPacks: PackId[];
 }
 
 interface SettingsContextType extends Settings {
   setSoundEnabled: (v: boolean) => void;
   setMaxRounds: (v: number) => void;
   setTheme: (v: Theme) => void;
+  setSelectedPacks: (v: PackId[]) => void;
+  togglePack: (pack: PackId) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const STORAGE_KEY = "exotic-settings";
 
+const defaultSettings: Settings = {
+  soundEnabled: true,
+  maxRounds: 10,
+  theme: "dark",
+  selectedPacks: ["classic"],
+};
+
 function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...{ soundEnabled: true, maxRounds: 10, theme: "dark" as Theme }, ...JSON.parse(raw) };
+    if (raw) return { ...defaultSettings, ...JSON.parse(raw) };
   } catch {}
-  return { soundEnabled: true, maxRounds: 10, theme: "dark" };
+  return defaultSettings;
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -33,7 +44,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  // Apply theme class to document
   useEffect(() => {
     const root = document.documentElement;
     if (settings.theme === "light") {
@@ -43,6 +53,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [settings.theme]);
 
+  const togglePack = (pack: PackId) => {
+    setSettings((s) => {
+      const current = s.selectedPacks;
+      if (current.includes(pack)) {
+        if (current.length <= 1) return s; // Must have at least 1
+        return { ...s, selectedPacks: current.filter((p) => p !== pack) };
+      }
+      return { ...s, selectedPacks: [...current, pack] };
+    });
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -50,6 +71,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSoundEnabled: (v) => setSettings((s) => ({ ...s, soundEnabled: v })),
         setMaxRounds: (v) => setSettings((s) => ({ ...s, maxRounds: v })),
         setTheme: (v) => setSettings((s) => ({ ...s, theme: v })),
+        setSelectedPacks: (v) => setSettings((s) => ({ ...s, selectedPacks: v })),
+        togglePack,
       }}
     >
       {children}
