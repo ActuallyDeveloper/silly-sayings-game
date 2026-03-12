@@ -100,8 +100,8 @@ const CustomCardsView = ({ mode }: CustomCardsViewProps) => {
       </header>
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
-        <motion.h1 className="text-3xl sm:text-4xl font-black text-foreground mb-6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          {isSP ? "SP" : "MP"} Custom Cards ✏️
+        <motion.h1 className="text-3xl sm:text-4xl font-black text-foreground mb-6 flex items-center gap-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <Pencil className="w-6 h-6 text-accent" /> {isSP ? "SP" : "MP"} Custom Cards
         </motion.h1>
 
         <motion.div className="bg-secondary rounded-lg p-4 mb-6 space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
