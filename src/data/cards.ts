@@ -16,7 +16,7 @@ export type PackId = "classic" | "pg13" | "nsfw" | "popculture" | "custom";
 export interface CardPack {
   id: PackId;
   name: string;
-  emoji: string;
+  iconName: string;
   description: string;
   blackCount: number;
   whiteCount: number;
