@@ -171,6 +171,7 @@ const Multiplayer = () => {
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
         </div>
+        <RoomChat roomId={game.room.id} />
       </div>
     );
   }
