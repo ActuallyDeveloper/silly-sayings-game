@@ -15,11 +15,11 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-8">
-      {/* Decorative cards */}
-      <div className="absolute top-10 left-10 rotate-[-15deg] opacity-20 hidden lg:block">
+      {/* Decorative floating cards */}
+      <div className="absolute top-10 left-10 rotate-[-15deg] opacity-20 hidden lg:block animate-float">
         <GameCard text="What's that smell?" type="black" small logo />
       </div>
-      <div className="absolute bottom-10 right-10 rotate-[12deg] opacity-20 hidden lg:block">
+      <div className="absolute bottom-10 right-10 rotate-[12deg] opacity-20 hidden lg:block animate-float-delayed">
         <GameCard text="Poor life choices." type="white" small logo />
       </div>
 

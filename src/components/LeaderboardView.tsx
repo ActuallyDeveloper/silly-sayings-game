@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Trophy, Gamepad2, EyeOff } from "lucide-react";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -23,25 +24,70 @@ interface LeaderboardViewProps {
 
 const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const isSP = mode === "singleplayer";
   const viewName = isSP ? "sp_leaderboard" : "mp_leaderboard";
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     const { data } = await (supabase as any)
       .from(viewName)
       .select("*")
       .order("wins", { ascending: false })
       .limit(50);
+
+    if (!data) { setEntries([]); setLoading(false); return; }
+
+    // For multiplayer, filter out users with private profiles (unless they're friends or the current user)
+    if (!isSP) {
+      const userIds = data.map((e: any) => e.user_id).filter(Boolean);
+      if (userIds.length > 0) {
+        const { data: privacyData } = await (supabase as any)
+          .from("user_privacy_settings")
+          .select("user_id, profile_visibility")
+          .in("user_id", userIds);
+
+        // Get current user's friends
+        let friendIds: string[] = [];
+        if (user) {
+          const { data: friendships } = await (supabase as any)
+            .from("friendships")
+            .select("requester_id, addressee_id")
+            .eq("status", "accepted")
+            .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+          if (friendships) {
+            friendIds = friendships.map((f: any) =>
+              f.requester_id === user.id ? f.addressee_id : f.requester_id
+            );
+          }
+        }
+
+        const privacyMap = new Map(
+          (privacyData || []).map((p: any) => [p.user_id, p.profile_visibility])
+        );
+
+        const filtered = data.filter((entry: any) => {
+          if (entry.user_id === user?.id) return true; // Always show self
+          const visibility = privacyMap.get(entry.user_id) || "public";
+          if (visibility === "private") return false;
+          if (visibility === "friends") return friendIds.includes(entry.user_id);
+          return true; // public
+        });
+
+        setEntries(filtered);
+        setLoading(false);
+        return;
+      }
+    }
+
     setEntries(data || []);
     setLoading(false);
-  };
+  }, [viewName, isSP, user]);
 
   useEffect(() => {
     fetchEntries();
 
-    // Subscribe to game_scores changes to auto-refresh leaderboard
     const channel = supabase
       .channel(`leaderboard-${mode}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "game_scores" }, () => {
@@ -50,7 +96,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [viewName]);
+  }, [viewName, fetchEntries]);
 
   const medals = ["#1", "#2", "#3"];
 
@@ -71,6 +117,13 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
           <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
           <h1 className="text-3xl sm:text-4xl font-black text-foreground">{isSP ? "SP" : "MP"} Leaderboard</h1>
         </motion.div>
+
+        {!isSP && (
+          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground bg-secondary rounded-lg px-3 py-2">
+            <EyeOff className="w-3.5 h-3.5" />
+            <span>Players with private profiles are hidden from the leaderboard.</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>
