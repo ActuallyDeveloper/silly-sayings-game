@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +16,24 @@ interface ChatMessage {
   isPlayer: boolean;
 }
 
+interface GameContext {
+  phase: string;
+  round: number;
+  scores: { name: string; score: number }[];
+  lastBlackCard?: string;
+  lastWinner?: string;
+  playerName: string;
+}
+
 interface GameChatProps {
   aiPlayers: AIPersonality[];
   gamePhase: string;
   roundNumber: number;
   playerName?: string;
+  gameContext?: Omit<GameContext, "playerName">;
 }
 
-const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: GameChatProps) => {
+const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameContext }: GameChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
@@ -31,40 +41,130 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: Gam
   const [responding, setResponding] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastPhaseRef = useRef("");
-  const lastRoundRef = useRef(0);
   const msgIdRef = useRef(0);
+  const spontaneousTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiReplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const addMessage = (sender: string, avatar: string, color: string, message: string, isPlayer = false) => {
-    const msg: ChatMessage = { id: `msg-${msgIdRef.current++}`, sender, avatar, color, message, isPlayer };
-    setMessages((prev) => [...prev, msg]);
-    if (!open) setUnread((u) => u + 1);
-  };
+  const getCtx = useCallback((): GameContext => ({
+    phase: gamePhase,
+    round: roundNumber,
+    scores: gameContext?.scores || [],
+    lastBlackCard: gameContext?.lastBlackCard,
+    lastWinner: gameContext?.lastWinner,
+    playerName,
+  }), [gamePhase, roundNumber, gameContext, playerName]);
+
+  const getChatHistory = useCallback(() => {
+    return messages.slice(-20).map(m => ({ sender: m.sender, message: m.message }));
+  }, [messages]);
+
+  const addMessages = useCallback((newMsgs: ChatMessage[]) => {
+    setMessages(prev => [...prev, ...newMsgs]);
+    setUnread(prev => prev + newMsgs.filter(m => !m.isPlayer).length);
+  }, []);
+
+  const findAI = (name: string) => aiPlayers.find(ai => ai.name === name);
+
+  const callGroupChat = useCallback(async (trigger: string) => {
+    if (aiPlayers.length === 0 || responding) return;
+    setResponding(true);
+    try {
+      const { data } = await supabase.functions.invoke("game-ai", {
+        body: {
+          type: "group_chat",
+          aiPlayers: aiPlayers.map(ai => ({
+            name: ai.name,
+            personality: ai.personality,
+            chatStyle: ai.chatStyle,
+            avatar: ai.avatar,
+          })),
+          chatHistory: getChatHistory(),
+          gameContext: getCtx(),
+          trigger,
+        },
+      });
+      const aiMsgs = data?.messages || [];
+      if (aiMsgs.length > 0) {
+        // Stagger messages for natural feel
+        let delay = 300 + Math.random() * 700;
+        for (const msg of aiMsgs) {
+          const ai = findAI(msg.name);
+          if (!ai) continue;
+          setTimeout(() => {
+            const chatMsg: ChatMessage = {
+              id: `msg-${msgIdRef.current++}`,
+              sender: ai.name,
+              avatar: ai.avatar,
+              color: ai.color,
+              message: msg.message,
+              isPlayer: false,
+            };
+            addMessages([chatMsg]);
+          }, delay);
+          delay += 800 + Math.random() * 1500;
+        }
+        // Maybe trigger AI-to-AI reply chain
+        if (Math.random() > 0.6 && trigger !== "ai_reply") {
+          aiReplyTimerRef.current = setTimeout(() => {
+            setResponding(false);
+            callGroupChat("ai_reply");
+          }, delay + 2000 + Math.random() * 3000);
+          return;
+        }
+      }
+    } catch {
+      // Fallback to scripted reaction
+      if (aiPlayers.length > 0) {
+        const ai = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+        const fallback: ChatMessage = {
+          id: `msg-${msgIdRef.current++}`,
+          sender: ai.name, avatar: ai.avatar, color: ai.color,
+          message: getRandomReaction(ai, "roundStart"), isPlayer: false,
+        };
+        addMessages([fallback]);
+      }
+    }
+    setResponding(false);
+  }, [aiPlayers, responding, getChatHistory, getCtx, addMessages]);
 
   // React to game phase changes
   useEffect(() => {
     const phaseKey = `${gamePhase}-${roundNumber}`;
     if (phaseKey === lastPhaseRef.current) return;
     lastPhaseRef.current = phaseKey;
-
     if (aiPlayers.length === 0) return;
 
-    if (gamePhase === "choosing_black" && roundNumber > 1) {
-      const ai = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
-      setTimeout(() => addMessage(ai.name, ai.avatar, ai.color, getRandomReaction(ai, "roundStart")), 1000 + Math.random() * 2000);
-    } else if (gamePhase === "result") {
-      const ai = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
-      const type = Math.random() > 0.5 ? "wonRound" : "lostRound";
-      setTimeout(() => addMessage(ai.name, ai.avatar, ai.color, getRandomReaction(ai, type)), 500 + Math.random() * 1500);
-    }
-  }, [gamePhase, roundNumber, aiPlayers]);
+    const delay = 1000 + Math.random() * 2000;
+    setTimeout(() => callGroupChat("phase_change"), delay);
+  }, [gamePhase, roundNumber, aiPlayers.length]);
 
   // Game start message
   useEffect(() => {
     if (aiPlayers.length > 0 && messages.length === 0) {
-      const ai = aiPlayers[0];
-      addMessage(ai.name, ai.avatar, ai.color, getRandomReaction(ai, "gameStart"));
+      setTimeout(() => callGroupChat("phase_change"), 500);
     }
-  }, [aiPlayers]);
+  }, [aiPlayers.length]);
+
+  // Spontaneous chatter - AI players randomly talk every 15-40 seconds
+  useEffect(() => {
+    if (aiPlayers.length === 0) return;
+
+    const scheduleSpontaneous = () => {
+      const delay = 15000 + Math.random() * 25000;
+      spontaneousTimerRef.current = setTimeout(() => {
+        if (Math.random() > 0.4) { // 60% chance to actually say something
+          callGroupChat("spontaneous");
+        }
+        scheduleSpontaneous();
+      }, delay);
+    };
+
+    scheduleSpontaneous();
+    return () => {
+      if (spontaneousTimerRef.current) clearTimeout(spontaneousTimerRef.current);
+      if (aiReplyTimerRef.current) clearTimeout(aiReplyTimerRef.current);
+    };
+  }, [aiPlayers.length]);
 
   useEffect(() => {
     if (open) {
@@ -76,34 +176,16 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: Gam
   const sendMessage = async () => {
     if (!input.trim() || responding) return;
     const msg = input.trim();
-    addMessage(playerName, "👤", "hsl(var(--accent))", msg, true);
+    const playerMsg: ChatMessage = {
+      id: `msg-${msgIdRef.current++}`,
+      sender: playerName, avatar: "👤", color: "hsl(var(--accent))",
+      message: msg, isPlayer: true,
+    };
+    addMessages([playerMsg]);
     setInput("");
-    setResponding(true);
 
-    // Pick a random AI to respond
-    const ai = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
-
-    try {
-      const { data } = await supabase.functions.invoke("game-ai", {
-        body: {
-          type: "chat",
-          playerMessage: msg,
-          aiName: ai.name,
-          aiPersonality: ai.personality,
-          aiChatStyle: ai.chatStyle,
-        },
-      });
-      const response = data?.response || getRandomReaction(ai, "roundStart");
-      setTimeout(() => {
-        addMessage(ai.name, ai.avatar, ai.color, response);
-        setResponding(false);
-      }, 500 + Math.random() * 1000);
-    } catch {
-      setTimeout(() => {
-        addMessage(ai.name, ai.avatar, ai.color, getRandomReaction(ai, "roundStart"));
-        setResponding(false);
-      }, 500);
-    }
+    // AI responds to player
+    setTimeout(() => callGroupChat("reply_to_player"), 500 + Math.random() * 1000);
   };
 
   return (
@@ -115,7 +197,7 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: Gam
         {open ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
         {!open && unread > 0 && (
           <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-            {unread}
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
@@ -130,7 +212,9 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: Gam
           >
             <div className="px-4 py-3 border-b border-border">
               <p className="text-sm font-bold text-foreground">Game Chat</p>
-              <p className="text-[10px] text-muted-foreground">{aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""} • Round {roundNumber}
+              </p>
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2 max-h-64">
@@ -141,7 +225,9 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You" }: Gam
                 <div key={msg.id} className={`flex flex-col ${msg.isPlayer ? "items-end" : "items-start"}`}>
                   <div className="flex items-center gap-1 mb-0.5">
                     <span className="text-sm">{msg.avatar}</span>
-                    <span className="text-[10px] text-muted-foreground font-bold">{msg.sender}</span>
+                    <span className="text-[10px] font-bold" style={{ color: msg.isPlayer ? undefined : msg.color }}>
+                      {msg.sender}
+                    </span>
                   </div>
                   <div
                     className={`px-3 py-1.5 rounded-lg text-sm max-w-[85%] ${
