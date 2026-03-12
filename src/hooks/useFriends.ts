@@ -49,9 +49,10 @@ export function useFriends() {
       return { ...f, friend_profile: profiles.find((p: any) => p.user_id === friendId) };
     });
 
-    setFriends(enriched.filter((f: any) => f.status === "accepted"));
-    setPendingReceived(enriched.filter((f: any) => f.status === "pending" && f.addressee_id === user.id));
-    setPendingSent(enriched.filter((f: any) => f.status === "pending" && f.requester_id === user.id));
+    const notBlocked = enriched.filter((f: any) => !isBlocked(f.friend_profile?.user_id));
+    setFriends(notBlocked.filter((f: any) => f.status === "accepted"));
+    setPendingReceived(notBlocked.filter((f: any) => f.status === "pending" && f.addressee_id === user.id));
+    setPendingSent(notBlocked.filter((f: any) => f.status === "pending" && f.requester_id === user.id));
     setLoading(false);
   }, [user]);
 
