@@ -3,7 +3,8 @@ import { BlackCard, WhiteCard, blackCards, whiteCards, shuffle, getCardsByPacks,
 import { supabase } from "@/integrations/supabase/client";
 
 interface GameState {
-  phase: "playing" | "judging" | "result" | "gameover";
+  phase: "choosing_black" | "playing" | "judging" | "result" | "gameover";
+  blackCardChoices: BlackCard[];
   currentBlackCard: BlackCard | null;
   hand: WhiteCard[];
   selectedCards: WhiteCard[];
@@ -21,15 +22,26 @@ interface GameState {
 
 const HAND_SIZE = 7;
 
+function drawBlackChoices(blackDeck: BlackCard[]): { choices: BlackCard[]; remaining: BlackCard[] } {
+  const remaining = [...blackDeck];
+  const choices: BlackCard[] = [];
+  const count = Math.min(2, remaining.length);
+  for (let i = 0; i < count; i++) {
+    choices.push(remaining.shift()!);
+  }
+  return { choices, remaining };
+}
+
 function createInitialState(maxRounds: number, packs: PackId[]): GameState {
   const { blacks, whites } = getCardsByPacks(packs);
   const blackDeck = shuffle(blacks);
   const whiteDeck = shuffle(whites);
   const hand = whiteDeck.splice(0, HAND_SIZE);
-  const currentBlackCard = blackDeck.shift() || null;
+  const { choices, remaining } = drawBlackChoices(blackDeck);
   return {
-    phase: "playing",
-    currentBlackCard,
+    phase: "choosing_black",
+    blackCardChoices: choices,
+    currentBlackCard: null,
     hand,
     selectedCards: [],
     aiCards: [],
@@ -38,7 +50,7 @@ function createInitialState(maxRounds: number, packs: PackId[]): GameState {
     round: 1,
     maxRounds,
     winner: null,
-    blackDeck,
+    blackDeck: remaining,
     whiteDeck,
     trashTalk: null,
     aiJudging: false,
@@ -50,6 +62,13 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
   const dynamicCardsAdded = useRef(false);
   const packsRef = useRef(packs);
   packsRef.current = packs;
+
+  const chooseBlackCard = useCallback((card: BlackCard) => {
+    setState((prev) => {
+      if (prev.phase !== "choosing_black") return prev;
+      return { ...prev, phase: "playing", currentBlackCard: card, blackCardChoices: [] };
+    });
+  }, []);
 
   const selectCard = useCallback((card: WhiteCard) => {
     setState((prev) => {
@@ -135,6 +154,7 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
           phase: "gameover",
           winner: prev.playerScore > prev.aiScore ? "You" : prev.playerScore === prev.aiScore ? "Tie" : "AI",
           trashTalk: null,
+          blackCardChoices: [],
         };
       }
       const newHand = [...prev.hand.filter((c) => !prev.selectedCards.find((s) => s.id === c.id))];
@@ -142,18 +162,18 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
       while (newHand.length < HAND_SIZE && deckCopy.length > 0) {
         newHand.push(deckCopy.shift()!);
       }
-      const nextBlack = prev.blackDeck.length > 0 ? prev.blackDeck[0] : null;
-      const newBlackDeck = prev.blackDeck.slice(1);
+      const { choices, remaining } = drawBlackChoices(prev.blackDeck);
       return {
         ...prev,
-        phase: "playing",
-        currentBlackCard: nextBlack,
+        phase: "choosing_black",
+        blackCardChoices: choices,
+        currentBlackCard: null,
         hand: newHand,
         selectedCards: [],
         aiCards: [],
         round: prev.round + 1,
         winner: null,
-        blackDeck: newBlackDeck,
+        blackDeck: remaining,
         whiteDeck: deckCopy,
         trashTalk: null,
       };
@@ -197,5 +217,5 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
     setState(createInitialState(maxRounds, packsRef.current));
   }, [maxRounds]);
 
-  return { ...state, selectCard, submitCards, judgeWithAI, nextRound, resetGame, generateNewCards };
+  return { ...state, chooseBlackCard, selectCard, submitCards, judgeWithAI, nextRound, resetGame, generateNewCards };
 }

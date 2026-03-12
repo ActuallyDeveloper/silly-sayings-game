@@ -2,15 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import RoomChat from "@/components/RoomChat";
+import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whiteCards } from "@/data/cards";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check } from "lucide-react";
-import type { WhiteCard } from "@/data/cards";
+import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
@@ -19,6 +21,18 @@ const Multiplayer = () => {
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
+  const { selectedPacks } = useSettings();
+  const [lobbyPacks, setLobbyPacks] = useState<PackId[]>(selectedPacks);
+
+  const handleLobbyTogglePack = (packId: PackId) => {
+    setLobbyPacks((prev) => {
+      if (prev.includes(packId)) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((p) => p !== packId);
+      }
+      return [...prev, packId];
+    });
+  };
 
   if (!user) {
     return (
@@ -118,6 +132,10 @@ const Multiplayer = () => {
             </motion.div>
           ))}
         </div>
+
+        {isHost && (
+          <PackSelector selectedPacks={lobbyPacks} onTogglePack={handleLobbyTogglePack} />
+        )}
 
         {game.players.length < 2 && (
           <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
