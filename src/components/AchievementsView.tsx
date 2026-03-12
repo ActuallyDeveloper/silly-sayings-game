@@ -166,7 +166,7 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
                           }`}
                           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                           <div className="flex items-start gap-3">
-                            <span className="text-2xl">{ach.icon}</span>
+                            <Award className="w-6 h-6 text-accent" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="font-black text-foreground text-sm">{ach.title}</p>
