@@ -40,7 +40,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
     })();
   }, [viewName]);
 
-  const medals = ["🥇", "🥈", "🥉"];
+  const medals = ["#1", "#2", "#3"];
 
   return (
     <div className="min-h-screen flex flex-col">
