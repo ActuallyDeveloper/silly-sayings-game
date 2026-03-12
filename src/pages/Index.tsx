@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil } from "lucide-react";
+import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil, MessageCircle } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
