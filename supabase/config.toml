@@ -1,1 +1,4 @@
 project_id = "ufbmwrmuonhwasqmgjca"
+
+[functions.game-ai]
+verify_jwt = false

@@ -24,10 +24,13 @@ const Index = () => {
       <div className="absolute top-4 right-4 flex items-center gap-3">
         {user ? (
           <>
-            <span className="text-sm text-muted-foreground flex items-center gap-1">
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-sm text-muted-foreground flex items-center gap-1 hover:text-accent transition-colors"
+            >
               <User className="w-4 h-4" />
               {profile?.display_name || user.email}
-            </span>
+            </button>
             <Button
               variant="ghost"
               size="sm"
