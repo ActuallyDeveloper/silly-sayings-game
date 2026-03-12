@@ -21,7 +21,14 @@ import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, ensureMode } = useAuth();
+
+  // Set active mode to multiplayer
+  useEffect(() => {
+    ensureMode("multiplayer").then((canProceed) => {
+      if (!canProceed) navigate("/mp/auth");
+    });
+  }, []);
   const game = useMultiplayerGame();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
