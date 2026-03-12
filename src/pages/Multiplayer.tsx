@@ -309,6 +309,7 @@ const Multiplayer = () => {
           </div>
         </div>
       )}
+      <RoomChat roomId={game.room.id} />
     </div>
   );
 };
