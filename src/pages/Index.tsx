@@ -72,14 +72,14 @@ const Index = () => {
       </motion.p>
 
       <motion.div
-        className="flex flex-col w-full max-w-sm sm:max-w-none sm:flex-row gap-3 sm:gap-4 mt-2 sm:mt-4"
+        className="flex flex-col w-full max-w-xs gap-3 mt-2 sm:mt-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
         <Button
           size="lg"
-          className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
+          className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full"
           onClick={() => navigate("/play")}
         >
           Play vs AI
@@ -87,7 +87,7 @@ const Index = () => {
         <Button
           size="lg"
           variant="outline"
-          className="border-muted-foreground/30 text-foreground hover:bg-secondary font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
+          className="border-muted-foreground/30 text-foreground hover:bg-secondary font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full"
           onClick={() => navigate("/multiplayer")}
         >
           Multiplayer
@@ -95,7 +95,7 @@ const Index = () => {
         <Button
           size="lg"
           variant="outline"
-          className="border-accent/30 text-accent hover:bg-accent/10 font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
+          className="border-accent/30 text-accent hover:bg-accent/10 font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full"
           onClick={() => navigate("/leaderboard")}
         >
           Leaderboard
