@@ -100,7 +100,7 @@ export function useMultiplayerGame() {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const p = payload.new as any;
-            setPlayers((prev) => [...prev.filter((x) => x.user_id !== p.user_id), { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]") }]);
+            setPlayers((prev) => [...prev.filter((x) => x.user_id !== p.user_id), { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready }]);
           } else if (payload.eventType === "UPDATE") {
             const p = payload.new as any;
             setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]") } : x));
