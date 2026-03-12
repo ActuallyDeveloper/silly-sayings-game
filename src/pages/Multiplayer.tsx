@@ -40,6 +40,24 @@ const Multiplayer = () => {
   const [aiCount, setAiCount] = useState(1);
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
+  const [countdownActive, setCountdownActive] = useState(false);
+
+  // Auto-trigger countdown when all players ready
+  useEffect(() => {
+    if (game.allReady && game.phase === "lobby" && game.room && !countdownActive) {
+      setCountdownActive(true);
+    }
+    if (!game.allReady && countdownActive) {
+      setCountdownActive(false);
+    }
+  }, [game.allReady, game.phase, game.room, countdownActive]);
+
+  const handleCountdownComplete = useCallback(() => {
+    setCountdownActive(false);
+    if (game.room?.created_by === user?.id) {
+      game.startGame();
+    }
+  }, [game, user]);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
