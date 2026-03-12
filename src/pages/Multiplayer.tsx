@@ -137,6 +137,7 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
+        <RoomChat roomId={game.room.id} />
       </div>
     );
   }
