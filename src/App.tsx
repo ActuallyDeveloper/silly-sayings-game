@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import PlayGame from "./pages/PlayGame.tsx";
 import Multiplayer from "./pages/Multiplayer.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
+import Leaderboard from "./pages/Leaderboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/play" element={<PlayGame />} />
             <Route path="/multiplayer" element={<Multiplayer />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
