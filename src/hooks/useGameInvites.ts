@@ -56,8 +56,9 @@ export function useGameInvites() {
       room: rooms.find((r: any) => r.id === i.room_id),
     }));
 
-    setReceived(enriched.filter((i: any) => i.receiver_id === user.id));
-    setSent(enriched.filter((i: any) => i.sender_id === user.id));
+    const notBlocked = enriched.filter((i: any) => !isBlocked(i.sender_id) && !isBlocked(i.receiver_id));
+    setReceived(notBlocked.filter((i: any) => i.receiver_id === user.id));
+    setSent(notBlocked.filter((i: any) => i.sender_id === user.id));
     setLoading(false);
   }, [user]);
 
