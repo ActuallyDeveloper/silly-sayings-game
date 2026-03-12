@@ -427,6 +427,7 @@ export type Database = {
           display_name: string
           hand: Json
           id: string
+          ready: boolean
           room_id: string
           score: number
           user_id: string
@@ -436,6 +437,7 @@ export type Database = {
           display_name: string
           hand?: Json
           id?: string
+          ready?: boolean
           room_id: string
           score?: number
           user_id: string
@@ -445,6 +447,7 @@ export type Database = {
           display_name?: string
           hand?: Json
           id?: string
+          ready?: boolean
           room_id?: string
           score?: number
           user_id?: string

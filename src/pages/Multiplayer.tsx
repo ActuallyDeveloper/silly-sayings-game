@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
-import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot } from "lucide-react";
+import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle } from "lucide-react";
 import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
@@ -151,9 +151,16 @@ const Multiplayer = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              <Users className="w-4 h-4 text-muted-foreground" />
+              {p.ready ? (
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+              ) : (
+                <Circle className="w-4 h-4 text-muted-foreground" />
+              )}
               <span className="font-bold text-foreground">{p.display_name}</span>
-              {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent ml-auto" />}
+              <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest ${p.ready ? "text-green-500" : "text-muted-foreground/50"}`}>
+                {p.ready ? "Ready" : "Not Ready"}
+              </span>
+              {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
             </motion.div>
           ))}
         </div>
@@ -199,11 +206,21 @@ const Multiplayer = () => {
         )}
 
         <div className="flex gap-3">
-          {isHost && (
+          <Button
+            onClick={game.toggleReady}
+            variant={game.myPlayer?.ready ? "outline" : "default"}
+            className={game.myPlayer?.ready
+              ? "border-green-500 text-green-500 hover:bg-green-500/10 font-bold"
+              : "bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+            }
+          >
+            {game.myPlayer?.ready ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</> : <><Circle className="w-4 h-4 mr-2" /> Ready Up</>}
+          </Button>
+          {isHost && game.allReady && (
             <Button
               onClick={game.startGame}
-              disabled={game.loading || (game.players.length < 2 && !aiRequired)}
-              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
+              disabled={game.loading}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold animate-pulse"
             >
               Start Game
             </Button>
@@ -212,6 +229,9 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
+        {!game.allReady && game.players.length >= 2 && (
+          <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
+        )}
         <RoomChat
           roomId={game.room.id}
           aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}

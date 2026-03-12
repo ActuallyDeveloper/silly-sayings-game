@@ -11,6 +11,7 @@ export interface RoomPlayer {
   display_name: string;
   score: number;
   hand: number[];
+  ready: boolean;
 }
 
 export interface Room {
@@ -99,10 +100,10 @@ export function useMultiplayerGame() {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const p = payload.new as any;
-            setPlayers((prev) => [...prev.filter((x) => x.user_id !== p.user_id), { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]") }]);
+            setPlayers((prev) => [...prev.filter((x) => x.user_id !== p.user_id), { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready }]);
           } else if (payload.eventType === "UPDATE") {
             const p = payload.new as any;
-            setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]") } : x));
+            setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready } : x));
           } else if (payload.eventType === "DELETE") {
             setPlayers((prev) => prev.filter((x) => x.id !== (payload.old as any).id));
           }
@@ -157,7 +158,7 @@ export function useMultiplayerGame() {
 
       // Fetch players
       const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", r.id);
-      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [] })));
+      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [], ready: !!p.ready })));
     } catch (e: any) {
       setError(e.message);
     }
@@ -190,7 +191,7 @@ export function useMultiplayerGame() {
       if (joinErr && !joinErr.message.includes("duplicate")) throw joinErr;
 
       const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", r.id);
-      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [] })));
+      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [], ready: !!p.ready })));
     } catch (e: any) {
       setError(e.message);
     }
@@ -335,9 +336,17 @@ export function useMultiplayerGame() {
     setPhase("lobby");
   }, [room, user]);
 
+  const toggleReady = useCallback(async () => {
+    if (!myPlayer) return;
+    await (supabase as any).from("room_players").update({ ready: !myPlayer.ready }).eq("id", myPlayer.id);
+  }, [myPlayer]);
+
+  const allReady = players.length >= 2 && players.every((p) => p.ready);
+
   return {
     room, players, submissions, phase, error, loading,
     isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
-    createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom,
+    allReady,
+    createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
   };
 }

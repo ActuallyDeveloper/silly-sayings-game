@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useMemo } from "react";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil, MessageCircle } from "lucide-react";
+import { blackCards, whiteCards } from "@/data/cards";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -13,14 +14,18 @@ const Index = () => {
 
   const displayName = profile?.username || profile?.display_name || user?.email;
 
+  // Pick random cards on each mount (page refresh)
+  const randomBlack = useMemo(() => blackCards[Math.floor(Math.random() * blackCards.length)], []);
+  const randomWhite = useMemo(() => whiteCards[Math.floor(Math.random() * whiteCards.length)], []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-8">
       {/* Decorative floating cards */}
       <div className="absolute top-10 left-10 rotate-[-15deg] opacity-20 hidden lg:block animate-float">
-        <GameCard text="What's that smell?" type="black" small logo />
+        <GameCard text={randomBlack.text} type="black" small logo />
       </div>
       <div className="absolute bottom-10 right-10 rotate-[12deg] opacity-20 hidden lg:block animate-float-delayed">
-        <GameCard text="Poor life choices." type="white" small logo />
+        <GameCard text={randomWhite.text} type="white" small logo />
       </div>
 
       {/* Auth + settings */}
@@ -28,7 +33,7 @@ const Index = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate("/settings")} className="text-muted-foreground hover:text-foreground">
           <Settings className="w-4 h-4" />
         </Button>
-        {user ? (
+        {user && (
           <>
             <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
               <User className="w-4 h-4" />
@@ -38,11 +43,6 @@ const Index = () => {
               <LogOut className="w-4 h-4" />
             </Button>
           </>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => navigate("/sp/auth")}
-            className="border-muted-foreground/30 text-foreground text-xs sm:text-sm">
-            Sign In
-          </Button>
         )}
       </div>
 
