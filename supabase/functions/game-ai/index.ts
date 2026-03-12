@@ -117,7 +117,7 @@ RESPOND WITH ONLY A JSON ARRAY, nothing else:
       console.log("group_chat prompt:", prompt.substring(0, 200));
       const result = await callAI(
         [{ role: "user", content: prompt }],
-        "google/gemini-2.5-flash",
+        "google/gemini-3-flash-preview",
         1.0
       );
       console.log("group_chat raw result:", result);

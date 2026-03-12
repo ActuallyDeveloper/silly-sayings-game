@@ -36,7 +36,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/play" element={<PlayGame />} />
               <Route path="/multiplayer" element={<Multiplayer />} />
-              <Route path="/auth" element={<AuthPage />} />
+              
               <Route path="/sp/auth" element={<SPAuth />} />
               <Route path="/mp/auth" element={<MPAuth />} />
               <Route path="/sp/profile" element={<SPProfile />} />
