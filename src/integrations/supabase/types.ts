@@ -194,13 +194,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          losses: number | null
+          total_games: number | null
+          total_points: number | null
+          user_id: string | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_room_code: { Args: never; Returns: string }
       is_room_member: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
+      }
+      save_multiplayer_score: {
+        Args: {
+          _ai_score: number
+          _player_score: number
+          _rounds: number
+          _user_id: string
+          _won: boolean
+        }
+        Returns: undefined
       }
     }
     Enums: {
