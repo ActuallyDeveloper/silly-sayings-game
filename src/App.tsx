@@ -19,6 +19,7 @@ import SPAchievements from "./pages/SPAchievements";
 import MPAchievements from "./pages/MPAchievements";
 import SPCustomCards from "./pages/SPCustomCards";
 import MPCustomCards from "./pages/MPCustomCards";
+import MPSocial from "./pages/MPSocial";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/mp/achievements" element={<MPAchievements />} />
               <Route path="/sp/custom-cards" element={<SPCustomCards />} />
               <Route path="/mp/custom-cards" element={<MPCustomCards />} />
+              <Route path="/mp/social" element={<MPSocial />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

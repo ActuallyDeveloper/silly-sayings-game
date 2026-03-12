@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil } from "lucide-react";
+import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil, MessageCircle } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -105,6 +105,7 @@ const Index = () => {
             { label: "Leaderboard", icon: Trophy, route: "/mp/leaderboard" },
             { label: "Achievements", icon: Award, route: "/mp/achievements" },
             { label: "Custom Cards", icon: Pencil, route: "/mp/custom-cards" },
+            { label: "Social", icon: MessageCircle, route: "/mp/social" },
           ].map((item) => (
             <button key={item.route} onClick={() => navigate(item.route)}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-sm font-bold transition-colors text-left">

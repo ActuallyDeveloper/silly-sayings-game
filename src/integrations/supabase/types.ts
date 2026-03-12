@@ -80,6 +80,112 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          created_at: string
+          id: string
+          media_url: string | null
+          message: string | null
+          message_type: string
+          read_at: string | null
+          receiver_id: string
+          reply_to_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          message?: string | null
+          message_type?: string
+          read_at?: string | null
+          receiver_id: string
+          reply_to_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          message?: string | null
+          message_type?: string
+          read_at?: string | null
+          receiver_id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_invites: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          room_id: string | null
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          room_id?: string | null
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          room_id?: string | null
+          sender_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_invites_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_rooms: {
         Row: {
           ai_player_count: number
@@ -170,6 +276,38 @@ export type Database = {
         }
         Relationships: []
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -200,12 +338,47 @@ export type Database = {
         }
         Relationships: []
       }
+      room_message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "room_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_messages: {
         Row: {
           created_at: string
           display_name: string
           id: string
+          media_url: string | null
           message: string
+          message_type: string
+          reply_to_id: string | null
           room_id: string
           user_id: string
         }
@@ -213,7 +386,10 @@ export type Database = {
           created_at?: string
           display_name: string
           id?: string
+          media_url?: string | null
           message: string
+          message_type?: string
+          reply_to_id?: string | null
           room_id: string
           user_id: string
         }
@@ -221,11 +397,21 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          media_url?: string | null
           message?: string
+          message_type?: string
+          reply_to_id?: string | null
           room_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "room_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "room_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "room_messages_room_id_fkey"
             columns: ["room_id"]
@@ -342,6 +528,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_privacy_settings: {
+        Row: {
+          id: string
+          profile_visibility: string
+          receive_dms: string
+          receive_friend_requests: string
+          receive_game_invites: string
+          status_visibility: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          profile_visibility?: string
+          receive_dms?: string
+          receive_friend_requests?: string
+          receive_game_invites?: string
+          status_visibility?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          profile_visibility?: string
+          receive_dms?: string
+          receive_friend_requests?: string
+          receive_game_invites?: string
+          status_visibility?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_status: {
+        Row: {
+          id: string
+          last_seen: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
