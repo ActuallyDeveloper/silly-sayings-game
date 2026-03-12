@@ -103,7 +103,7 @@ export function useMultiplayerGame() {
             setPlayers((prev) => [...prev.filter((x) => x.user_id !== p.user_id), { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready }]);
           } else if (payload.eventType === "UPDATE") {
             const p = payload.new as any;
-            setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]") } : x));
+            setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready } : x));
           } else if (payload.eventType === "DELETE") {
             setPlayers((prev) => prev.filter((x) => x.id !== (payload.old as any).id));
           }
