@@ -14,8 +14,37 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_cards: {
+        Row: {
+          card_type: string
+          created_at: string
+          id: string
+          pick: number
+          text: string
+          user_id: string
+        }
+        Insert: {
+          card_type?: string
+          created_at?: string
+          id?: string
+          pick?: number
+          text: string
+          user_id: string
+        }
+        Update: {
+          card_type?: string
+          created_at?: string
+          id?: string
+          pick?: number
+          text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_rooms: {
         Row: {
+          ai_player_count: number
+          ai_players_data: Json | null
           created_at: string
           created_by: string
           current_black_card_id: number | null
@@ -23,6 +52,7 @@ export type Database = {
           czar_user_id: string | null
           id: string
           max_rounds: number
+          points_to_win: number
           room_code: string
           status: string
           updated_at: string
@@ -30,6 +60,8 @@ export type Database = {
           used_white_card_ids: Json
         }
         Insert: {
+          ai_player_count?: number
+          ai_players_data?: Json | null
           created_at?: string
           created_by: string
           current_black_card_id?: number | null
@@ -37,6 +69,7 @@ export type Database = {
           czar_user_id?: string | null
           id?: string
           max_rounds?: number
+          points_to_win?: number
           room_code: string
           status?: string
           updated_at?: string
@@ -44,6 +77,8 @@ export type Database = {
           used_white_card_ids?: Json
         }
         Update: {
+          ai_player_count?: number
+          ai_players_data?: Json | null
           created_at?: string
           created_by?: string
           current_black_card_id?: number | null
@@ -51,6 +86,7 @@ export type Database = {
           czar_user_id?: string | null
           id?: string
           max_rounds?: number
+          points_to_win?: number
           room_code?: string
           status?: string
           updated_at?: string
@@ -64,6 +100,7 @@ export type Database = {
           ai_score: number
           created_at: string
           id: string
+          packs_used: Json | null
           player_score: number
           rounds_played: number
           user_id: string
@@ -73,6 +110,7 @@ export type Database = {
           ai_score?: number
           created_at?: string
           id?: string
+          packs_used?: Json | null
           player_score?: number
           rounds_played?: number
           user_id: string
@@ -82,6 +120,7 @@ export type Database = {
           ai_score?: number
           created_at?: string
           id?: string
+          packs_used?: Json | null
           player_score?: number
           rounds_played?: number
           user_id?: string
