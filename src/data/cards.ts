@@ -11,7 +11,7 @@ export interface WhiteCard {
   pack: PackId;
 }
 
-export type PackId = "classic" | "pg13" | "nsfw" | "popculture";
+export type PackId = "classic" | "pg13" | "nsfw" | "popculture" | "custom";
 
 export interface CardPack {
   id: PackId;
