@@ -219,6 +219,20 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {blockReportTarget && (
+          <BlockReportDialog
+            username={blockReportTarget.username}
+            userId={blockReportTarget.userId}
+            isBlocked={isBlocked(blockReportTarget.userId)}
+            onBlock={() => blockUser(blockReportTarget.userId)}
+            onUnblock={() => unblockUser(blockReportTarget.userId)}
+            onReport={(reason, details) => reportUser(blockReportTarget.userId, reason, details)}
+            onClose={() => setBlockReportTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
