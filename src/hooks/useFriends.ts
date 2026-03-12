@@ -97,7 +97,7 @@ export function useFriends() {
       .neq("user_id", user.id)
       .ilike("username", `%${query}%`)
       .limit(10);
-    return data || [];
+    return (data || []).filter((u: any) => !isBlocked(u.user_id));
   };
 
   const isFriend = (userId: string) => friends.some(

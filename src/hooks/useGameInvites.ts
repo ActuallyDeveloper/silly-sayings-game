@@ -60,7 +60,7 @@ export function useGameInvites() {
     setReceived(notBlocked.filter((i: any) => i.receiver_id === user.id));
     setSent(notBlocked.filter((i: any) => i.sender_id === user.id));
     setLoading(false);
-  }, [user]);
+  }, [user, isBlocked]);
 
   useEffect(() => {
     fetchInvites();
