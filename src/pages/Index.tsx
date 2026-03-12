@@ -38,7 +38,7 @@ const Index = () => {
             </Button>
           </>
         ) : (
-          <Button variant="outline" size="sm" onClick={() => navigate("/auth")}
+          <Button variant="outline" size="sm" onClick={() => navigate("/sp/auth")}
             className="border-muted-foreground/30 text-foreground text-xs sm:text-sm">
             Sign In
           </Button>
