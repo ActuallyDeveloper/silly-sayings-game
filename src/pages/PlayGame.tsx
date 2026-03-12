@@ -6,19 +6,30 @@ import { supabase } from "@/integrations/supabase/client";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
-import { Trophy, RotateCcw, Home } from "lucide-react";
+import { Trophy, RotateCcw, Home, Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { playCardSelect, playCardSubmit, playWin, playLose, playNewRound, playGameOver } from "@/lib/sounds";
 
 const PlayGame = () => {
   const navigate = useNavigate();
   const game = useGameState();
   const { user } = useAuth();
   const scoreSaved = useRef(false);
+  const cardsGenerated = useRef(false);
+
+  // Generate AI cards at round 5 for variety
+  useEffect(() => {
+    if (game.round === 5 && !cardsGenerated.current) {
+      cardsGenerated.current = true;
+      game.generateNewCards();
+    }
+  }, [game.round]);
 
   // Save score when game ends
   useEffect(() => {
     if (game.phase === "gameover" && user && !scoreSaved.current) {
       scoreSaved.current = true;
+      playGameOver();
       supabase.from("game_scores").insert({
         user_id: user.id,
         player_score: game.playerScore,
@@ -26,11 +37,38 @@ const PlayGame = () => {
         rounds_played: game.round,
         won: game.playerScore > game.aiScore,
       });
+    } else if (game.phase === "gameover" && !scoreSaved.current) {
+      playGameOver();
+      scoreSaved.current = true;
     }
   }, [game.phase, user, game.playerScore, game.aiScore, game.round]);
 
+  // Sound on result
+  useEffect(() => {
+    if (game.phase === "result") {
+      if (game.winner === "You") playWin();
+      else playLose();
+    }
+  }, [game.phase, game.winner]);
+
+  const handleSelectCard = (card: any) => {
+    playCardSelect();
+    game.selectCard(card);
+  };
+
+  const handleSubmit = () => {
+    playCardSubmit();
+    game.submitCards();
+  };
+
+  const handleNextRound = () => {
+    playNewRound();
+    game.nextRound();
+  };
+
   const handleReset = () => {
     scoreSaved.current = false;
+    cardsGenerated.current = false;
     game.resetGame();
   };
 
@@ -64,7 +102,6 @@ const PlayGame = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
         <ExoticLogo size="sm" />
         <div className="flex items-center gap-6 text-sm font-bold">
@@ -74,14 +111,12 @@ const PlayGame = () => {
         </div>
       </header>
 
-      {/* Black card area */}
       <div className="flex justify-center py-8 px-4">
         {game.currentBlackCard && (
           <GameCard text={game.currentBlackCard.text} type="black" logo />
         )}
       </div>
 
-      {/* Judging phase */}
       <AnimatePresence mode="wait">
         {game.phase === "judging" && (
           <motion.div
@@ -91,7 +126,9 @@ const PlayGame = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
-            <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">The AI is judging...</p>
+            <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+              {game.aiJudging ? "AI is thinking..." : "The AI is judging..."}
+            </p>
             <div className="flex flex-wrap justify-center gap-4">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-2 font-bold">YOUR CARD{game.selectedCards.length > 1 ? "S" : ""}</p>
@@ -111,10 +148,11 @@ const PlayGame = () => {
               </div>
             </div>
             <Button
-              onClick={() => game.judge(true)}
-              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2"
+              onClick={game.judgeWithAI}
+              disabled={game.aiJudging}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50"
             >
-              Reveal Winner
+              {game.aiJudging ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...</> : "Reveal Winner"}
             </Button>
           </motion.div>
         )}
@@ -130,8 +168,18 @@ const PlayGame = () => {
             <p className={`text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
               {game.winner === "You" ? "🎉 You won this round!" : "💀 AI wins this round!"}
             </p>
+            {game.trashTalk && (
+              <motion.p
+                className="text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                "{game.trashTalk}"
+              </motion.p>
+            )}
             <Button
-              onClick={game.nextRound}
+              onClick={handleNextRound}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
             >
               Next Round →
@@ -140,7 +188,6 @@ const PlayGame = () => {
         )}
       </AnimatePresence>
 
-      {/* Hand */}
       {game.phase === "playing" && (
         <div className="mt-auto border-t border-border">
           <div className="flex items-center justify-between px-4 md:px-8 py-3">
@@ -150,7 +197,7 @@ const PlayGame = () => {
             <Button
               size="sm"
               disabled={game.selectedCards.length < (game.currentBlackCard?.pick || 1)}
-              onClick={game.submitCards}
+              onClick={handleSubmit}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
             >
               Submit
@@ -164,7 +211,7 @@ const PlayGame = () => {
                 type="white"
                 small
                 selected={!!game.selectedCards.find((c) => c.id === card.id)}
-                onClick={() => game.selectCard(card)}
+                onClick={() => handleSelectCard(card)}
                 logo
               />
             ))}
