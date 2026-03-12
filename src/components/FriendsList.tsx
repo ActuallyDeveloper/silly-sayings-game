@@ -3,13 +3,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameInvites } from "@/hooks/useGameInvites";
 import { useUserStatus } from "@/hooks/useUserStatus";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusIndicator from "@/components/StatusIndicator";
+import BlockReportDialog from "@/components/BlockReportDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UserPlus, UserCheck, UserX, Search, Users, MessageCircle,
-  Gamepad2, Check, X, Clock, Send,
+  Gamepad2, Check, X, Clock, Send, ShieldBan, MoreVertical,
 } from "lucide-react";
 
 interface FriendsListProps {
