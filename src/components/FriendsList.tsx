@@ -71,16 +71,26 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-foreground text-sm">@{u.username || u.display_name}</span>
+                {isBlocked(u.user_id) && <ShieldBan className="w-3 h-3 text-destructive" />}
               </div>
               {u.user_id === user?.id ? (
                 <span className="text-xs text-muted-foreground">You</span>
-              ) : isFriendOrPending(u.user_id) ? (
-                <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
               ) : (
-                <Button size="sm" variant="ghost" onClick={() => sendRequest(u.user_id)}
-                  className="text-accent active:scale-95 transition-transform">
-                  <UserPlus className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isFriendOrPending(u.user_id) ? (
+                    <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
+                  ) : !isBlocked(u.user_id) && (
+                    <Button size="sm" variant="ghost" onClick={() => sendRequest(u.user_id)}
+                      className="text-accent active:scale-95 transition-transform">
+                      <UserPlus className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost"
+                    onClick={() => setBlockReportTarget({ userId: u.user_id, username: u.username || u.display_name || "" })}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                    <MoreVertical className="w-3 h-3" />
+                  </Button>
+                </div>
               )}
             </div>
           ))}
