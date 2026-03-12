@@ -14,6 +14,7 @@ export interface Friendship {
 
 export function useFriends() {
   const { user } = useAuth();
+  const { isBlocked } = useBlockReport();
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [pendingReceived, setPendingReceived] = useState<Friendship[]>([]);
   const [pendingSent, setPendingSent] = useState<Friendship[]>([]);
