@@ -1,7 +1,7 @@
 export interface AIPersonality {
   id: number;
   name: string;
-  avatar: string;
+  icon: string; // Lucide icon name
   color: string;
   personality: string;
   chatStyle: string;
@@ -16,7 +16,7 @@ export interface AIPersonality {
 
 export const AI_PERSONALITIES: AIPersonality[] = [
   {
-    id: 1, name: "Robo Rick", avatar: "🤖", color: "hsl(200 80% 50%)",
+    id: 1, name: "Robo Rick", icon: "cpu", color: "hsl(200 80% 50%)",
     personality: "Sarcastic tech bro", chatStyle: "Uses tech jargon and sarcasm",
     reactions: {
       roundStart: ["Compiling my humor algorithms...", "Let me query my joke database.", "Initializing roast protocol..."],
@@ -27,7 +27,7 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 2, name: "Bot Betty", avatar: "👩‍🔬", color: "hsl(280 70% 55%)",
+    id: 2, name: "Bot Betty", icon: "flask-conical", color: "hsl(280 70% 55%)",
     personality: "Know-it-all professor", chatStyle: "Overly academic and pedantic",
     reactions: {
       roundStart: ["According to my research, this round shall be fascinating.", "Let us observe the comedic variables at play."],
@@ -38,7 +38,7 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 3, name: "Silicon Sam", avatar: "🤠", color: "hsl(30 80% 50%)",
+    id: 3, name: "Silicon Sam", icon: "mountain", color: "hsl(30 80% 50%)",
     personality: "Wild west cowboy AI", chatStyle: "Uses western slang",
     reactions: {
       roundStart: ["Saddle up, partners!", "Time to wrangle some cards!", "Yeehaw, new round!"],
@@ -49,7 +49,7 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 4, name: "Digi Dave", avatar: "🎮", color: "hsl(120 60% 45%)",
+    id: 4, name: "Digi Dave", icon: "gamepad-2", color: "hsl(120 60% 45%)",
     personality: "Hardcore gamer", chatStyle: "Uses gaming references",
     reactions: {
       roundStart: ["New round, new loot!", "Spawning in...", "Loading next level..."],
@@ -60,18 +60,18 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 5, name: "Cyber Cynthia", avatar: "💅", color: "hsl(330 70% 55%)",
+    id: 5, name: "Cyber Cynthia", icon: "sparkles", color: "hsl(330 70% 55%)",
     personality: "Sassy socialite", chatStyle: "Dramatic and gossipy",
     reactions: {
       roundStart: ["Oh this is going to be iconic.", "The drama! The suspense!", "Serving looks AND cards."],
-      wonRound: ["Slay!", "That's called taste, darlings.", "Queen behavior.", "Period. 💅"],
+      wonRound: ["Slay!", "That's called taste, darlings.", "Queen behavior.", "Period."],
       lostRound: ["The audacity!", "I can't even.", "This is SO unfair.", "Whatever, I'm still iconic."],
       playerWon: ["Okay, you ate that.", "Fine, you have taste. This time."],
       gameStart: ["Let's make this fabulous!", "Ready to serve!"],
     },
   },
   {
-    id: 6, name: "Mecha Mike", avatar: "🦾", color: "hsl(0 70% 50%)",
+    id: 6, name: "Mecha Mike", icon: "shield", color: "hsl(0 70% 50%)",
     personality: "Aggressive competitor", chatStyle: "Intense and confrontational",
     reactions: {
       roundStart: ["BRING IT ON!", "I'm going ALL IN!", "No mercy this round!"],
@@ -82,7 +82,7 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 7, name: "Neural Nora", avatar: "🧠", color: "hsl(260 60% 60%)",
+    id: 7, name: "Neural Nora", icon: "brain", color: "hsl(260 60% 60%)",
     personality: "Philosophical thinker", chatStyle: "Deep and existential",
     reactions: {
       roundStart: ["What even is humor, really?", "In the grand scheme of things...", "Let us ponder this one."],
@@ -93,7 +93,7 @@ export const AI_PERSONALITIES: AIPersonality[] = [
     },
   },
   {
-    id: 8, name: "Algo Alex", avatar: "📊", color: "hsl(180 60% 45%)",
+    id: 8, name: "Algo Alex", icon: "bar-chart-3", color: "hsl(180 60% 45%)",
     personality: "Data-driven analyst", chatStyle: "Uses statistics",
     reactions: {
       roundStart: ["Running probability analysis...", "My models predict a 73% win rate this round.", "Analyzing card synergies..."],
