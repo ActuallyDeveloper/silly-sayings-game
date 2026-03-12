@@ -336,6 +336,16 @@ const PlayGame = () => {
           gamePhase={game.phase}
           roundNumber={game.round}
           playerName={profile?.username || profile?.display_name || "You"}
+          gameContext={{
+            phase: game.phase,
+            round: game.round,
+            scores: [
+              { name: profile?.username || "You", score: game.playerScore },
+              ...game.aiPlayers.map(a => ({ name: a.name, score: a.score })),
+            ],
+            lastBlackCard: game.currentBlackCard?.text,
+            lastWinner: game.winner || undefined,
+          }}
         />
       )}
     </div>
