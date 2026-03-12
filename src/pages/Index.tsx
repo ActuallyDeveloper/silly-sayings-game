@@ -105,6 +105,7 @@ const Index = () => {
             { label: "Leaderboard", icon: Trophy, route: "/mp/leaderboard" },
             { label: "Achievements", icon: Award, route: "/mp/achievements" },
             { label: "Custom Cards", icon: Pencil, route: "/mp/custom-cards" },
+            { label: "Social", icon: MessageCircle, route: "/mp/social" },
           ].map((item) => (
             <button key={item.route} onClick={() => navigate(item.route)}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-sm font-bold transition-colors text-left">
