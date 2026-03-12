@@ -16,18 +16,18 @@ export type PackId = "classic" | "pg13" | "nsfw" | "popculture" | "custom";
 export interface CardPack {
   id: PackId;
   name: string;
-  emoji: string;
+  iconName: string;
   description: string;
   blackCount: number;
   whiteCount: number;
 }
 
 export const cardPacks: CardPack[] = [
-  { id: "classic", name: "Classic", emoji: "🃏", description: "The original Cards Against Humanity experience", blackCount: 30, whiteCount: 60 },
-  { id: "pg13", name: "PG-13", emoji: "😇", description: "Family-friendlier prompts & answers", blackCount: 20, whiteCount: 50 },
-  { id: "nsfw", name: "NSFW", emoji: "🔞", description: "Adults only. You've been warned.", blackCount: 15, whiteCount: 40 },
-  { id: "popculture", name: "Pop Culture", emoji: "🎬", description: "Movies, music, memes & internet culture", blackCount: 15, whiteCount: 40 },
-  { id: "custom", name: "My Cards", emoji: "✏️", description: "Your custom-created cards", blackCount: 0, whiteCount: 0 },
+  { id: "classic", name: "Classic", iconName: "layers", description: "The original Cards Against Humanity experience", blackCount: 30, whiteCount: 60 },
+  { id: "pg13", name: "PG-13", iconName: "heart", description: "Family-friendlier prompts & answers", blackCount: 20, whiteCount: 50 },
+  { id: "nsfw", name: "NSFW", iconName: "flame", description: "Adults only. You've been warned.", blackCount: 15, whiteCount: 40 },
+  { id: "popculture", name: "Pop Culture", iconName: "clapperboard", description: "Movies, music, memes & internet culture", blackCount: 15, whiteCount: 40 },
+  { id: "custom", name: "My Cards", iconName: "pencil", description: "Your custom-created cards", blackCount: 0, whiteCount: 0 },
 ];
 
 // ===== CLASSIC PACK =====

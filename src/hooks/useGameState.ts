@@ -7,7 +7,7 @@ export interface AIPlayerState {
   id: number;
   name: string;
   score: number;
-  avatar: string;
+  icon: string;
   color: string;
   personality: AIPersonality;
 }
@@ -67,7 +67,7 @@ function createInitialState(
     id: i + 1,
     name: p.name,
     score: 0,
-    avatar: p.avatar,
+    icon: p.icon,
     color: p.color,
     personality: p,
   }));
