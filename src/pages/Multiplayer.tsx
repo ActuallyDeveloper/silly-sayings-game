@@ -54,7 +54,7 @@ const Multiplayer = () => {
         <Users className="w-16 h-16 text-muted-foreground/30" />
         <h1 className="text-4xl font-black text-foreground">Multiplayer</h1>
         <p className="text-muted-foreground text-center">You need to sign in to play multiplayer.</p>
-        <Button onClick={() => navigate("/auth")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+        <Button onClick={() => navigate("/mp/auth")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
           Sign In
         </Button>
       </div>

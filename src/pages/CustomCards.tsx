@@ -71,7 +71,7 @@ const CustomCards = () => {
         <Pencil className="w-16 h-16 text-muted-foreground/30" />
         <h1 className="text-4xl font-black text-foreground">Custom Cards</h1>
         <p className="text-muted-foreground">Sign in to create custom cards.</p>
-        <Button onClick={() => navigate("/auth")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+        <Button onClick={() => navigate("/sp/auth")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
           Sign In
         </Button>
       </div>
