@@ -121,6 +121,10 @@ const Multiplayer = () => {
           ))}
         </div>
 
+        {isHost && (
+          <PackSelector selectedPacks={lobbyPacks} onTogglePack={handleLobbyTogglePack} />
+        )}
+
         {game.players.length < 2 && (
           <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
         )}
