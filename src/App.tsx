@@ -5,15 +5,22 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import Index from "./pages/Index.tsx";
-import PlayGame from "./pages/PlayGame.tsx";
-import Multiplayer from "./pages/Multiplayer.tsx";
-import AuthPage from "./pages/AuthPage.tsx";
-import Leaderboard from "./pages/Leaderboard.tsx";
-import Profile from "./pages/Profile.tsx";
-import Settings from "./pages/Settings.tsx";
-import CustomCards from "./pages/CustomCards.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import Index from "./pages/Index";
+import PlayGame from "./pages/PlayGame";
+import Multiplayer from "./pages/Multiplayer";
+import AuthPage from "./pages/AuthPage";
+import SPAuth from "./pages/SPAuth";
+import MPAuth from "./pages/MPAuth";
+import SPProfile from "./pages/SPProfile";
+import MPProfile from "./pages/MPProfile";
+import SPLeaderboard from "./pages/SPLeaderboard";
+import MPLeaderboard from "./pages/MPLeaderboard";
+import SPAchievements from "./pages/SPAchievements";
+import MPAchievements from "./pages/MPAchievements";
+import SPCustomCards from "./pages/SPCustomCards";
+import MPCustomCards from "./pages/MPCustomCards";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -30,10 +37,17 @@ const App = () => (
               <Route path="/play" element={<PlayGame />} />
               <Route path="/multiplayer" element={<Multiplayer />} />
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/sp/auth" element={<SPAuth />} />
+              <Route path="/mp/auth" element={<MPAuth />} />
+              <Route path="/sp/profile" element={<SPProfile />} />
+              <Route path="/mp/profile" element={<MPProfile />} />
+              <Route path="/sp/leaderboard" element={<SPLeaderboard />} />
+              <Route path="/mp/leaderboard" element={<MPLeaderboard />} />
+              <Route path="/sp/achievements" element={<SPAchievements />} />
+              <Route path="/mp/achievements" element={<MPAchievements />} />
+              <Route path="/sp/custom-cards" element={<SPCustomCards />} />
+              <Route path="/mp/custom-cards" element={<MPCustomCards />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/custom-cards" element={<CustomCards />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
