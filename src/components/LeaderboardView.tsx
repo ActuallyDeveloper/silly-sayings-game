@@ -75,8 +75,8 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                 <div className="flex items-center justify-between px-3 sm:px-4 py-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg font-black shrink-0">
-                      {i < 3 ? medals[i] : <span className="text-muted-foreground">{i + 1}</span>}
+                    <span className={`text-lg font-black shrink-0 ${i < 3 ? "text-accent" : "text-muted-foreground"}`}>
+                      {i < 3 ? medals[i] : `#${i + 1}`}
                     </span>
                     <div className="min-w-0">
                       <p className="font-bold text-foreground truncate text-sm">{entry.username || entry.display_name || "Anonymous"}</p>

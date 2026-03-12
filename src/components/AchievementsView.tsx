@@ -175,8 +175,9 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
                               <p className="text-xs text-muted-foreground">{ach.description}</p>
                             </div>
                             {isEarned && (
-                              <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r ${TIER_COLORS[tier]} text-white`}>
-                                ✓
+                              <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r ${TIER_COLORS[tier]} text-white flex items-center`}>
+                                <Award className="w-3 h-3" />
+                              </div>
                               </div>
                             )}
                           </div>

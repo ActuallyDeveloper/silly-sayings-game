@@ -1,19 +1,16 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { CardPack, cardPacks, type PackId } from "@/data/cards";
+import { Layers, Heart, Flame, Clapperboard, Pencil, type LucideIcon } from "lucide-react";
+
+const packIcons: Record<string, LucideIcon> = {
+  layers: Layers, heart: Heart, flame: Flame, clapperboard: Clapperboard, pencil: Pencil,
+};
 
 interface PackSelectorProps {
   selectedPacks: PackId[];
   onTogglePack: (packId: PackId) => void;
 }
-
-const packColors: Record<PackId, string> = {
-  classic: "bg-accent text-accent-foreground",
-  pg13: "bg-primary text-primary-foreground",
-  nsfw: "bg-destructive text-destructive-foreground",
-  popculture: "bg-secondary text-secondary-foreground border border-accent",
-  custom: "bg-accent/50 text-accent-foreground border border-accent",
-};
 
 const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
   return (
@@ -22,6 +19,7 @@ const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
       <div className="grid grid-cols-2 gap-2">
         {cardPacks.map((pack) => {
           const isSelected = selectedPacks.includes(pack.id);
+          const Icon = packIcons[pack.iconName] || Layers;
           return (
             <motion.button
               key={pack.id}
@@ -35,7 +33,7 @@ const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
               whileTap={{ scale: 0.98 }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{pack.emoji}</span>
+                <Icon className="w-4 h-4 text-accent" />
                 <span className="font-bold text-sm text-foreground">{pack.name}</span>
               </div>
               <p className="text-[10px] text-muted-foreground leading-tight">{pack.description}</p>

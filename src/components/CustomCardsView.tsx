@@ -108,11 +108,11 @@ const CustomCardsView = ({ mode }: CustomCardsViewProps) => {
           <div className="flex gap-2">
             <button onClick={() => setCardType("white")}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${cardType === "white" ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
-              ⬜ White Card
+              White Card
             </button>
             <button onClick={() => setCardType("black")}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${cardType === "black" ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
-              ⬛ Black Card
+              Black Card
             </button>
           </div>
           <Input placeholder={cardType === "black" ? 'Enter prompt (use _ for blanks)' : "Enter answer card text"}
