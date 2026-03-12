@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSettings } from "@/contexts/SettingsContext";
 import ExoticLogo from "@/components/ExoticLogo";
+import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -10,7 +11,7 @@ import { ArrowLeft, Volume2, VolumeX, Hash, Sun, Moon } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { soundEnabled, setSoundEnabled, maxRounds, setMaxRounds, theme, setTheme } = useSettings();
+  const { soundEnabled, setSoundEnabled, maxRounds, setMaxRounds, theme, setTheme, selectedPacks, togglePack } = useSettings();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -94,6 +95,9 @@ const Settings = () => {
               <span>20</span>
             </div>
           </div>
+
+          {/* Card Packs */}
+          <PackSelector selectedPacks={selectedPacks} onTogglePack={togglePack} />
         </motion.div>
       </div>
     </div>

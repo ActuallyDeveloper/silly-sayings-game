@@ -14,8 +14,8 @@ import { playCardSelect, playCardSubmit, playWin, playLose, playNewRound, playGa
 
 const PlayGame = () => {
   const navigate = useNavigate();
-  const { maxRounds, soundEnabled } = useSettings();
-  const game = useGameState(maxRounds);
+  const { maxRounds, soundEnabled, selectedPacks } = useSettings();
+  const game = useGameState(maxRounds, selectedPacks);
   const { user } = useAuth();
   const scoreSaved = useRef(false);
   const cardsGenerated = useRef(false);

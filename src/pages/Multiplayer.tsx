@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
+import RoomChat from "@/components/RoomChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whiteCards } from "@/data/cards";
@@ -136,6 +137,7 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
+        <RoomChat roomId={game.room.id} />
       </div>
     );
   }
@@ -169,6 +171,7 @@ const Multiplayer = () => {
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
         </div>
+        <RoomChat roomId={game.room.id} />
       </div>
     );
   }
@@ -306,6 +309,7 @@ const Multiplayer = () => {
           </div>
         </div>
       )}
+      <RoomChat roomId={game.room.id} />
     </div>
   );
 };
