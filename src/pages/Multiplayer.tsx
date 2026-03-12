@@ -388,7 +388,10 @@ const Multiplayer = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <p className="text-3xl font-black text-accent">🎉 {game.roundWinner.name} wins!</p>
+            <div className="flex items-center gap-2">
+              <Trophy className="w-8 h-8 text-accent" />
+              <p className="text-3xl font-black text-accent">{game.roundWinner.name} wins!</p>
+            </div>
             {game.room.created_by === user.id && (
               <Button
                 onClick={game.nextRound}
