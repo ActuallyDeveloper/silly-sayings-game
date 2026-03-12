@@ -11,6 +11,7 @@ export interface RoomPlayer {
   display_name: string;
   score: number;
   hand: number[];
+  ready: boolean;
 }
 
 export interface Room {
