@@ -158,7 +158,7 @@ export function useMultiplayerGame() {
 
       // Fetch players
       const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", r.id);
-      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [] })));
+      setPlayers((ps || []).map((p: any) => ({ ...p, hand: Array.isArray(p.hand) ? p.hand : [], ready: !!p.ready })));
     } catch (e: any) {
       setError(e.message);
     }
