@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDirectMessages } from "@/hooks/useDirectMessages";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MediaCapture from "@/components/MediaCapture";
 import MediaMessage from "@/components/MediaMessage";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Heart, Reply, User } from "lucide-react";
+import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
 
 interface DMViewProps {
   otherUserId: string;
@@ -17,6 +18,7 @@ interface DMViewProps {
 const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, toggleReaction, uploadMedia } = useDirectMessages(otherUserId);
+  const { isBlocked } = useBlockReport();
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -127,22 +129,31 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
       )}
 
       {/* Input */}
-      <div className="p-2 border-t border-border space-y-2">
-        <MediaCapture onCapture={handleMediaCapture} disabled={uploading} />
-        <div className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Type a message..."
-            className="text-sm bg-background border-border h-11"
-          />
-          <Button size="sm" onClick={handleSend} disabled={!input.trim() || uploading}
-            className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim h-11 active:scale-95 transition-transform">
-            <Send className="w-4 h-4" />
-          </Button>
+      {isBlocked(otherUserId) ? (
+        <div className="p-4 border-t border-border text-center">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+            <ShieldBan className="w-4 h-4" />
+            <span>You have blocked this user. Unblock to send messages.</span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="p-2 border-t border-border space-y-2">
+          <MediaCapture onCapture={handleMediaCapture} disabled={uploading} />
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Type a message..."
+              className="text-sm bg-background border-border h-11"
+            />
+            <Button size="sm" onClick={handleSend} disabled={!input.trim() || uploading}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim h-11 active:scale-95 transition-transform">
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

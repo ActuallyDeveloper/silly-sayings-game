@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBlockReport } from "@/hooks/useBlockReport";
 
 export interface Friendship {
   id: string;
@@ -13,6 +14,7 @@ export interface Friendship {
 
 export function useFriends() {
   const { user } = useAuth();
+  const { isBlocked } = useBlockReport();
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [pendingReceived, setPendingReceived] = useState<Friendship[]>([]);
   const [pendingSent, setPendingSent] = useState<Friendship[]>([]);
@@ -47,11 +49,12 @@ export function useFriends() {
       return { ...f, friend_profile: profiles.find((p: any) => p.user_id === friendId) };
     });
 
-    setFriends(enriched.filter((f: any) => f.status === "accepted"));
-    setPendingReceived(enriched.filter((f: any) => f.status === "pending" && f.addressee_id === user.id));
-    setPendingSent(enriched.filter((f: any) => f.status === "pending" && f.requester_id === user.id));
+    const notBlocked = enriched.filter((f: any) => !isBlocked(f.friend_profile?.user_id));
+    setFriends(notBlocked.filter((f: any) => f.status === "accepted"));
+    setPendingReceived(notBlocked.filter((f: any) => f.status === "pending" && f.addressee_id === user.id));
+    setPendingSent(notBlocked.filter((f: any) => f.status === "pending" && f.requester_id === user.id));
     setLoading(false);
-  }, [user]);
+  }, [user, isBlocked]);
 
   useEffect(() => {
     fetchFriendships();
@@ -94,7 +97,7 @@ export function useFriends() {
       .neq("user_id", user.id)
       .ilike("username", `%${query}%`)
       .limit(10);
-    return data || [];
+    return (data || []).filter((u: any) => !isBlocked(u.user_id));
   };
 
   const isFriend = (userId: string) => friends.some(

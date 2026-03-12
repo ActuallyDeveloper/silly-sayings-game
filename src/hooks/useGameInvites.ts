@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBlockReport } from "@/hooks/useBlockReport";
 
 export interface GameInvite {
   id: string;
@@ -15,6 +16,7 @@ export interface GameInvite {
 
 export function useGameInvites() {
   const { user } = useAuth();
+  const { isBlocked } = useBlockReport();
   const [received, setReceived] = useState<GameInvite[]>([]);
   const [sent, setSent] = useState<GameInvite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,10 +56,11 @@ export function useGameInvites() {
       room: rooms.find((r: any) => r.id === i.room_id),
     }));
 
-    setReceived(enriched.filter((i: any) => i.receiver_id === user.id));
-    setSent(enriched.filter((i: any) => i.sender_id === user.id));
+    const notBlocked = enriched.filter((i: any) => !isBlocked(i.sender_id) && !isBlocked(i.receiver_id));
+    setReceived(notBlocked.filter((i: any) => i.receiver_id === user.id));
+    setSent(notBlocked.filter((i: any) => i.sender_id === user.id));
     setLoading(false);
-  }, [user]);
+  }, [user, isBlocked]);
 
   useEffect(() => {
     fetchInvites();
