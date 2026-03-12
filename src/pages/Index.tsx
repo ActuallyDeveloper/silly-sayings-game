@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useMemo } from "react";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, Settings, Gamepad2, Users, Trophy, Award, Pencil, MessageCircle } from "lucide-react";
+import { blackCards, whiteCards } from "@/data/cards";
 
 const Index = () => {
   const navigate = useNavigate();
