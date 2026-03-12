@@ -28,7 +28,7 @@ const Leaderboard = () => {
         .select("*")
         .order("wins", { ascending: false })
         .limit(50);
-      setEntries((data as LeaderboardEntry[] | null) || []);
+      setEntries((data as unknown as LeaderboardEntry[] | null) || []);
       setLoading(false);
     }
     fetch();

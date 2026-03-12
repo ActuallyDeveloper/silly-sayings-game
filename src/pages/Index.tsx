@@ -81,6 +81,14 @@ const Index = () => {
         >
           Multiplayer
         </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="border-accent/30 text-accent hover:bg-accent/10 font-bold text-lg px-8 py-6"
+          onClick={() => navigate("/leaderboard")}
+        >
+          Leaderboard
+        </Button>
       </motion.div>
 
       {!user && (
