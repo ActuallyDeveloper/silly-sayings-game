@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDirectMessages } from "@/hooks/useDirectMessages";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MediaCapture from "@/components/MediaCapture";
 import MediaMessage from "@/components/MediaMessage";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Heart, Reply, User } from "lucide-react";
+import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
 
 interface DMViewProps {
   otherUserId: string;
@@ -17,6 +18,7 @@ interface DMViewProps {
 const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, toggleReaction, uploadMedia } = useDirectMessages(otherUserId);
+  const { isBlocked } = useBlockReport();
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
