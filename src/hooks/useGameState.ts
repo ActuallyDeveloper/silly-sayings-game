@@ -67,7 +67,7 @@ function createInitialState(
     id: i + 1,
     name: p.name,
     score: 0,
-    avatar: p.avatar,
+    icon: p.icon,
     color: p.color,
     personality: p,
   }));

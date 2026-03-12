@@ -3,20 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
+import AIIcon from "@/components/AIIcon";
 
 interface ChatMessage {
   id: string;
   sender: string;
-  avatar?: string;
+  icon?: string;
   color?: string;
   message: string;
   isPlayer: boolean;
   isAI?: boolean;
-  created_at?: string;
 }
 
 interface RoomChatProps {
@@ -43,7 +43,6 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
 
   const playerName = profile?.username || profile?.display_name || "Player";
 
-  // Load existing DB messages
   useEffect(() => {
     supabase
       .from("room_messages")
@@ -53,12 +52,8 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
       .then(({ data }) => {
         if (data) {
           setMessages(data.map((m: any) => ({
-            id: m.id,
-            sender: m.display_name,
-            message: m.message,
-            isPlayer: m.user_id === user?.id,
-            isAI: false,
-            created_at: m.created_at,
+            id: m.id, sender: m.display_name, message: m.message,
+            isPlayer: m.user_id === user?.id, isAI: false,
           })));
         }
       });
@@ -70,21 +65,13 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
         { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${roomId}` },
         (payload) => {
           const msg = payload.new as any;
-          const chatMsg: ChatMessage = {
-            id: msg.id,
-            sender: msg.display_name,
-            message: msg.message,
-            isPlayer: msg.user_id === user?.id,
-            isAI: false,
-          };
-          setMessages((prev) => [...prev, chatMsg]);
+          setMessages((prev) => [...prev, {
+            id: msg.id, sender: msg.display_name, message: msg.message,
+            isPlayer: msg.user_id === user?.id, isAI: false,
+          }]);
           if (!open) setUnread((u) => u + 1);
-
-          // If AI players exist and a human sent a message, AI might reply
-          if (aiPlayers.length > 0 && msg.user_id !== user?.id) {
-            if (Math.random() > 0.5) {
-              setTimeout(() => callAIGroupChat("reply_to_player"), 1000 + Math.random() * 2000);
-            }
+          if (aiPlayers.length > 0 && msg.user_id !== user?.id && Math.random() > 0.5) {
+            setTimeout(() => callAIGroupChat("reply_to_player"), 1000 + Math.random() * 2000);
           }
         }
       )
@@ -106,13 +93,10 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
           type: "group_chat",
           aiPlayers: aiPlayers.map(ai => ({
             name: ai.name, personality: ai.personality,
-            chatStyle: ai.chatStyle, avatar: ai.avatar,
+            chatStyle: ai.chatStyle, icon: ai.icon,
           })),
           chatHistory: getChatHistory(),
-          gameContext: {
-            phase: gamePhase, round: roundNumber,
-            scores: gameScores, lastBlackCard, lastWinner, playerName,
-          },
+          gameContext: { phase: gamePhase, round: roundNumber, scores: gameScores, lastBlackCard, lastWinner, playerName },
           trigger,
         },
       });
@@ -123,24 +107,19 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
           const ai = aiPlayers.find(a => a.name === msg.name);
           if (!ai) continue;
           setTimeout(() => {
-            const chatMsg: ChatMessage = {
-              id: `ai-${msgIdRef.current++}`,
-              sender: ai.name, avatar: ai.avatar, color: ai.color,
-              message: msg.message, isPlayer: false, isAI: true,
-            };
-            setMessages(prev => [...prev, chatMsg]);
+            setMessages(prev => [...prev, {
+              id: `ai-${msgIdRef.current++}`, sender: ai.name, icon: ai.icon,
+              color: ai.color, message: msg.message, isPlayer: false, isAI: true,
+            }]);
             if (!open) setUnread(u => u + 1);
           }, delay);
           delay += 800 + Math.random() * 1500;
         }
       }
-    } catch {
-      // Silent fail for AI chat
-    }
+    } catch { /* silent */ }
     setAiResponding(false);
   }, [aiPlayers, aiResponding, getChatHistory, gamePhase, roundNumber, gameScores, lastBlackCard, lastWinner, playerName, open]);
 
-  // AI reacts to phase changes
   useEffect(() => {
     if (aiPlayers.length === 0) return;
     const phaseKey = `${gamePhase}-${roundNumber}`;
@@ -149,16 +128,15 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
     setTimeout(() => callAIGroupChat("phase_change"), 1000 + Math.random() * 2000);
   }, [gamePhase, roundNumber, aiPlayers.length]);
 
-  // Spontaneous AI banter
   useEffect(() => {
     if (aiPlayers.length === 0) return;
-    const scheduleSpontaneous = () => {
+    const schedule = () => {
       spontaneousTimerRef.current = setTimeout(() => {
         if (Math.random() > 0.4) callAIGroupChat("spontaneous");
-        scheduleSpontaneous();
+        schedule();
       }, 20000 + Math.random() * 30000);
     };
-    scheduleSpontaneous();
+    schedule();
     return () => { if (spontaneousTimerRef.current) clearTimeout(spontaneousTimerRef.current); };
   }, [aiPlayers.length]);
 
@@ -171,20 +149,15 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
 
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
-    const msgText = input.trim();
     await supabase.from("room_messages").insert({
       room_id: roomId, user_id: user.id,
-      display_name: playerName, message: msgText,
+      display_name: playerName, message: input.trim(),
     });
     setInput("");
-
-    // AI players respond to the player
     if (aiPlayers.length > 0) {
       setTimeout(() => callAIGroupChat("reply_to_player"), 800 + Math.random() * 1500);
     }
   };
-
-  const hasAI = aiPlayers.length > 0;
 
   return (
     <>
@@ -210,7 +183,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
           >
             <div className="px-4 py-3 border-b border-border">
               <p className="text-sm font-bold text-foreground">Room Chat</p>
-              {hasAI && <p className="text-[10px] text-muted-foreground">{aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""} in chat</p>}
+              {aiPlayers.length > 0 && <p className="text-[10px] text-muted-foreground">{aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""} in chat</p>}
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-2 max-h-64">
@@ -220,7 +193,11 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.isPlayer ? "items-end" : "items-start"}`}>
                   <div className="flex items-center gap-1 mb-0.5">
-                    {msg.isAI && msg.avatar && <span className="text-sm">{msg.avatar}</span>}
+                    {msg.isAI && msg.icon ? (
+                      <AIIcon icon={msg.icon} size={12} color={msg.color} animated={false} />
+                    ) : (
+                      <User className="w-3 h-3 text-muted-foreground" />
+                    )}
                     <span
                       className="text-[10px] font-bold"
                       style={{ color: msg.isAI && msg.color ? msg.color : undefined }}
@@ -239,7 +216,9 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
               ))}
               {aiResponding && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className="animate-pulse">●</span> AI is typing...
+                  <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                    AI is typing...
+                  </motion.span>
                 </div>
               )}
             </div>

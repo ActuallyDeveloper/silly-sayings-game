@@ -2,15 +2,16 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
+import AIIcon from "@/components/AIIcon";
 
 interface ChatMessage {
   id: string;
   sender: string;
-  avatar: string;
+  icon: string;
   color: string;
   message: string;
   isPlayer: boolean;
@@ -76,7 +77,7 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
             name: ai.name,
             personality: ai.personality,
             chatStyle: ai.chatStyle,
-            avatar: ai.avatar,
+            icon: ai.icon,
           })),
           chatHistory: getChatHistory(),
           gameContext: getCtx(),
@@ -85,7 +86,6 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
       });
       const aiMsgs = data?.messages || [];
       if (aiMsgs.length > 0) {
-        // Stagger messages for natural feel
         let delay = 300 + Math.random() * 700;
         for (const msg of aiMsgs) {
           const ai = findAI(msg.name);
@@ -94,7 +94,7 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
             const chatMsg: ChatMessage = {
               id: `msg-${msgIdRef.current++}`,
               sender: ai.name,
-              avatar: ai.avatar,
+              icon: ai.icon,
               color: ai.color,
               message: msg.message,
               isPlayer: false,
@@ -103,7 +103,6 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
           }, delay);
           delay += 800 + Math.random() * 1500;
         }
-        // Maybe trigger AI-to-AI reply chain
         if (Math.random() > 0.6 && trigger !== "ai_reply") {
           aiReplyTimerRef.current = setTimeout(() => {
             setResponding(false);
@@ -113,12 +112,11 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
         }
       }
     } catch {
-      // Fallback to scripted reaction
       if (aiPlayers.length > 0) {
         const ai = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
         const fallback: ChatMessage = {
           id: `msg-${msgIdRef.current++}`,
-          sender: ai.name, avatar: ai.avatar, color: ai.color,
+          sender: ai.name, icon: ai.icon, color: ai.color,
           message: getRandomReaction(ai, "roundStart"), isPlayer: false,
         };
         addMessages([fallback]);
@@ -127,38 +125,29 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
     setResponding(false);
   }, [aiPlayers, responding, getChatHistory, getCtx, addMessages]);
 
-  // React to game phase changes
   useEffect(() => {
     const phaseKey = `${gamePhase}-${roundNumber}`;
     if (phaseKey === lastPhaseRef.current) return;
     lastPhaseRef.current = phaseKey;
     if (aiPlayers.length === 0) return;
-
     const delay = 1000 + Math.random() * 2000;
     setTimeout(() => callGroupChat("phase_change"), delay);
   }, [gamePhase, roundNumber, aiPlayers.length]);
 
-  // Game start message
   useEffect(() => {
     if (aiPlayers.length > 0 && messages.length === 0) {
       setTimeout(() => callGroupChat("phase_change"), 500);
     }
   }, [aiPlayers.length]);
 
-  // Spontaneous chatter - AI players randomly talk every 15-40 seconds
   useEffect(() => {
     if (aiPlayers.length === 0) return;
-
     const scheduleSpontaneous = () => {
-      const delay = 15000 + Math.random() * 25000;
       spontaneousTimerRef.current = setTimeout(() => {
-        if (Math.random() > 0.4) { // 60% chance to actually say something
-          callGroupChat("spontaneous");
-        }
+        if (Math.random() > 0.4) callGroupChat("spontaneous");
         scheduleSpontaneous();
-      }, delay);
+      }, 15000 + Math.random() * 25000);
     };
-
     scheduleSpontaneous();
     return () => {
       if (spontaneousTimerRef.current) clearTimeout(spontaneousTimerRef.current);
@@ -178,13 +167,11 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
     const msg = input.trim();
     const playerMsg: ChatMessage = {
       id: `msg-${msgIdRef.current++}`,
-      sender: playerName, avatar: "👤", color: "hsl(var(--accent))",
+      sender: playerName, icon: "user", color: "hsl(var(--accent))",
       message: msg, isPlayer: true,
     };
     addMessages([playerMsg]);
     setInput("");
-
-    // AI responds to player
     setTimeout(() => callGroupChat("reply_to_player"), 500 + Math.random() * 1000);
   };
 
@@ -213,7 +200,7 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
             <div className="px-4 py-3 border-b border-border">
               <p className="text-sm font-bold text-foreground">Game Chat</p>
               <p className="text-[10px] text-muted-foreground">
-                {aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""} • Round {roundNumber}
+                {aiPlayers.length} AI player{aiPlayers.length !== 1 ? "s" : ""} · Round {roundNumber}
               </p>
             </div>
 
@@ -224,7 +211,11 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.isPlayer ? "items-end" : "items-start"}`}>
                   <div className="flex items-center gap-1 mb-0.5">
-                    <span className="text-sm">{msg.avatar}</span>
+                    {msg.isPlayer ? (
+                      <User className="w-3 h-3 text-muted-foreground" />
+                    ) : (
+                      <AIIcon icon={msg.icon} size={12} color={msg.color} animated={false} />
+                    )}
                     <span className="text-[10px] font-bold" style={{ color: msg.isPlayer ? undefined : msg.color }}>
                       {msg.sender}
                     </span>
@@ -240,7 +231,12 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
               ))}
               {responding && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className="animate-pulse">●</span> AI is typing...
+                  <motion.span
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                  >
+                    AI is typing...
+                  </motion.span>
                 </div>
               )}
             </div>
