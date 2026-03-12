@@ -136,4 +136,11 @@
   .exotic-glow {
     text-shadow: 0 0 40px hsl(43 100% 50% / 0.3);
   }
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .card-flip-inner {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
 }
