@@ -1,13 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+type Theme = "dark" | "light";
+
 interface Settings {
   soundEnabled: boolean;
   maxRounds: number;
+  theme: Theme;
 }
 
 interface SettingsContextType extends Settings {
   setSoundEnabled: (v: boolean) => void;
   setMaxRounds: (v: number) => void;
+  setTheme: (v: Theme) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -17,9 +21,9 @@ const STORAGE_KEY = "exotic-settings";
 function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...{ soundEnabled: true, maxRounds: 10 }, ...JSON.parse(raw) };
+    if (raw) return { ...{ soundEnabled: true, maxRounds: 10, theme: "dark" as Theme }, ...JSON.parse(raw) };
   } catch {}
-  return { soundEnabled: true, maxRounds: 10 };
+  return { soundEnabled: true, maxRounds: 10, theme: "dark" };
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -29,12 +33,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
+  // Apply theme class to document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === "light") {
+      root.classList.add("light");
+    } else {
+      root.classList.remove("light");
+    }
+  }, [settings.theme]);
+
   return (
     <SettingsContext.Provider
       value={{
         ...settings,
         setSoundEnabled: (v) => setSettings((s) => ({ ...s, soundEnabled: v })),
         setMaxRounds: (v) => setSettings((s) => ({ ...s, maxRounds: v })),
+        setTheme: (v) => setSettings((s) => ({ ...s, theme: v })),
       }}
     >
       {children}
