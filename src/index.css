@@ -67,11 +67,17 @@
 
 @layer components {
   .game-card-base {
-    @apply relative rounded-xl p-5 select-none;
+    @apply relative rounded-xl p-3 sm:p-5 select-none;
     aspect-ratio: 3 / 4;
-    min-width: 180px;
-    max-width: 220px;
+    min-width: 150px;
+    max-width: 200px;
     font-family: 'Inter', sans-serif;
+  }
+  @media (min-width: 640px) {
+    .game-card-base {
+      min-width: 180px;
+      max-width: 220px;
+    }
   }
   .game-card-black {
     @apply game-card-base;

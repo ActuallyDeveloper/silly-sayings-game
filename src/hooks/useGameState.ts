@@ -20,34 +20,33 @@ interface GameState {
 }
 
 const HAND_SIZE = 7;
-const MAX_ROUNDS = 10;
 
-export function useGameState() {
-  const [state, setState] = useState<GameState>(() => initGame());
+function createInitialState(maxRounds: number): GameState {
+  const blackDeck = shuffle(blackCards);
+  const whiteDeck = shuffle(whiteCards);
+  const hand = whiteDeck.splice(0, HAND_SIZE);
+  const currentBlackCard = blackDeck.shift() || null;
+  return {
+    phase: "playing",
+    currentBlackCard,
+    hand,
+    selectedCards: [],
+    aiCards: [],
+    playerScore: 0,
+    aiScore: 0,
+    round: 1,
+    maxRounds,
+    winner: null,
+    blackDeck,
+    whiteDeck,
+    trashTalk: null,
+    aiJudging: false,
+  };
+}
+
+export function useGameState(maxRounds = 10) {
+  const [state, setState] = useState<GameState>(() => createInitialState(maxRounds));
   const dynamicCardsAdded = useRef(false);
-
-  function initGame(): GameState {
-    const blackDeck = shuffle(blackCards);
-    const whiteDeck = shuffle(whiteCards);
-    const hand = whiteDeck.splice(0, HAND_SIZE);
-    const currentBlackCard = blackDeck.shift() || null;
-    return {
-      phase: "playing",
-      currentBlackCard,
-      hand,
-      selectedCards: [],
-      aiCards: [],
-      playerScore: 0,
-      aiScore: 0,
-      round: 1,
-      maxRounds: MAX_ROUNDS,
-      winner: null,
-      blackDeck,
-      whiteDeck,
-      trashTalk: null,
-      aiJudging: false,
-    };
-  }
 
   const selectCard = useCallback((card: WhiteCard) => {
     setState((prev) => {
@@ -73,7 +72,6 @@ export function useGameState() {
     });
   }, []);
 
-  // AI-powered judge
   const judgeWithAI = useCallback(async () => {
     setState((prev) => ({ ...prev, aiJudging: true }));
 
@@ -91,7 +89,6 @@ export function useGameState() {
       const playerWins = !error && data?.winner === "player";
       const reason = data?.reason || data?.text || "";
 
-      // Also get trash talk
       let trashTalk = reason;
       try {
         const { data: ttData } = await supabase.functions.invoke("game-ai", {
@@ -102,7 +99,7 @@ export function useGameState() {
           },
         });
         if (ttData?.text) trashTalk = ttData.text;
-      } catch { /* ignore trash talk errors */ }
+      } catch { /* ignore */ }
 
       setState((prev) => ({
         ...prev,
@@ -114,7 +111,6 @@ export function useGameState() {
         aiJudging: false,
       }));
     } catch {
-      // Fallback to random if AI fails
       const playerWins = Math.random() < 0.55;
       setState((prev) => ({
         ...prev,
@@ -161,7 +157,6 @@ export function useGameState() {
     });
   }, []);
 
-  // Generate new AI cards mid-game to keep variety
   const generateNewCards = useCallback(async () => {
     if (dynamicCardsAdded.current) return;
     try {
@@ -189,13 +184,13 @@ export function useGameState() {
           };
         });
       }
-    } catch { /* ignore card generation errors */ }
+    } catch { /* ignore */ }
   }, []);
 
   const resetGame = useCallback(() => {
     dynamicCardsAdded.current = false;
-    setState(initGame());
-  }, []);
+    setState(createInitialState(maxRounds));
+  }, [maxRounds]);
 
   return { ...state, selectCard, submitCards, judgeWithAI, nextRound, resetGame, generateNewCards };
 }
