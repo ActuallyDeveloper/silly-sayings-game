@@ -21,6 +21,19 @@ const Multiplayer = () => {
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
+  const { selectedPacks } = useSettings();
+  const [lobbyPacks, setLobbyPacks] = useState<PackId[]>(selectedPacks);
+
+  const handleLobbyTogglePack = (packId: PackId) => {
+    setLobbyPacks((prev) => {
+      if (prev.includes(packId)) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((p) => p !== packId);
+      }
+      return [...prev, packId];
+    });
+  };
+  const [copied, setCopied] = useState(false);
 
   if (!user) {
     return (
