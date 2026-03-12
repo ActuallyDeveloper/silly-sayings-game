@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
+import RoomChat from "@/components/RoomChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whiteCards } from "@/data/cards";
