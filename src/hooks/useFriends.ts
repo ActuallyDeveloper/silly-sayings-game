@@ -54,7 +54,7 @@ export function useFriends() {
     setPendingReceived(notBlocked.filter((f: any) => f.status === "pending" && f.addressee_id === user.id));
     setPendingSent(notBlocked.filter((f: any) => f.status === "pending" && f.requester_id === user.id));
     setLoading(false);
-  }, [user]);
+  }, [user, isBlocked]);
 
   useEffect(() => {
     fetchFriendships();
