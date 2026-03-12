@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import ExoticLogo from "@/components/ExoticLogo";
 import RoomChat from "@/components/RoomChat";
 import PackSelector from "@/components/PackSelector";
 import PhaseTimer from "@/components/PhaseTimer";
+import LobbyCountdown from "@/components/LobbyCountdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
