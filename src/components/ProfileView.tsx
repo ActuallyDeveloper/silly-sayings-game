@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,26 +24,49 @@ interface ProfileViewProps {
 
 const ProfileView = ({ mode }: ProfileViewProps) => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, ensureMode } = useAuth();
   const [games, setGames] = useState<GameScore[]>([]);
   const [loading, setLoading] = useState(true);
   const isSP = mode === "singleplayer";
   const authRoute = isSP ? "/sp/auth" : "/mp/auth";
 
+  // Ensure correct mode on mount
   useEffect(() => {
+    ensureMode(mode).then((canProceed) => {
+      if (!canProceed) navigate(authRoute);
+    });
+  }, [mode]);
+
+  const fetchGames = useCallback(async () => {
     if (!user) return;
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("game_scores")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("mode", mode)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setGames(data || []);
-      setLoading(false);
-    })();
+    const { data } = await (supabase as any)
+      .from("game_scores")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("mode", mode)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setGames(data || []);
+    setLoading(false);
   }, [user, mode]);
+
+  useEffect(() => {
+    fetchGames();
+
+    if (!user) return;
+    // Realtime subscription for new scores
+    const channel = supabase
+      .channel(`profile-scores-${mode}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "game_scores",
+        filter: `user_id=eq.${user.id}`,
+      }, () => {
+        fetchGames();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, mode, fetchGames]);
 
   if (!user) {
     return (
@@ -51,7 +74,7 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
         <User className="w-16 h-16 text-muted-foreground/30" />
         <h1 className="text-4xl font-black text-foreground">{isSP ? "SP" : "MP"} Profile</h1>
         <p className="text-muted-foreground">Sign in to view your profile.</p>
-        <Button onClick={() => navigate(authRoute)} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">Sign In</Button>
+        <Button onClick={() => navigate(authRoute)} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold min-h-[44px] active:scale-95 transition-transform">Sign In</Button>
       </div>
     );
   }
@@ -77,7 +100,7 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
         <ExoticLogo size="sm" />
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-widest text-accent">{isSP ? "Single Player" : "Multiplayer"}</span>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground min-h-[44px]">
             <ArrowLeft className="w-4 h-4 mr-1" /> Home
           </Button>
         </div>
@@ -90,7 +113,7 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-foreground">{profile?.username || profile?.display_name || "Player"}</h1>
-            <p className="text-sm text-muted-foreground">@{profile?.username || "player"}</p>
+            <p className="text-sm text-muted-foreground">@{profile?.username || "player"} · {isSP ? "SP" : "MP"}</p>
           </div>
         </motion.div>
 
@@ -101,7 +124,7 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
             { icon: TrendingUp, label: "Win Rate", value: `${winRate}%`, color: winRate >= 50 ? "text-accent" : "text-destructive" },
             { icon: Target, label: "Avg Score", value: avgScore, color: "text-foreground" },
           ].map((stat) => (
-            <div key={stat.label} className="bg-secondary rounded-lg p-4 text-center">
+            <div key={stat.label} className="bg-secondary rounded-lg p-4 text-center active:scale-95 transition-transform">
               <stat.icon className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
               <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{stat.label}</p>
@@ -128,10 +151,10 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
         </motion.div>
 
         <div className="flex gap-2 mb-6">
-          <Button size="sm" onClick={() => navigate(isSP ? "/sp/achievements" : "/mp/achievements")} variant="outline" className="border-accent/30 text-accent">
+          <Button size="sm" onClick={() => navigate(isSP ? "/sp/achievements" : "/mp/achievements")} variant="outline" className="border-accent/30 text-accent min-h-[44px] active:scale-95 transition-transform">
             <Award className="w-4 h-4 mr-1" /> Achievements
           </Button>
-          <Button size="sm" onClick={() => navigate(isSP ? "/sp/leaderboard" : "/mp/leaderboard")} variant="outline" className="border-muted-foreground/30">
+          <Button size="sm" onClick={() => navigate(isSP ? "/sp/leaderboard" : "/mp/leaderboard")} variant="outline" className="border-muted-foreground/30 min-h-[44px] active:scale-95 transition-transform">
             <Trophy className="w-4 h-4 mr-1" /> Leaderboard
           </Button>
         </div>
@@ -145,13 +168,13 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
         ) : games.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No games played yet.</p>
-            <Button onClick={() => navigate(isSP ? "/play" : "/multiplayer")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-4">Play Now</Button>
+            <Button onClick={() => navigate(isSP ? "/play" : "/multiplayer")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-4 min-h-[44px] active:scale-95 transition-transform">Play Now</Button>
           </div>
         ) : (
           <div className="space-y-2">
             {games.map((game, i) => (
               <motion.div key={game.id}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg ${game.won ? "bg-accent/10 border border-accent/20" : "bg-secondary"}`}
+                className={`flex items-center justify-between px-4 py-3 rounded-lg min-h-[52px] active:scale-[0.98] transition-transform ${game.won ? "bg-accent/10 border border-accent/20" : "bg-secondary"}`}
                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
                 <div className="flex items-center gap-3">
                   <span className={`text-lg font-black ${game.won ? "text-accent" : "text-destructive"}`}>{game.won ? "W" : "L"}</span>

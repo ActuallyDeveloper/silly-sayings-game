@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+
+type GameMode = "singleplayer" | "multiplayer" | null;
 
 interface Profile {
   display_name: string | null;
@@ -13,9 +15,12 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  activeMode: GameMode;
   signUp: (email: string, password: string, displayName: string, username: string) => Promise<{ error: Error | null }>;
   signIn: (username: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  setActiveMode: (mode: GameMode) => void;
+  ensureMode: (mode: GameMode) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeMode, setActiveMode] = useState<GameMode>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -34,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
         setProfile(null);
+        setActiveMode(null);
       }
     });
 
@@ -85,10 +92,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setActiveMode(null);
   };
 
+  // Ensures the user is in the correct mode. If switching modes, signs out first.
+  // Returns true if the user can proceed (is signed in for this mode or was signed out).
+  const ensureMode = useCallback(async (mode: GameMode): Promise<boolean> => {
+    if (!user) {
+      setActiveMode(mode);
+      return true;
+    }
+    if (activeMode && activeMode !== mode) {
+      // Different mode - sign out first
+      await supabase.auth.signOut();
+      setActiveMode(mode);
+      return false; // User needs to sign in again
+    }
+    setActiveMode(mode);
+    return true;
+  }, [user, activeMode]);
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, activeMode, signUp, signIn, signOut, setActiveMode, ensureMode }}>
       {children}
     </AuthContext.Provider>
   );
