@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
+import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot } from "lucide-react";
 import type { WhiteCard, PackId } from "@/data/cards";
 
@@ -204,7 +205,14 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        <RoomChat roomId={game.room.id} />
+        <RoomChat
+          roomId={game.room.id}
+          aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
+          gamePhase={game.phase}
+          roundNumber={game.room.current_round}
+          gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+          lastBlackCard={game.currentBlackCard?.text}
+        />
       </div>
     );
   }
@@ -248,7 +256,13 @@ const Multiplayer = () => {
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
         </div>
-        <RoomChat roomId={game.room.id} />
+        <RoomChat
+          roomId={game.room.id}
+          aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
+          gamePhase={game.phase}
+          roundNumber={game.room.current_round}
+          gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+        />
       </div>
     );
   }
@@ -416,7 +430,14 @@ const Multiplayer = () => {
           </div>
         </div>
       )}
-      <RoomChat roomId={game.room.id} />
+      <RoomChat
+        roomId={game.room.id}
+        aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
+        gamePhase={game.phase}
+        roundNumber={game.room.current_round}
+        gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+        lastBlackCard={game.currentBlackCard?.text}
+      />
     </div>
   );
 };
