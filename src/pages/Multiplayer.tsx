@@ -205,7 +205,14 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        <RoomChat roomId={game.room.id} />
+        <RoomChat
+          roomId={game.room.id}
+          aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
+          gamePhase={game.phase}
+          roundNumber={game.room.current_round}
+          gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+          lastBlackCard={game.currentBlackCard?.text}
+        />
       </div>
     );
   }
