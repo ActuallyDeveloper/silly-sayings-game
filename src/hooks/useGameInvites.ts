@@ -16,6 +16,7 @@ export interface GameInvite {
 
 export function useGameInvites() {
   const { user } = useAuth();
+  const { isBlocked } = useBlockReport();
   const [received, setReceived] = useState<GameInvite[]>([]);
   const [sent, setSent] = useState<GameInvite[]>([]);
   const [loading, setLoading] = useState(true);
