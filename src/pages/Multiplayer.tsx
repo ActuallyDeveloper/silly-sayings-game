@@ -256,7 +256,13 @@ const Multiplayer = () => {
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
         </div>
-        <RoomChat roomId={game.room.id} />
+        <RoomChat
+          roomId={game.room.id}
+          aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
+          gamePhase={game.phase}
+          roundNumber={game.room.current_round}
+          gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+        />
       </div>
     );
   }
