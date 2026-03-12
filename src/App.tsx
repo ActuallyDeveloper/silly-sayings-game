@@ -48,6 +48,7 @@ const App = () => (
               <Route path="/mp/achievements" element={<MPAchievements />} />
               <Route path="/sp/custom-cards" element={<SPCustomCards />} />
               <Route path="/mp/custom-cards" element={<MPCustomCards />} />
+              <Route path="/mp/social" element={<MPSocial />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
