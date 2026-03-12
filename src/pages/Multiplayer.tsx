@@ -33,7 +33,6 @@ const Multiplayer = () => {
       return [...prev, packId];
     });
   };
-  const [copied, setCopied] = useState(false);
 
   if (!user) {
     return (
