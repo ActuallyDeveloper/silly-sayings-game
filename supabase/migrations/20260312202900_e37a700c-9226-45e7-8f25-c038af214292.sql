@@ -1,0 +1,1 @@
+ALTER TABLE public.room_players ADD COLUMN ready boolean NOT NULL DEFAULT false;
