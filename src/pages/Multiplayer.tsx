@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +21,14 @@ import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, ensureMode } = useAuth();
+
+  // Set active mode to multiplayer
+  useEffect(() => {
+    ensureMode("multiplayer").then((canProceed) => {
+      if (!canProceed) navigate("/mp/auth");
+    });
+  }, []);
   const game = useMultiplayerGame();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -388,7 +395,10 @@ const Multiplayer = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <p className="text-3xl font-black text-accent">🎉 {game.roundWinner.name} wins!</p>
+            <div className="flex items-center gap-2">
+              <Trophy className="w-8 h-8 text-accent" />
+              <p className="text-3xl font-black text-accent">{game.roundWinner.name} wins!</p>
+            </div>
             {game.room.created_by === user.id && (
               <Button
                 onClick={game.nextRound}

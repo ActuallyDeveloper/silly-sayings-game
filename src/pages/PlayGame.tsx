@@ -39,6 +39,15 @@ const PlayGame = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBigConfetti, setShowBigConfetti] = useState(false);
 
+  const { ensureMode, setActiveMode } = useAuth();
+
+  // Set active mode to singleplayer
+  useEffect(() => {
+    ensureMode("singleplayer").then((canProceed) => {
+      if (!canProceed) navigate("/sp/auth");
+    });
+  }, []);
+
   useEffect(() => {
     if (!user || !localPacks.includes("custom")) { setCustomCards(undefined); return; }
     (async () => {

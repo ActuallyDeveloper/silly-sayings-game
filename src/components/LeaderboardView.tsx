@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Trophy, Gamepad2 } from "lucide-react";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -28,16 +28,28 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
   const isSP = mode === "singleplayer";
   const viewName = isSP ? "sp_leaderboard" : "mp_leaderboard";
 
+  const fetchEntries = async () => {
+    const { data } = await (supabase as any)
+      .from(viewName)
+      .select("*")
+      .order("wins", { ascending: false })
+      .limit(50);
+    setEntries(data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from(viewName)
-        .select("*")
-        .order("wins", { ascending: false })
-        .limit(50);
-      setEntries(data || []);
-      setLoading(false);
-    })();
+    fetchEntries();
+
+    // Subscribe to game_scores changes to auto-refresh leaderboard
+    const channel = supabase
+      .channel(`leaderboard-${mode}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "game_scores" }, () => {
+        fetchEntries();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [viewName]);
 
   const medals = ["#1", "#2", "#3"];
@@ -48,7 +60,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
         <ExoticLogo size="sm" />
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-widest text-accent">{isSP ? "Single Player" : "Multiplayer"}</span>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground min-h-[44px]">
             <ArrowLeft className="w-4 h-4 mr-1" /> Home
           </Button>
         </div>
@@ -71,9 +83,9 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
           <div className="space-y-2">
             {entries.map((entry, i) => (
               <motion.div key={entry.user_id}
-                className={`rounded-lg ${i < 3 ? "bg-accent/10 border border-accent/20" : "bg-secondary"}`}
+                className={`rounded-lg ${i < 3 ? "bg-accent/10 border border-accent/20" : "bg-secondary"} active:scale-[0.98] transition-transform`}
                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-                <div className="flex items-center justify-between px-3 sm:px-4 py-3">
+                <div className="flex items-center justify-between px-3 sm:px-4 py-3 min-h-[52px]">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`text-lg font-black shrink-0 ${i < 3 ? "text-accent" : "text-muted-foreground"}`}>
                       {i < 3 ? medals[i] : `#${i + 1}`}
