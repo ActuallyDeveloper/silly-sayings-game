@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Volume2, VolumeX, Hash } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX, Hash, Sun, Moon } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { soundEnabled, setSoundEnabled, maxRounds, setMaxRounds } = useSettings();
+  const { soundEnabled, setSoundEnabled, maxRounds, setMaxRounds, theme, setTheme } = useSettings();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -36,6 +36,25 @@ const Settings = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
+          {/* Theme toggle */}
+          <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              {theme === "dark" ? (
+                <Moon className="w-5 h-5 text-accent" />
+              ) : (
+                <Sun className="w-5 h-5 text-accent" />
+              )}
+              <div>
+                <Label className="text-foreground font-bold text-base">Theme</Label>
+                <p className="text-xs text-muted-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</p>
+              </div>
+            </div>
+            <Switch
+              checked={theme === "light"}
+              onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")}
+            />
+          </div>
+
           {/* Sound toggle */}
           <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
             <div className="flex items-center gap-3">
