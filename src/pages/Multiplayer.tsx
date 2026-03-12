@@ -2,15 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import RoomChat from "@/components/RoomChat";
+import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whiteCards } from "@/data/cards";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check } from "lucide-react";
-import type { WhiteCard } from "@/data/cards";
+import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
