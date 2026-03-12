@@ -1,6 +1,23 @@
 import { useState, useCallback, useRef } from "react";
-import { BlackCard, WhiteCard, blackCards, whiteCards, shuffle, getCardsByPacks, type PackId } from "@/data/cards";
+import { BlackCard, WhiteCard, shuffle, getCardsByPacks, type PackId } from "@/data/cards";
 import { supabase } from "@/integrations/supabase/client";
+
+const AI_NAMES = [
+  "Robo Rick", "Bot Betty", "Silicon Sam", "Digi Dave",
+  "Cyber Cynthia", "Mecha Mike", "Neural Nora", "Algo Alex",
+];
+
+export interface AIPlayerState {
+  id: number;
+  name: string;
+  score: number;
+}
+
+export interface AISubmission {
+  playerId: number;
+  playerName: string;
+  cards: WhiteCard[];
+}
 
 interface GameState {
   phase: "choosing_black" | "playing" | "judging" | "result" | "gameover";
@@ -8,16 +25,18 @@ interface GameState {
   currentBlackCard: BlackCard | null;
   hand: WhiteCard[];
   selectedCards: WhiteCard[];
-  aiCards: WhiteCard[];
+  aiPlayers: AIPlayerState[];
+  aiSubmissions: AISubmission[];
   playerScore: number;
-  aiScore: number;
   round: number;
   maxRounds: number;
+  pointsToWin: number;
   winner: string | null;
   blackDeck: BlackCard[];
   whiteDeck: WhiteCard[];
   trashTalk: string | null;
   aiJudging: boolean;
+  aiPickingCards: boolean;
 }
 
 const HAND_SIZE = 7;
@@ -32,36 +51,71 @@ function drawBlackChoices(blackDeck: BlackCard[]): { choices: BlackCard[]; remai
   return { choices, remaining };
 }
 
-function createInitialState(maxRounds: number, packs: PackId[]): GameState {
+export interface CustomCardsInput {
+  blacks: BlackCard[];
+  whites: WhiteCard[];
+}
+
+function createInitialState(
+  maxRounds: number,
+  packs: PackId[],
+  aiPlayerCount: number,
+  pointsToWin: number,
+  customCards?: CustomCardsInput
+): GameState {
   const { blacks, whites } = getCardsByPacks(packs);
+  if (customCards) {
+    blacks.push(...customCards.blacks);
+    whites.push(...customCards.whites);
+  }
   const blackDeck = shuffle(blacks);
   const whiteDeck = shuffle(whites);
   const hand = whiteDeck.splice(0, HAND_SIZE);
   const { choices, remaining } = drawBlackChoices(blackDeck);
+
+  const aiPlayers = AI_NAMES.slice(0, aiPlayerCount).map((name, i) => ({
+    id: i + 1,
+    name,
+    score: 0,
+  }));
+
   return {
     phase: "choosing_black",
     blackCardChoices: choices,
     currentBlackCard: null,
     hand,
     selectedCards: [],
-    aiCards: [],
+    aiPlayers,
+    aiSubmissions: [],
     playerScore: 0,
-    aiScore: 0,
     round: 1,
     maxRounds,
+    pointsToWin,
     winner: null,
     blackDeck: remaining,
     whiteDeck,
     trashTalk: null,
     aiJudging: false,
+    aiPickingCards: false,
   };
 }
 
-export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
-  const [state, setState] = useState<GameState>(() => createInitialState(maxRounds, packs));
-  const dynamicCardsAdded = useRef(false);
+export function useGameState(
+  maxRounds = 10,
+  packs: PackId[] = ["classic"],
+  aiPlayerCount = 3,
+  pointsToWin = 10,
+  customCards?: CustomCardsInput
+) {
+  const [state, setState] = useState<GameState>(() =>
+    createInitialState(maxRounds, packs, aiPlayerCount, pointsToWin, customCards)
+  );
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const packsRef = useRef(packs);
   packsRef.current = packs;
+  const customCardsRef = useRef(customCards);
+  customCardsRef.current = customCards;
 
   const chooseBlackCard = useCallback((card: BlackCard) => {
     setState((prev) => {
@@ -83,80 +137,153 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
     });
   }, []);
 
-  const submitCards = useCallback(() => {
-    setState((prev) => {
-      if (!prev.currentBlackCard) return prev;
-      if (prev.selectedCards.length < prev.currentBlackCard.pick) return prev;
-      const aiPick = prev.currentBlackCard.pick;
-      const deckCopy = [...prev.whiteDeck];
-      const aiCards = deckCopy.splice(0, aiPick);
-      return { ...prev, phase: "judging", aiCards, whiteDeck: deckCopy, trashTalk: null, aiJudging: false };
+  const submitCards = useCallback(async () => {
+    const prev = stateRef.current;
+    if (!prev.currentBlackCard) return;
+    if (prev.selectedCards.length < prev.currentBlackCard.pick) return;
+
+    const pick = prev.currentBlackCard.pick;
+    setState((s) => ({ ...s, phase: "judging", aiPickingCards: true, aiSubmissions: [] }));
+
+    const deckCopy = [...prev.whiteDeck];
+    const aiHands = prev.aiPlayers.map((ai) => {
+      const handSize = Math.min(HAND_SIZE, deckCopy.length);
+      const hand = deckCopy.splice(0, handSize);
+      return { ai, hand };
     });
+
+    try {
+      const { data } = await supabase.functions.invoke("game-ai", {
+        body: {
+          type: "ai_pick_multi",
+          blackCard: prev.currentBlackCard.text,
+          pick,
+          aiPlayers: aiHands.map((h) => ({
+            name: h.ai.name,
+            cards: h.hand.map((c) => c.text),
+          })),
+        },
+      });
+
+      const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => {
+        const aiPick = data?.picks?.find((p: any) => p.name === ai.name);
+        let selectedCards: WhiteCard[];
+        if (aiPick?.selectedCards) {
+          selectedCards = aiPick.selectedCards
+            .map((text: string) => hand.find((c) => c.text === text))
+            .filter(Boolean)
+            .slice(0, pick);
+          while (selectedCards.length < pick) {
+            const remaining = hand.filter((c) => !selectedCards.includes(c));
+            if (remaining.length > 0) selectedCards.push(remaining[0]);
+            else break;
+          }
+        } else {
+          selectedCards = hand.slice(0, pick);
+        }
+        return { playerId: ai.id, playerName: ai.name, cards: selectedCards };
+      });
+
+      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+    } catch {
+      const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => ({
+        playerId: ai.id,
+        playerName: ai.name,
+        cards: hand.slice(0, pick),
+      }));
+      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+    }
   }, []);
 
   const judgeWithAI = useCallback(async () => {
     setState((prev) => ({ ...prev, aiJudging: true }));
 
-    const currentState = state;
+    const current = stateRef.current;
+    const submissions = [
+      { name: "You", cards: current.selectedCards.map((c) => c.text) },
+      ...current.aiSubmissions.map((s) => ({ name: s.playerName, cards: s.cards.map((c) => c.text) })),
+    ];
+
     try {
       const { data, error } = await supabase.functions.invoke("game-ai", {
         body: {
-          type: "judge",
-          blackCard: currentState.currentBlackCard?.text,
-          playerCards: currentState.selectedCards.map((c) => c.text),
-          aiCards: currentState.aiCards.map((c) => c.text),
+          type: "judge_multi",
+          blackCard: current.currentBlackCard?.text,
+          submissions,
         },
       });
 
-      const playerWins = !error && data?.winner === "player";
-      const reason = data?.reason || data?.text || "";
+      const winnerName =
+        !error && data?.winner
+          ? submissions.find((s) => s.name.toLowerCase() === data.winner.toLowerCase())?.name ||
+            submissions[Math.floor(Math.random() * submissions.length)].name
+          : submissions[Math.floor(Math.random() * submissions.length)].name;
+      const reason = data?.reason || "";
 
       let trashTalk = reason;
       try {
         const { data: ttData } = await supabase.functions.invoke("game-ai", {
           body: {
             type: "trash_talk",
-            blackCard: currentState.currentBlackCard?.text,
-            playerCards: playerWins ? currentState.selectedCards.map((c) => c.text) : currentState.aiCards.map((c) => c.text),
+            blackCard: current.currentBlackCard?.text,
+            playerCards: submissions.find((s) => s.name === winnerName)?.cards || [],
           },
         });
         if (ttData?.text) trashTalk = ttData.text;
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       setState((prev) => ({
         ...prev,
         phase: "result",
-        playerScore: prev.playerScore + (playerWins ? 1 : 0),
-        aiScore: prev.aiScore + (playerWins ? 0 : 1),
-        winner: playerWins ? "You" : "AI",
+        playerScore: prev.playerScore + (winnerName === "You" ? 1 : 0),
+        aiPlayers: prev.aiPlayers.map((ai) =>
+          winnerName === ai.name ? { ...ai, score: ai.score + 1 } : ai
+        ),
+        winner: winnerName,
         trashTalk,
         aiJudging: false,
       }));
     } catch {
-      const playerWins = Math.random() < 0.55;
+      const randomIdx = Math.floor(Math.random() * submissions.length);
+      const winnerName = submissions[randomIdx].name;
       setState((prev) => ({
         ...prev,
         phase: "result",
-        playerScore: prev.playerScore + (playerWins ? 1 : 0),
-        aiScore: prev.aiScore + (playerWins ? 0 : 1),
-        winner: playerWins ? "You" : "AI",
+        playerScore: prev.playerScore + (winnerName === "You" ? 1 : 0),
+        aiPlayers: prev.aiPlayers.map((ai) =>
+          winnerName === ai.name ? { ...ai, score: ai.score + 1 } : ai
+        ),
+        winner: winnerName,
         trashTalk: null,
         aiJudging: false,
       }));
     }
-  }, [state]);
+  }, []);
 
   const nextRound = useCallback(() => {
     setState((prev) => {
-      if (prev.round >= prev.maxRounds) {
+      const allScores = [
+        { name: "You", score: prev.playerScore },
+        ...prev.aiPlayers.map((ai) => ({ name: ai.name, score: ai.score })),
+      ];
+      const topScore = Math.max(...allScores.map((s) => s.score));
+      const gameOver = prev.round >= prev.maxRounds || topScore >= prev.pointsToWin;
+
+      if (gameOver) {
+        const winners = allScores.filter((s) => s.score === topScore);
+        const winnerName = winners.length > 1 ? "Tie" : winners[0].name;
         return {
           ...prev,
-          phase: "gameover",
-          winner: prev.playerScore > prev.aiScore ? "You" : prev.playerScore === prev.aiScore ? "Tie" : "AI",
+          phase: "gameover" as const,
+          winner: winnerName,
           trashTalk: null,
           blackCardChoices: [],
+          aiSubmissions: [],
         };
       }
+
       const newHand = [...prev.hand.filter((c) => !prev.selectedCards.find((s) => s.id === c.id))];
       const deckCopy = [...prev.whiteDeck];
       while (newHand.length < HAND_SIZE && deckCopy.length > 0) {
@@ -165,12 +292,12 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
       const { choices, remaining } = drawBlackChoices(prev.blackDeck);
       return {
         ...prev,
-        phase: "choosing_black",
+        phase: "choosing_black" as const,
         blackCardChoices: choices,
         currentBlackCard: null,
         hand: newHand,
         selectedCards: [],
-        aiCards: [],
+        aiSubmissions: [],
         round: prev.round + 1,
         winner: null,
         blackDeck: remaining,
@@ -180,42 +307,19 @@ export function useGameState(maxRounds = 10, packs: PackId[] = ["classic"]) {
     });
   }, []);
 
-  const generateNewCards = useCallback(async () => {
-    if (dynamicCardsAdded.current) return;
-    try {
-      const { data } = await supabase.functions.invoke("game-ai", {
-        body: { type: "generate_cards" },
-      });
-      if (data?.blackCards && data?.whiteCards) {
-        dynamicCardsAdded.current = true;
-        setState((prev) => {
-          const maxBlackId = Math.max(...prev.blackDeck.map((c) => c.id), ...blackCards.map((c) => c.id));
-          const maxWhiteId = Math.max(...prev.whiteDeck.map((c) => c.id), ...prev.hand.map((c) => c.id), ...whiteCards.map((c) => c.id));
-          const newBlacks: BlackCard[] = data.blackCards.map((c: any, i: number) => ({
-            id: maxBlackId + i + 1,
-            text: c.text,
-            pick: c.pick || 1,
-            pack: "classic" as const,
-          }));
-          const newWhites: WhiteCard[] = data.whiteCards.map((c: any, i: number) => ({
-            id: maxWhiteId + i + 1,
-            text: c.text,
-            pack: "classic" as const,
-          }));
-          return {
-            ...prev,
-            blackDeck: [...prev.blackDeck, ...shuffle(newBlacks)],
-            whiteDeck: [...prev.whiteDeck, ...shuffle(newWhites)],
-          };
-        });
-      }
-    } catch { /* ignore */ }
-  }, []);
-
   const resetGame = useCallback(() => {
-    dynamicCardsAdded.current = false;
-    setState(createInitialState(maxRounds, packsRef.current));
-  }, [maxRounds]);
+    setState(
+      createInitialState(maxRounds, packsRef.current, aiPlayerCount, pointsToWin, customCardsRef.current)
+    );
+  }, [maxRounds, aiPlayerCount, pointsToWin]);
 
-  return { ...state, chooseBlackCard, selectCard, submitCards, judgeWithAI, nextRound, resetGame, generateNewCards };
+  return {
+    ...state,
+    chooseBlackCard,
+    selectCard,
+    submitCards,
+    judgeWithAI,
+    nextRound,
+    resetGame,
+  };
 }

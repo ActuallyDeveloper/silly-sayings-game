@@ -12,6 +12,7 @@ import AuthPage from "./pages/AuthPage.tsx";
 import Leaderboard from "./pages/Leaderboard.tsx";
 import Profile from "./pages/Profile.tsx";
 import Settings from "./pages/Settings.tsx";
+import CustomCards from "./pages/CustomCards.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/custom-cards" element={<CustomCards />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
