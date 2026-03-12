@@ -19,6 +19,7 @@ import SPAchievements from "./pages/SPAchievements";
 import MPAchievements from "./pages/MPAchievements";
 import SPCustomCards from "./pages/SPCustomCards";
 import MPCustomCards from "./pages/MPCustomCards";
+import MPSocial from "./pages/MPSocial";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
