@@ -8,7 +8,7 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
 import Index from "./pages/Index";
 import PlayGame from "./pages/PlayGame";
 import Multiplayer from "./pages/Multiplayer";
-import AuthPage from "./pages/AuthPage";
+
 import SPAuth from "./pages/SPAuth";
 import MPAuth from "./pages/MPAuth";
 import SPProfile from "./pages/SPProfile";
