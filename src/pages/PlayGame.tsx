@@ -330,7 +330,7 @@ const PlayGame = () => {
       </AnimatePresence>
 
       {/* Game Chat with AI */}
-      {gameStarted && game.phase !== "gameover" && (
+      {gameStarted && (
         <GameChat
           aiPlayers={game.aiPlayers.map((a) => a.personality)}
           gamePhase={game.phase}
