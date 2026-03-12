@@ -198,6 +198,10 @@ export type Database = {
     }
     Functions: {
       generate_room_code: { Args: never; Returns: string }
+      is_room_member: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
