@@ -38,7 +38,7 @@ const Index = () => {
             </Button>
           </>
         ) : (
-          <Button variant="outline" size="sm" onClick={() => navigate("/auth")}
+          <Button variant="outline" size="sm" onClick={() => navigate("/sp/auth")}
             className="border-muted-foreground/30 text-foreground text-xs sm:text-sm">
             Sign In
           </Button>
@@ -123,7 +123,7 @@ const Index = () => {
       {!user && (
         <motion.p className="text-muted-foreground/70 text-xs sm:text-sm"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-          <button onClick={() => navigate("/auth")} className="text-accent hover:underline">Sign in</button>{" "}to save your scores
+          <button onClick={() => navigate("/sp/auth")} className="text-accent hover:underline">Sign in</button>{" "}to save your scores
         </motion.p>
       )}
 

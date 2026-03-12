@@ -14,7 +14,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const callAI = async (messages: { role: string; content: string }[], model = "google/gemini-2.5-flash-lite", temp = 0.9) => {
+    const callAI = async (messages: { role: string; content: string }[], model = "google/gemini-3-flash-preview", temp = 0.9) => {
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -117,7 +117,7 @@ RESPOND WITH ONLY A JSON ARRAY, nothing else:
       console.log("group_chat prompt:", prompt.substring(0, 200));
       const result = await callAI(
         [{ role: "user", content: prompt }],
-        "google/gemini-2.5-flash",
+        "google/gemini-3-flash-preview",
         1.0
       );
       console.log("group_chat raw result:", result);
