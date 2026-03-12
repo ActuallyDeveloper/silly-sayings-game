@@ -235,9 +235,9 @@ const Multiplayer = () => {
           >
             {game.myPlayer?.ready ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</> : <><Circle className="w-4 h-4 mr-2" /> Ready Up</>}
           </Button>
-          {isHost && game.allReady && (
+          {isHost && game.allReady && !countdownActive && (
             <Button
-              onClick={game.startGame}
+              onClick={() => setCountdownActive(true)}
               disabled={game.loading}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold animate-pulse"
             >
@@ -251,6 +251,7 @@ const Multiplayer = () => {
         {!game.allReady && game.players.length >= 2 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
         )}
+        <LobbyCountdown active={countdownActive} onComplete={handleCountdownComplete} />
         <RoomChat
           roomId={game.room.id}
           aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
