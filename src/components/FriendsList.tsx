@@ -3,13 +3,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameInvites } from "@/hooks/useGameInvites";
 import { useUserStatus } from "@/hooks/useUserStatus";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StatusIndicator from "@/components/StatusIndicator";
+import BlockReportDialog from "@/components/BlockReportDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UserPlus, UserCheck, UserX, Search, Users, MessageCircle,
-  Gamepad2, Check, X, Clock, Send,
+  Gamepad2, Check, X, Clock, Send, ShieldBan, MoreVertical,
 } from "lucide-react";
 
 interface FriendsListProps {
@@ -22,10 +24,12 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
   const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
   const { getStatus } = useUserStatus();
+  const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [tab, setTab] = useState<"friends" | "requests" | "invites">("friends");
+  const [blockReportTarget, setBlockReportTarget] = useState<{ userId: string; username: string } | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -67,16 +71,26 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-foreground text-sm">@{u.username || u.display_name}</span>
+                {isBlocked(u.user_id) && <ShieldBan className="w-3 h-3 text-destructive" />}
               </div>
               {u.user_id === user?.id ? (
                 <span className="text-xs text-muted-foreground">You</span>
-              ) : isFriendOrPending(u.user_id) ? (
-                <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
               ) : (
-                <Button size="sm" variant="ghost" onClick={() => sendRequest(u.user_id)}
-                  className="text-accent active:scale-95 transition-transform">
-                  <UserPlus className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isFriendOrPending(u.user_id) ? (
+                    <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
+                  ) : !isBlocked(u.user_id) && (
+                    <Button size="sm" variant="ghost" onClick={() => sendRequest(u.user_id)}
+                      className="text-accent active:scale-95 transition-transform">
+                      <UserPlus className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost"
+                    onClick={() => setBlockReportTarget({ userId: u.user_id, username: u.username || u.display_name || "" })}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                    <MoreVertical className="w-3 h-3" />
+                  </Button>
+                </div>
               )}
             </div>
           ))}
@@ -123,6 +137,11 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                         <Gamepad2 className="w-4 h-4" />
                       </Button>
                     )}
+                    <Button size="sm" variant="ghost"
+                      onClick={() => setBlockReportTarget({ userId: f.friend_profile!.user_id, username: f.friend_profile!.username || f.friend_profile!.display_name || "" })}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                      <MoreVertical className="w-3 h-3" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => removeFriend(f.id)}
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
                       <UserX className="w-3 h-3" />
@@ -198,6 +217,20 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
               </div>
             ))}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {blockReportTarget && (
+          <BlockReportDialog
+            username={blockReportTarget.username}
+            userId={blockReportTarget.userId}
+            isBlocked={isBlocked(blockReportTarget.userId)}
+            onBlock={() => blockUser(blockReportTarget.userId)}
+            onUnblock={() => unblockUser(blockReportTarget.userId)}
+            onReport={(reason, details) => reportUser(blockReportTarget.userId, reason, details)}
+            onClose={() => setBlockReportTarget(null)}
+          />
         )}
       </AnimatePresence>
     </div>

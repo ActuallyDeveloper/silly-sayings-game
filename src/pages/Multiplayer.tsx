@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import ExoticLogo from "@/components/ExoticLogo";
 import RoomChat from "@/components/RoomChat";
 import PackSelector from "@/components/PackSelector";
 import PhaseTimer from "@/components/PhaseTimer";
+import LobbyCountdown from "@/components/LobbyCountdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -39,6 +40,24 @@ const Multiplayer = () => {
   const [aiCount, setAiCount] = useState(1);
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
+  const [countdownActive, setCountdownActive] = useState(false);
+
+  // Auto-trigger countdown when all players ready
+  useEffect(() => {
+    if (game.allReady && game.phase === "lobby" && game.room && !countdownActive) {
+      setCountdownActive(true);
+    }
+    if (!game.allReady && countdownActive) {
+      setCountdownActive(false);
+    }
+  }, [game.allReady, game.phase, game.room, countdownActive]);
+
+  const handleCountdownComplete = useCallback(() => {
+    setCountdownActive(false);
+    if (game.room?.created_by === user?.id) {
+      game.startGame();
+    }
+  }, [game, user]);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
@@ -216,9 +235,9 @@ const Multiplayer = () => {
           >
             {game.myPlayer?.ready ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</> : <><Circle className="w-4 h-4 mr-2" /> Ready Up</>}
           </Button>
-          {isHost && game.allReady && (
+          {isHost && game.allReady && !countdownActive && (
             <Button
-              onClick={game.startGame}
+              onClick={() => setCountdownActive(true)}
               disabled={game.loading}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold animate-pulse"
             >
@@ -232,6 +251,7 @@ const Multiplayer = () => {
         {!game.allReady && game.players.length >= 2 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
         )}
+        <LobbyCountdown active={countdownActive} onComplete={handleCountdownComplete} />
         <RoomChat
           roomId={game.room.id}
           aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
