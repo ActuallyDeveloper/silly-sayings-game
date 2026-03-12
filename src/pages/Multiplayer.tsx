@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
+import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot } from "lucide-react";
 import type { WhiteCard, PackId } from "@/data/cards";
 
