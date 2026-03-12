@@ -1,58 +1,104 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useGameState } from "@/hooks/useGameState";
+import { useGameState, type CustomCardsInput } from "@/hooks/useGameState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import PackSelector from "@/components/PackSelector";
+import GameConfig from "@/components/GameConfig";
+import PhaseTimer from "@/components/PhaseTimer";
 import Confetti from "@/components/Confetti";
 import { Button } from "@/components/ui/button";
 import { Trophy, RotateCcw, Home, Loader2, Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { playCardSelect, playCardSubmit, playWin, playLose, playNewRound, playGameOver, setSoundEnabled } from "@/lib/sounds";
-import type { PackId } from "@/data/cards";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  playCardSelect,
+  playCardSubmit,
+  playWin,
+  playLose,
+  playNewRound,
+  playGameOver,
+  setSoundEnabled,
+} from "@/lib/sounds";
+import type { PackId, BlackCard, WhiteCard } from "@/data/cards";
+
+const TIMER_BLACK = 15;
+const TIMER_PLAY = 45;
 
 const PlayGame = () => {
   const navigate = useNavigate();
-  const { maxRounds, soundEnabled, selectedPacks, togglePack } = useSettings();
+  const { soundEnabled, selectedPacks } = useSettings();
   const [gameStarted, setGameStarted] = useState(false);
   const [localPacks, setLocalPacks] = useState<PackId[]>(selectedPacks);
-  const game = useGameState(maxRounds, localPacks);
+  const [localAiCount, setLocalAiCount] = useState(3);
+  const [localRounds, setLocalRounds] = useState(10);
+  const [localPoints, setLocalPoints] = useState(10);
+  const [customCards, setCustomCards] = useState<CustomCardsInput | undefined>();
+
+  const game = useGameState(localRounds, localPacks, localAiCount, localPoints, customCards);
   const { user } = useAuth();
   const scoreSaved = useRef(false);
-  const cardsGenerated = useRef(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBigConfetti, setShowBigConfetti] = useState(false);
 
-  useEffect(() => { setSoundEnabled(soundEnabled); }, [soundEnabled]);
+  // Load custom cards if "custom" pack selected
+  useEffect(() => {
+    if (!user || !localPacks.includes("custom")) {
+      setCustomCards(undefined);
+      return;
+    }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("custom_cards")
+        .select("*")
+        .eq("user_id", user.id);
+      if (data && data.length > 0) {
+        const maxId = 10000;
+        const blacks: BlackCard[] = data
+          .filter((c: any) => c.card_type === "black")
+          .map((c: any, i: number) => ({
+            id: maxId + i,
+            text: c.text,
+            pick: c.pick || 1,
+            pack: "custom" as const,
+          }));
+        const whites: WhiteCard[] = data
+          .filter((c: any) => c.card_type === "white")
+          .map((c: any, i: number) => ({
+            id: maxId + 500 + i,
+            text: c.text,
+            pack: "custom" as const,
+          }));
+        setCustomCards({ blacks, whites });
+      } else {
+        setCustomCards({ blacks: [], whites: [] });
+      }
+    })();
+  }, [user, localPacks]);
 
   useEffect(() => {
-    if (game.round === 5 && !cardsGenerated.current) {
-      cardsGenerated.current = true;
-      game.generateNewCards();
-    }
-  }, [game.round]);
+    setSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
 
   useEffect(() => {
-    if (game.phase === "gameover" && user && !scoreSaved.current) {
+    if (game.phase === "gameover" && !scoreSaved.current) {
       scoreSaved.current = true;
       playGameOver();
-      setShowBigConfetti(game.playerScore > game.aiScore);
-      supabase.from("game_scores").insert({
-        user_id: user.id,
-        player_score: game.playerScore,
-        ai_score: game.aiScore,
-        rounds_played: game.round,
-        won: game.playerScore > game.aiScore,
-      });
-    } else if (game.phase === "gameover" && !scoreSaved.current) {
-      playGameOver();
-      setShowBigConfetti(game.playerScore > game.aiScore);
-      scoreSaved.current = true;
+      setShowBigConfetti(game.winner === "You");
+      if (user) {
+        (supabase as any).from("game_scores").insert({
+          user_id: user.id,
+          player_score: game.playerScore,
+          ai_score: Math.max(...game.aiPlayers.map((a) => a.score), 0),
+          rounds_played: game.round,
+          won: game.winner === "You",
+          packs_used: localPacks,
+        });
+      }
     }
-  }, [game.phase, user, game.playerScore, game.aiScore, game.round]);
+  }, [game.phase, user, game.playerScore, game.round, game.winner]);
 
   useEffect(() => {
     if (game.phase === "result") {
@@ -71,10 +117,10 @@ const PlayGame = () => {
     game.selectCard(card);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     playCardSubmit();
     game.submitCards();
-  };
+  }, [game.submitCards]);
 
   const handleNextRound = () => {
     playNewRound();
@@ -83,7 +129,6 @@ const PlayGame = () => {
 
   const handleReset = () => {
     scoreSaved.current = false;
-    cardsGenerated.current = false;
     setShowBigConfetti(false);
     setGameStarted(false);
     game.resetGame();
@@ -99,19 +144,64 @@ const PlayGame = () => {
     });
   };
 
-  // Pre-game pack selection screen
+  // Timer auto-submit handlers
+  const handleBlackTimerExpire = useCallback(() => {
+    const s = game;
+    if (s.phase === "choosing_black" && s.blackCardChoices.length > 0) {
+      playCardSelect();
+      game.chooseBlackCard(s.blackCardChoices[0]);
+    }
+  }, [game.phase, game.blackCardChoices, game.chooseBlackCard]);
+
+  const handlePlayTimerExpire = useCallback(() => {
+    if (game.phase === "playing" && game.currentBlackCard) {
+      const pick = game.currentBlackCard.pick;
+      if (game.selectedCards.length >= pick) {
+        handleSubmit();
+      } else {
+        // Auto-select random cards from hand
+        const needed = pick - game.selectedCards.length;
+        const available = game.hand.filter(
+          (c) => !game.selectedCards.find((s) => s.id === c.id)
+        );
+        for (let i = 0; i < needed && i < available.length; i++) {
+          game.selectCard(available[i]);
+        }
+        setTimeout(() => {
+          playCardSubmit();
+          game.submitCards();
+        }, 300);
+      }
+    }
+  }, [game.phase, game.currentBlackCard, game.selectedCards, game.hand, game.selectCard, game.submitCards, handleSubmit]);
+
+  // Pre-game screen
   if (!gameStarted) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4 py-6">
         <ExoticLogo size="sm" />
         <h2 className="text-2xl sm:text-3xl font-black text-foreground">Play vs AI</h2>
-        <p className="text-muted-foreground text-sm text-center">Choose your card packs before starting</p>
+        <p className="text-muted-foreground text-sm text-center">Configure your game</p>
 
         <PackSelector selectedPacks={localPacks} onTogglePack={handleLocalTogglePack} />
 
+        <GameConfig
+          aiPlayerCount={localAiCount}
+          onAiPlayerCountChange={setLocalAiCount}
+          rounds={localRounds}
+          onRoundsChange={setLocalRounds}
+          pointsToWin={localPoints}
+          onPointsToWinChange={setLocalPoints}
+          minAi={2}
+          maxAi={7}
+        />
+
         <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
           <Button
-            onClick={() => { setGameStarted(true); game.resetGame(); }}
+            onClick={() => {
+              setGameStarted(true);
+              game.resetGame();
+            }}
             disabled={localPacks.length === 0}
             className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-lg py-6 disabled:opacity-30"
           >
@@ -125,7 +215,13 @@ const PlayGame = () => {
     );
   }
 
+  // Game over
   if (game.phase === "gameover") {
+    const allScores = [
+      { name: "You", score: game.playerScore },
+      ...game.aiPlayers.map((ai) => ({ name: ai.name, score: ai.score })),
+    ].sort((a, b) => b.score - a.score);
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4">
         <Confetti active={showBigConfetti} big />
@@ -133,13 +229,33 @@ const PlayGame = () => {
         <h1 className="text-3xl sm:text-5xl font-black text-foreground text-center">
           {game.winner === "Tie" ? "It's a Tie!" : `${game.winner} Win${game.winner === "You" ? "" : "s"}!`}
         </h1>
-        <p className="text-xl sm:text-2xl text-muted-foreground">
-          {game.playerScore} — {game.aiScore}
-        </p>
+
+        <div className="w-full max-w-sm space-y-2">
+          {allScores.map((s, i) => (
+            <div
+              key={s.name}
+              className={`flex items-center justify-between px-4 py-2 rounded-lg ${
+                i === 0 ? "bg-accent/10 border border-accent/20" : "bg-secondary"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`font-black text-lg ${i === 0 ? "text-accent" : "text-muted-foreground"}`}>
+                  #{i + 1}
+                </span>
+                <span className="font-bold text-foreground text-sm">{s.name}</span>
+              </div>
+              <span className="font-black text-foreground">{s.score}</span>
+            </div>
+          ))}
+        </div>
+
         {user && <p className="text-sm text-accent">Score saved!</p>}
         {!user && (
           <p className="text-xs sm:text-sm text-muted-foreground">
-            <button onClick={() => navigate("/auth")} className="text-accent hover:underline">Sign in</button> to save scores
+            <button onClick={() => navigate("/auth")} className="text-accent hover:underline">
+              Sign in
+            </button>{" "}
+            to save scores
           </p>
         )}
         <div className="flex gap-3 sm:gap-4 mt-4">
@@ -154,33 +270,63 @@ const PlayGame = () => {
     );
   }
 
+  // Scoreboard
+  const allScores = [
+    { name: "You", score: game.playerScore },
+    ...game.aiPlayers.map((ai) => ({ name: ai.name, score: ai.score })),
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
       <Confetti active={showConfetti} />
 
-      <header className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-3 sm:py-4 border-b border-border">
+      <header className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-2 sm:py-3 border-b border-border">
         <ExoticLogo size="sm" />
-        <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-bold">
-          <span className="text-foreground">You: {game.playerScore}</span>
-          <span className="text-muted-foreground">AI: {game.aiScore}</span>
-          <span className="text-muted-foreground/50">R{game.round}/{game.maxRounds}</span>
+        <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold">
+          <span className="text-muted-foreground/50">
+            R{game.round}/{game.maxRounds}
+          </span>
+          <span className="text-muted-foreground/50">
+            First to {game.pointsToWin}
+          </span>
         </div>
       </header>
+
+      {/* Scoreboard bar */}
+      <div className="flex gap-2 px-3 sm:px-4 md:px-8 py-1.5 overflow-x-auto border-b border-border">
+        {allScores.map((s) => (
+          <div
+            key={s.name}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0 ${
+              s.name === "You" ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground"
+            }`}
+          >
+            <span>{s.name}</span>
+            <span className="opacity-60">{s.score}</span>
+          </div>
+        ))}
+      </div>
 
       <AnimatePresence mode="wait">
         {/* Choose between 2 black cards */}
         {game.phase === "choosing_black" && (
           <motion.div
             key="choosing"
-            className="flex flex-col items-center gap-4 sm:gap-6 py-8 sm:py-12 px-4 flex-1"
+            className="flex flex-col items-center gap-4 sm:gap-6 py-6 sm:py-10 px-4 flex-1"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
+            <PhaseTimer
+              duration={TIMER_BLACK}
+              onExpire={handleBlackTimerExpire}
+              active={game.phase === "choosing_black"}
+              phaseKey={`black-${game.round}`}
+            />
             <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
               Choose a black card
             </p>
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
               {game.blackCardChoices.map((card, i) => (
                 <motion.div
                   key={card.id}
@@ -204,7 +350,7 @@ const PlayGame = () => {
           </motion.div>
         )}
 
-        {/* Playing phase - show selected black card + hand */}
+        {/* Playing phase */}
         {game.phase === "playing" && (
           <motion.div
             key="playing"
@@ -213,7 +359,15 @@ const PlayGame = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="flex justify-center py-4 sm:py-8 px-4">
+            <div className="px-4 pt-3">
+              <PhaseTimer
+                duration={TIMER_PLAY}
+                onExpire={handlePlayTimerExpire}
+                active={game.phase === "playing"}
+                phaseKey={`play-${game.round}`}
+              />
+            </div>
+            <div className="flex justify-center py-3 sm:py-6 px-4">
               {game.currentBlackCard && (
                 <motion.div
                   initial={{ rotateY: 90, opacity: 0 }}
@@ -240,7 +394,7 @@ const PlayGame = () => {
                   Submit
                 </Button>
               </div>
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 pt-2">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-3 sm:pb-5 pt-1">
                 {game.hand.map((card, i) => (
                   <motion.div
                     key={card.id}
@@ -263,6 +417,7 @@ const PlayGame = () => {
           </motion.div>
         )}
 
+        {/* Judging phase */}
         {game.phase === "judging" && (
           <motion.div
             key="judging"
@@ -271,56 +426,89 @@ const PlayGame = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-2">
               {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo />}
             </div>
-            <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-              {game.aiJudging ? "AI is thinking..." : "The AI is judging..."}
-            </p>
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-2 font-bold">YOUR CARD{game.selectedCards.length > 1 ? "S" : ""}</p>
-                <div className="flex gap-2 justify-center">
-                  {game.selectedCards.map((c, i) => (
-                    <motion.div
-                      key={c.id}
-                      initial={{ rotateY: 180, opacity: 0 }}
-                      animate={{ rotateY: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.15, duration: 0.5, type: "spring" }}
-                      style={{ perspective: 1000 }}
-                    >
-                      <GameCard text={c.text} type="white" small logo />
-                    </motion.div>
+
+            {game.aiPickingCards ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
+                  AI players are choosing...
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
+                  {game.aiJudging ? "AI is judging..." : "All cards are in!"}
+                </p>
+
+                {/* All submissions */}
+                <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
+                  {/* Player submission */}
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs text-accent mb-1 font-bold">YOU</p>
+                    <div className="flex gap-1">
+                      {game.selectedCards.map((c, i) => (
+                        <motion.div
+                          key={c.id}
+                          initial={{ rotateY: 180, opacity: 0 }}
+                          animate={{ rotateY: 0, opacity: 1 }}
+                          transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }}
+                          style={{ perspective: 1000 }}
+                        >
+                          <GameCard text={c.text} type="white" small logo />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AI submissions */}
+                  {game.aiSubmissions.map((sub, subIdx) => (
+                    <div key={sub.playerId} className="text-center">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">
+                        {sub.playerName.toUpperCase()}
+                      </p>
+                      <div className="flex gap-1">
+                        {sub.cards.map((c, i) => (
+                          <motion.div
+                            key={c.id}
+                            initial={{ rotateY: 180, opacity: 0 }}
+                            animate={{ rotateY: 0, opacity: 1 }}
+                            transition={{
+                              delay: 0.3 + subIdx * 0.2 + i * 0.1,
+                              duration: 0.5,
+                              type: "spring",
+                            }}
+                            style={{ perspective: 1000 }}
+                          >
+                            <GameCard text={c.text} type="white" small logo />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-2 font-bold">AI'S CARD{game.aiCards.length > 1 ? "S" : ""}</p>
-                <div className="flex gap-2 justify-center">
-                  {game.aiCards.map((c, i) => (
-                    <motion.div
-                      key={c.id}
-                      initial={{ rotateY: 180, opacity: 0 }}
-                      animate={{ rotateY: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 + i * 0.15, duration: 0.5, type: "spring" }}
-                      style={{ perspective: 1000 }}
-                    >
-                      <GameCard text={c.text} type="white" small logo />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <Button
-              onClick={game.judgeWithAI}
-              disabled={game.aiJudging}
-              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50"
-            >
-              {game.aiJudging ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...</> : "Reveal Winner"}
-            </Button>
+
+                <Button
+                  onClick={game.judgeWithAI}
+                  disabled={game.aiJudging}
+                  className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50"
+                >
+                  {game.aiJudging ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...
+                    </>
+                  ) : (
+                    "Reveal Winner"
+                  )}
+                </Button>
+              </>
+            )}
           </motion.div>
         )}
 
+        {/* Result phase */}
         {game.phase === "result" && (
           <motion.div
             key="result"
@@ -329,8 +517,12 @@ const PlayGame = () => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <p className={`text-2xl sm:text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
-              {game.winner === "You" ? "🎉 You won this round!" : "💀 AI wins this round!"}
+            <p
+              className={`text-2xl sm:text-3xl font-black ${
+                game.winner === "You" ? "text-accent" : "text-destructive"
+              }`}
+            >
+              {game.winner === "You" ? "🎉 You won this round!" : `💀 ${game.winner} wins this round!`}
             </p>
             {game.trashTalk && (
               <motion.p

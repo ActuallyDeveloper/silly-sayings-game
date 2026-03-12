@@ -12,6 +12,7 @@ const packColors: Record<PackId, string> = {
   pg13: "bg-primary text-primary-foreground",
   nsfw: "bg-destructive text-destructive-foreground",
   popculture: "bg-secondary text-secondary-foreground border border-accent",
+  custom: "bg-accent/50 text-accent-foreground border border-accent",
 };
 
 const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {

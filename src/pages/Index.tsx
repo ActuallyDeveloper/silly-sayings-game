@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings, Pencil } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,12 +22,7 @@ const Index = () => {
 
       {/* Auth + settings */}
       <div className="absolute top-4 right-4 flex items-center gap-2 sm:gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/settings")}
-          className="text-muted-foreground hover:text-foreground"
-        >
+        <Button variant="ghost" size="sm" onClick={() => navigate("/settings")} className="text-muted-foreground hover:text-foreground">
           <Settings className="w-4 h-4" />
         </Button>
         {user ? (
@@ -39,12 +34,7 @@ const Index = () => {
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">{profile?.display_name || user.email}</span>
             </button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => signOut()}
-              className="text-muted-foreground hover:text-foreground"
-            >
+            <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-muted-foreground hover:text-foreground">
               <LogOut className="w-4 h-4" />
             </Button>
           </>
@@ -99,6 +89,14 @@ const Index = () => {
           onClick={() => navigate("/leaderboard")}
         >
           Leaderboard
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="border-muted-foreground/30 text-foreground hover:bg-secondary font-bold text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full"
+          onClick={() => navigate("/custom-cards")}
+        >
+          <Pencil className="w-4 h-4 mr-2" /> Custom Cards
         </Button>
       </motion.div>
 

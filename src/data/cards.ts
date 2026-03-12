@@ -11,7 +11,7 @@ export interface WhiteCard {
   pack: PackId;
 }
 
-export type PackId = "classic" | "pg13" | "nsfw" | "popculture";
+export type PackId = "classic" | "pg13" | "nsfw" | "popculture" | "custom";
 
 export interface CardPack {
   id: PackId;
@@ -27,6 +27,7 @@ export const cardPacks: CardPack[] = [
   { id: "pg13", name: "PG-13", emoji: "😇", description: "Family-friendlier prompts & answers", blackCount: 20, whiteCount: 50 },
   { id: "nsfw", name: "NSFW", emoji: "🔞", description: "Adults only. You've been warned.", blackCount: 15, whiteCount: 40 },
   { id: "popculture", name: "Pop Culture", emoji: "🎬", description: "Movies, music, memes & internet culture", blackCount: 15, whiteCount: 40 },
+  { id: "custom", name: "My Cards", emoji: "✏️", description: "Your custom-created cards", blackCount: 0, whiteCount: 0 },
 ];
 
 // ===== CLASSIC PACK =====

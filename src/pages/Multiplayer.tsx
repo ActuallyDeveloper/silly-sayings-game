@@ -5,13 +5,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import GameCard from "@/components/GameCard";
+import GameConfig from "@/components/GameConfig";
 import ExoticLogo from "@/components/ExoticLogo";
 import RoomChat from "@/components/RoomChat";
 import PackSelector from "@/components/PackSelector";
+import PhaseTimer from "@/components/PhaseTimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
-import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check } from "lucide-react";
+import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot } from "lucide-react";
 import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
@@ -23,6 +27,10 @@ const Multiplayer = () => {
   const [copied, setCopied] = useState(false);
   const { selectedPacks } = useSettings();
   const [lobbyPacks, setLobbyPacks] = useState<PackId[]>(selectedPacks);
+  const [enableAiBots, setEnableAiBots] = useState(false);
+  const [aiCount, setAiCount] = useState(1);
+  const [lobbyRounds, setLobbyRounds] = useState(10);
+  const [lobbyPoints, setLobbyPoints] = useState(10);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
@@ -33,6 +41,11 @@ const Multiplayer = () => {
       return [...prev, packId];
     });
   };
+
+  const playerCount = game.players.length;
+  const minAi = playerCount <= 2 ? 1 : 0;
+  const maxAi = playerCount <= 2 ? 6 : 5;
+  const aiRequired = playerCount <= 2;
 
   if (!user) {
     return (
@@ -100,15 +113,19 @@ const Multiplayer = () => {
   if (game.phase === "lobby") {
     const isHost = game.room.created_by === user.id;
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4 py-6">
         <ExoticLogo size="sm" />
         <div className="flex items-center gap-3">
-          <h2 className="text-3xl font-black text-foreground">Room</h2>
-          <span className="text-3xl font-mono font-black text-accent tracking-widest">{game.room.room_code}</span>
+          <h2 className="text-2xl sm:text-3xl font-black text-foreground">Room</h2>
+          <span className="text-2xl sm:text-3xl font-mono font-black text-accent tracking-widest">{game.room.room_code}</span>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { navigator.clipboard.writeText(game.room!.room_code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            onClick={() => {
+              navigator.clipboard.writeText(game.room!.room_code);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
             className="text-muted-foreground"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -134,10 +151,42 @@ const Multiplayer = () => {
         </div>
 
         {isHost && (
-          <PackSelector selectedPacks={lobbyPacks} onTogglePack={handleLobbyTogglePack} />
+          <>
+            <PackSelector selectedPacks={lobbyPacks} onTogglePack={handleLobbyTogglePack} />
+
+            {/* Game config */}
+            <div className="w-full max-w-sm space-y-3">
+              <GameConfig
+                aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
+                onAiPlayerCountChange={(v) => setAiCount(v)}
+                rounds={lobbyRounds}
+                onRoundsChange={setLobbyRounds}
+                pointsToWin={lobbyPoints}
+                onPointsToWinChange={setLobbyPoints}
+                minAi={Math.max(minAi, 1)}
+                maxAi={maxAi}
+              />
+
+              {!aiRequired && (
+                <div className="flex items-center justify-between bg-secondary rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-accent" />
+                    <Label className="text-foreground font-bold text-sm">AI Bots</Label>
+                  </div>
+                  <Switch checked={enableAiBots} onCheckedChange={setEnableAiBots} />
+                </div>
+              )}
+
+              {aiRequired && (
+                <p className="text-xs text-accent text-center">
+                  AI players required with 2 or fewer human players
+                </p>
+              )}
+            </div>
+          </>
         )}
 
-        {game.players.length < 2 && (
+        {game.players.length < 2 && !aiRequired && (
           <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
         )}
 
@@ -145,7 +194,7 @@ const Multiplayer = () => {
           {isHost && (
             <Button
               onClick={game.startGame}
-              disabled={game.loading || game.players.length < 2}
+              disabled={game.loading || (game.players.length < 2 && !aiRequired)}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
             >
               Start Game
@@ -182,10 +231,20 @@ const Multiplayer = () => {
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={() => { game.leaveRoom(); }} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+          <Button
+            onClick={() => game.leaveRoom()}
+            className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+          >
             <RotateCcw className="w-4 h-4 mr-2" /> New Game
           </Button>
-          <Button variant="outline" onClick={() => { game.leaveRoom(); navigate("/"); }} className="border-muted-foreground/30">
+          <Button
+            variant="outline"
+            onClick={() => {
+              game.leaveRoom();
+              navigate("/");
+            }}
+            className="border-muted-foreground/30"
+          >
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
         </div>
@@ -215,20 +274,27 @@ const Multiplayer = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
+      <header className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-3 border-b border-border">
         <ExoticLogo size="sm" />
-        <div className="flex items-center gap-4 text-sm font-bold">
+        <div className="flex items-center gap-3 text-xs sm:text-sm font-bold">
           <span className="text-muted-foreground/50 font-mono">{game.room.room_code}</span>
-          <span className="text-muted-foreground/50">Round {game.room.current_round}/{game.room.max_rounds}</span>
+          <span className="text-muted-foreground/50">
+            Round {game.room.current_round}/{game.room.max_rounds}
+          </span>
         </div>
       </header>
 
       {/* Scores bar */}
-      <div className="flex gap-3 px-4 md:px-8 py-2 overflow-x-auto border-b border-border">
+      <div className="flex gap-2 px-3 sm:px-4 md:px-8 py-1.5 overflow-x-auto border-b border-border">
         {game.players.map((p) => (
-          <div key={p.id} className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
-            p.user_id === game.room!.czar_user_id ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground"
-          }`}>
+          <div
+            key={p.id}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0 ${
+              p.user_id === game.room!.czar_user_id
+                ? "bg-accent text-accent-foreground"
+                : "bg-secondary text-foreground"
+            }`}
+          >
             {p.user_id === game.room!.czar_user_id && <Crown className="w-3 h-3" />}
             <span>{p.display_name}</span>
             <span className="opacity-60">{p.score}</span>
@@ -237,24 +303,30 @@ const Multiplayer = () => {
       </div>
 
       {/* Black card */}
-      <div className="flex justify-center py-6 px-4">
+      <div className="flex justify-center py-4 sm:py-6 px-4">
         {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo />}
       </div>
 
       {/* Phase-specific content */}
       <AnimatePresence mode="wait">
         {game.phase === "submitting" && (
-          <motion.div key="submitting" className="text-center px-4 pb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div
+            key="submitting"
+            className="text-center px-4 pb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
             {game.isCzar ? (
-              <p className="text-accent font-bold text-sm uppercase tracking-widest">
+              <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
                 You are the Card Czar — waiting for submissions ({roundSubs.length}/{game.players.length - 1})
               </p>
             ) : game.mySubmission ? (
-              <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+              <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
                 Submitted! Waiting for others... ({roundSubs.length}/{game.players.length - 1})
               </p>
             ) : (
-              <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+              <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
                 Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length}/{game.players.length - 1} submitted)
               </p>
             )}
@@ -262,13 +334,21 @@ const Multiplayer = () => {
         )}
 
         {game.phase === "judging" && (
-          <motion.div key="judging" className="flex flex-col items-center gap-4 px-4 pb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <p className="text-accent font-bold text-sm uppercase tracking-widest">
+          <motion.div
+            key="judging"
+            className="flex flex-col items-center gap-4 px-4 pb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
               {roundSubs.map((sub) => {
-                const cards = sub.white_card_ids.map((id) => whiteCards.find((c) => c.id === id)).filter(Boolean) as WhiteCard[];
+                const cards = sub.white_card_ids
+                  .map((id) => whiteCards.find((c) => c.id === id))
+                  .filter(Boolean) as WhiteCard[];
                 return (
                   <motion.div
                     key={sub.id}
@@ -287,10 +367,19 @@ const Multiplayer = () => {
         )}
 
         {game.phase === "round_result" && game.roundWinner && (
-          <motion.div key="result" className="flex flex-col items-center gap-4 px-4 pb-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+          <motion.div
+            key="result"
+            className="flex flex-col items-center gap-4 px-4 pb-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+          >
             <p className="text-3xl font-black text-accent">🎉 {game.roundWinner.name} wins!</p>
             {game.room.created_by === user.id && (
-              <Button onClick={game.nextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+              <Button
+                onClick={game.nextRound}
+                className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+              >
                 Next Round →
               </Button>
             )}
@@ -301,7 +390,7 @@ const Multiplayer = () => {
       {/* Hand (only for non-czar during submitting) */}
       {game.phase === "submitting" && !game.isCzar && !game.mySubmission && (
         <div className="mt-auto border-t border-border">
-          <div className="flex items-center justify-between px-4 md:px-8 py-3">
+          <div className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-2 sm:py-3">
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Your Hand</p>
             <Button
               size="sm"
@@ -312,7 +401,7 @@ const Multiplayer = () => {
               Submit
             </Button>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-4 md:px-8 pb-6 pt-2">
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 pt-1">
             {game.myHand.map((card) => (
               <GameCard
                 key={card.id}
