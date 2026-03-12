@@ -1,14 +1,38 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameState } from "@/hooks/useGameState";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { Trophy, RotateCcw, Home } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const PlayGame = () => {
   const navigate = useNavigate();
   const game = useGameState();
+  const { user } = useAuth();
+  const scoreSaved = useRef(false);
+
+  // Save score when game ends
+  useEffect(() => {
+    if (game.phase === "gameover" && user && !scoreSaved.current) {
+      scoreSaved.current = true;
+      supabase.from("game_scores").insert({
+        user_id: user.id,
+        player_score: game.playerScore,
+        ai_score: game.aiScore,
+        rounds_played: game.round,
+        won: game.playerScore > game.aiScore,
+      });
+    }
+  }, [game.phase, user, game.playerScore, game.aiScore, game.round]);
+
+  const handleReset = () => {
+    scoreSaved.current = false;
+    game.resetGame();
+  };
 
   if (game.phase === "gameover") {
     return (
@@ -20,8 +44,14 @@ const PlayGame = () => {
         <p className="text-2xl text-muted-foreground">
           {game.playerScore} — {game.aiScore}
         </p>
+        {user && <p className="text-sm text-accent">Score saved!</p>}
+        {!user && (
+          <p className="text-sm text-muted-foreground">
+            <button onClick={() => navigate("/auth")} className="text-accent hover:underline">Sign in</button> to save scores
+          </p>
+        )}
         <div className="flex gap-4 mt-4">
-          <Button onClick={game.resetGame} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+          <Button onClick={handleReset} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
             <RotateCcw className="w-4 h-4 mr-2" /> Play Again
           </Button>
           <Button variant="outline" onClick={() => navigate("/")} className="border-muted-foreground/30">
