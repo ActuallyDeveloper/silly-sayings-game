@@ -1,6 +1,9 @@
 // Sound effects using Web Audio API - no external files needed
 const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
 let ctx: AudioContext | null = null;
+let _enabled = true;
+
+export function setSoundEnabled(v: boolean) { _enabled = v; }
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioCtx();
@@ -8,6 +11,7 @@ function getCtx(): AudioContext {
 }
 
 function playTone(freq: number, duration: number, type: OscillatorType = "sine", volume = 0.15) {
+  if (!_enabled) return;
   try {
     const c = getCtx();
     const osc = c.createOscillator();

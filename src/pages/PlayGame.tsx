@@ -2,22 +2,30 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameState } from "@/hooks/useGameState";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
+import Confetti from "@/components/Confetti";
 import { Button } from "@/components/ui/button";
 import { Trophy, RotateCcw, Home, Loader2 } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { playCardSelect, playCardSubmit, playWin, playLose, playNewRound, playGameOver } from "@/lib/sounds";
+import { useEffect, useRef, useState } from "react";
+import { playCardSelect, playCardSubmit, playWin, playLose, playNewRound, playGameOver, setSoundEnabled } from "@/lib/sounds";
 
 const PlayGame = () => {
   const navigate = useNavigate();
-  const game = useGameState();
+  const { maxRounds, soundEnabled } = useSettings();
+  const game = useGameState(maxRounds);
   const { user } = useAuth();
   const scoreSaved = useRef(false);
   const cardsGenerated = useRef(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showBigConfetti, setShowBigConfetti] = useState(false);
 
-  // Generate AI cards at round 5 for variety
+  // Sync sound setting
+  useEffect(() => { setSoundEnabled(soundEnabled); }, [soundEnabled]);
+
+  // Generate AI cards at round 5
   useEffect(() => {
     if (game.round === 5 && !cardsGenerated.current) {
       cardsGenerated.current = true;
@@ -30,6 +38,7 @@ const PlayGame = () => {
     if (game.phase === "gameover" && user && !scoreSaved.current) {
       scoreSaved.current = true;
       playGameOver();
+      setShowBigConfetti(game.playerScore > game.aiScore);
       supabase.from("game_scores").insert({
         user_id: user.id,
         player_score: game.playerScore,
@@ -39,15 +48,21 @@ const PlayGame = () => {
       });
     } else if (game.phase === "gameover" && !scoreSaved.current) {
       playGameOver();
+      setShowBigConfetti(game.playerScore > game.aiScore);
       scoreSaved.current = true;
     }
   }, [game.phase, user, game.playerScore, game.aiScore, game.round]);
 
-  // Sound on result
+  // Sound + confetti on result
   useEffect(() => {
     if (game.phase === "result") {
-      if (game.winner === "You") playWin();
-      else playLose();
+      if (game.winner === "You") {
+        playWin();
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2500);
+      } else {
+        playLose();
+      }
     }
   }, [game.phase, game.winner]);
 
@@ -69,26 +84,28 @@ const PlayGame = () => {
   const handleReset = () => {
     scoreSaved.current = false;
     cardsGenerated.current = false;
+    setShowBigConfetti(false);
     game.resetGame();
   };
 
   if (game.phase === "gameover") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-        <Trophy className="w-16 h-16 text-accent" />
-        <h1 className="text-5xl font-black text-foreground">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4">
+        <Confetti active={showBigConfetti} big />
+        <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-accent" />
+        <h1 className="text-3xl sm:text-5xl font-black text-foreground text-center">
           {game.winner === "Tie" ? "It's a Tie!" : `${game.winner} Win${game.winner === "You" ? "" : "s"}!`}
         </h1>
-        <p className="text-2xl text-muted-foreground">
+        <p className="text-xl sm:text-2xl text-muted-foreground">
           {game.playerScore} — {game.aiScore}
         </p>
         {user && <p className="text-sm text-accent">Score saved!</p>}
         {!user && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             <button onClick={() => navigate("/auth")} className="text-accent hover:underline">Sign in</button> to save scores
           </p>
         )}
-        <div className="flex gap-4 mt-4">
+        <div className="flex gap-3 sm:gap-4 mt-4">
           <Button onClick={handleReset} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
             <RotateCcw className="w-4 h-4 mr-2" /> Play Again
           </Button>
@@ -102,16 +119,18 @@ const PlayGame = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
+      <Confetti active={showConfetti} />
+
+      <header className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-3 sm:py-4 border-b border-border">
         <ExoticLogo size="sm" />
-        <div className="flex items-center gap-6 text-sm font-bold">
+        <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-bold">
           <span className="text-foreground">You: {game.playerScore}</span>
           <span className="text-muted-foreground">AI: {game.aiScore}</span>
-          <span className="text-muted-foreground/50">Round {game.round}/{game.maxRounds}</span>
+          <span className="text-muted-foreground/50">R{game.round}/{game.maxRounds}</span>
         </div>
       </header>
 
-      <div className="flex justify-center py-8 px-4">
+      <div className="flex justify-center py-4 sm:py-8 px-4">
         {game.currentBlackCard && (
           <GameCard text={game.currentBlackCard.text} type="black" logo />
         )}
@@ -121,18 +140,18 @@ const PlayGame = () => {
         {game.phase === "judging" && (
           <motion.div
             key="judging"
-            className="flex flex-col items-center gap-6 px-4 pb-6"
+            className="flex flex-col items-center gap-4 sm:gap-6 px-4 pb-4 sm:pb-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
-            <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+            <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
               {game.aiJudging ? "AI is thinking..." : "The AI is judging..."}
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-2 font-bold">YOUR CARD{game.selectedCards.length > 1 ? "S" : ""}</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-center">
                   {game.selectedCards.map((c) => (
                     <GameCard key={c.id} text={c.text} type="white" small logo />
                   ))}
@@ -140,7 +159,7 @@ const PlayGame = () => {
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-2 font-bold">AI'S CARD{game.aiCards.length > 1 ? "S" : ""}</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-center">
                   {game.aiCards.map((c) => (
                     <GameCard key={c.id} text={c.text} type="white" small logo />
                   ))}
@@ -160,17 +179,17 @@ const PlayGame = () => {
         {game.phase === "result" && (
           <motion.div
             key="result"
-            className="flex flex-col items-center gap-4 px-4 pb-6"
+            className="flex flex-col items-center gap-3 sm:gap-4 px-4 pb-4 sm:pb-6"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <p className={`text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
+            <p className={`text-2xl sm:text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
               {game.winner === "You" ? "🎉 You won this round!" : "💀 AI wins this round!"}
             </p>
             {game.trashTalk && (
               <motion.p
-                className="text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
+                className="text-xs sm:text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -190,9 +209,9 @@ const PlayGame = () => {
 
       {game.phase === "playing" && (
         <div className="mt-auto border-t border-border">
-          <div className="flex items-center justify-between px-4 md:px-8 py-3">
+          <div className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-2 sm:py-3">
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-              Pick {game.currentBlackCard?.pick || 1} card{(game.currentBlackCard?.pick || 1) > 1 ? "s" : ""}
+              Pick {game.currentBlackCard?.pick || 1}
             </p>
             <Button
               size="sm"
@@ -203,7 +222,7 @@ const PlayGame = () => {
               Submit
             </Button>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-4 md:px-8 pb-6 pt-2">
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 pt-2">
             {game.hand.map((card) => (
               <GameCard
                 key={card.id}

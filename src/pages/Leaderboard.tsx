@@ -45,14 +45,14 @@ const Leaderboard = () => {
         </Button>
       </header>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8">
         <motion.div
-          className="flex items-center gap-3 mb-8"
+          className="flex items-center gap-3 mb-6 sm:mb-8"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Trophy className="w-8 h-8 text-accent" />
-          <h1 className="text-4xl font-black text-foreground">Leaderboard</h1>
+          <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
+          <h1 className="text-3xl sm:text-4xl font-black text-foreground">Leaderboard</h1>
         </motion.div>
 
         {loading ? (
@@ -60,19 +60,15 @@ const Leaderboard = () => {
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : entries.length === 0 ? (
-          <motion.div
-            className="text-center py-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="text-center py-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Gamepad2 className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
             <p className="text-muted-foreground text-lg">No games played yet.</p>
             <p className="text-muted-foreground/50 text-sm mt-1">Play a game to appear on the leaderboard!</p>
           </motion.div>
         ) : (
           <div className="space-y-2">
-            {/* Header */}
-            <div className="grid grid-cols-[2.5rem_1fr_4rem_4rem_4rem_4.5rem] gap-2 px-4 py-2 text-xs text-muted-foreground font-bold uppercase tracking-widest">
+            {/* Mobile-friendly layout */}
+            <div className="hidden sm:grid grid-cols-[2.5rem_1fr_4rem_4rem_4rem_4.5rem] gap-2 px-4 py-2 text-xs text-muted-foreground font-bold uppercase tracking-widest">
               <span>#</span>
               <span>Player</span>
               <span className="text-center">W</span>
@@ -84,31 +80,47 @@ const Leaderboard = () => {
             {entries.map((entry, i) => (
               <motion.div
                 key={entry.user_id}
-                className={`grid grid-cols-[2.5rem_1fr_4rem_4rem_4rem_4.5rem] gap-2 items-center px-4 py-3 rounded-lg ${
-                  i < 3 ? "bg-accent/10 border border-accent/20" : "bg-secondary"
-                }`}
+                className={`rounded-lg ${i < 3 ? "bg-accent/10 border border-accent/20" : "bg-secondary"}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <span className="text-lg font-black">
-                  {i < 3 ? medals[i] : <span className="text-muted-foreground">{i + 1}</span>}
-                </span>
-                <span className="font-bold text-foreground truncate">
-                  {entry.display_name || "Anonymous"}
-                </span>
-                <span className="text-center font-bold text-accent flex items-center justify-center gap-1">
-                  <Flame className="w-3 h-3" /> {entry.wins}
-                </span>
-                <span className="text-center text-muted-foreground font-bold">{entry.losses}</span>
-                <span className="text-center text-foreground font-bold flex items-center justify-center gap-1">
-                  <Target className="w-3 h-3 text-muted-foreground" /> {entry.total_points}
-                </span>
-                <span className={`text-right font-black text-sm ${
-                  entry.win_rate >= 60 ? "text-accent" : entry.win_rate >= 40 ? "text-foreground" : "text-muted-foreground"
-                }`}>
-                  {entry.win_rate}%
-                </span>
+                {/* Desktop */}
+                <div className="hidden sm:grid grid-cols-[2.5rem_1fr_4rem_4rem_4rem_4.5rem] gap-2 items-center px-4 py-3">
+                  <span className="text-lg font-black">
+                    {i < 3 ? medals[i] : <span className="text-muted-foreground">{i + 1}</span>}
+                  </span>
+                  <span className="font-bold text-foreground truncate">{entry.display_name || "Anonymous"}</span>
+                  <span className="text-center font-bold text-accent flex items-center justify-center gap-1">
+                    <Flame className="w-3 h-3" /> {entry.wins}
+                  </span>
+                  <span className="text-center text-muted-foreground font-bold">{entry.losses}</span>
+                  <span className="text-center text-foreground font-bold flex items-center justify-center gap-1">
+                    <Target className="w-3 h-3 text-muted-foreground" /> {entry.total_points}
+                  </span>
+                  <span className={`text-right font-black text-sm ${
+                    entry.win_rate >= 60 ? "text-accent" : entry.win_rate >= 40 ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {entry.win_rate}%
+                  </span>
+                </div>
+                {/* Mobile */}
+                <div className="flex sm:hidden items-center justify-between px-3 py-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg font-black shrink-0">
+                      {i < 3 ? medals[i] : <span className="text-muted-foreground">{i + 1}</span>}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground truncate text-sm">{entry.display_name || "Anonymous"}</p>
+                      <p className="text-xs text-muted-foreground">{entry.wins}W · {entry.losses}L · {entry.total_points}pts</p>
+                    </div>
+                  </div>
+                  <span className={`font-black text-sm shrink-0 ${
+                    entry.win_rate >= 60 ? "text-accent" : "text-muted-foreground"
+                  }`}>
+                    {entry.win_rate}%
+                  </span>
+                </div>
               </motion.div>
             ))}
           </div>
