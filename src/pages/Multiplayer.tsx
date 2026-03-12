@@ -1,31 +1,311 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
+import GameCard from "@/components/GameCard";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { whiteCards } from "@/data/cards";
+import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check } from "lucide-react";
+import type { WhiteCard } from "@/data/cards";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const game = useMultiplayerGame();
+  const [joinCode, setJoinCode] = useState("");
+  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+        <Users className="w-16 h-16 text-muted-foreground/30" />
+        <h1 className="text-4xl font-black text-foreground">Multiplayer</h1>
+        <p className="text-muted-foreground text-center">You need to sign in to play multiplayer.</p>
+        <Button onClick={() => navigate("/auth")} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+          Sign In
+        </Button>
+      </div>
+    );
+  }
+
+  // LOBBY: No room yet
+  if (!game.room) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-4">
+        <ExoticLogo />
+        <h2 className="text-2xl font-black text-foreground">Multiplayer</h2>
+
+        <motion.div className="flex flex-col gap-4 w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Button
+            onClick={game.createRoom}
+            disabled={game.loading}
+            className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-lg py-6"
+          >
+            Create Room
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-muted-foreground text-sm">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter room code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              maxLength={5}
+              className="bg-secondary border-border text-foreground text-center font-mono text-lg tracking-widest uppercase"
+            />
+            <Button
+              onClick={() => game.joinRoom(joinCode)}
+              disabled={game.loading || joinCode.length < 5}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+            >
+              Join
+            </Button>
+          </div>
+
+          {game.error && <p className="text-destructive text-sm text-center">{game.error}</p>}
+        </motion.div>
+
+        <Button variant="ghost" onClick={() => navigate("/")} className="text-muted-foreground">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back Home
+        </Button>
+      </div>
+    );
+  }
+
+  // WAITING ROOM
+  if (game.phase === "lobby") {
+    const isHost = game.room.created_by === user.id;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+        <ExoticLogo size="sm" />
+        <div className="flex items-center gap-3">
+          <h2 className="text-3xl font-black text-foreground">Room</h2>
+          <span className="text-3xl font-mono font-black text-accent tracking-widest">{game.room.room_code}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { navigator.clipboard.writeText(game.room!.room_code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            className="text-muted-foreground"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        <p className="text-muted-foreground text-sm">Share the code with your friends!</p>
+
+        <div className="w-full max-w-sm space-y-2">
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Players ({game.players.length})</p>
+          {game.players.map((p) => (
+            <motion.div
+              key={p.id}
+              className="flex items-center gap-3 bg-secondary rounded-lg px-4 py-3"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <span className="font-bold text-foreground">{p.display_name}</span>
+              {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent ml-auto" />}
+            </motion.div>
+          ))}
+        </div>
+
+        {game.players.length < 2 && (
+          <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
+        )}
+
+        <div className="flex gap-3">
+          {isHost && (
+            <Button
+              onClick={game.startGame}
+              disabled={game.loading || game.players.length < 2}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
+            >
+              Start Game
+            </Button>
+          )}
+          <Button variant="outline" onClick={game.leaveRoom} className="border-muted-foreground/30">
+            Leave Room
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // GAME OVER
+  if (game.phase === "game_over") {
+    const sorted = [...game.players].sort((a, b) => b.score - a.score);
+    const winner = sorted[0];
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+        <Trophy className="w-16 h-16 text-accent" />
+        <h1 className="text-5xl font-black text-foreground">{winner?.display_name} Wins!</h1>
+
+        <div className="w-full max-w-sm space-y-2">
+          {sorted.map((p, i) => (
+            <div key={p.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className={`font-black text-lg ${i === 0 ? "text-accent" : "text-muted-foreground"}`}>#{i + 1}</span>
+                <span className="font-bold text-foreground">{p.display_name}</span>
+              </div>
+              <span className="font-black text-foreground">{p.score}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <Button onClick={() => { game.leaveRoom(); }} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+            <RotateCcw className="w-4 h-4 mr-2" /> New Game
+          </Button>
+          <Button variant="outline" onClick={() => { game.leaveRoom(); navigate("/"); }} className="border-muted-foreground/30">
+            <Home className="w-4 h-4 mr-2" /> Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // PLAYING PHASES
+  const roundSubs = game.submissions.filter((s) => s.round_number === game.room!.current_round);
+  const pick = game.currentBlackCard?.pick || 1;
+
+  const handleSelectCard = (cardId: number) => {
+    if (game.isCzar || game.mySubmission) return;
+    setSelectedCards((prev) => {
+      if (prev.includes(cardId)) return prev.filter((id) => id !== cardId);
+      if (prev.length >= pick) return prev;
+      return [...prev, cardId];
+    });
+  };
+
+  const handleSubmit = () => {
+    game.submitCards(selectedCards);
+    setSelectedCards([]);
+  };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <Users className="w-16 h-16 text-muted-foreground/30" />
-      <h1 className="text-4xl font-black text-foreground">Multiplayer</h1>
-      <motion.p
-        className="text-muted-foreground text-center max-w-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        Coming soon. Gather your horrible friends and play together in real-time.
-      </motion.p>
-      <Button
-        variant="outline"
-        onClick={() => navigate("/")}
-        className="border-muted-foreground/30 mt-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back Home
-      </Button>
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
+        <ExoticLogo size="sm" />
+        <div className="flex items-center gap-4 text-sm font-bold">
+          <span className="text-muted-foreground/50 font-mono">{game.room.room_code}</span>
+          <span className="text-muted-foreground/50">Round {game.room.current_round}/{game.room.max_rounds}</span>
+        </div>
+      </header>
+
+      {/* Scores bar */}
+      <div className="flex gap-3 px-4 md:px-8 py-2 overflow-x-auto border-b border-border">
+        {game.players.map((p) => (
+          <div key={p.id} className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
+            p.user_id === game.room!.czar_user_id ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground"
+          }`}>
+            {p.user_id === game.room!.czar_user_id && <Crown className="w-3 h-3" />}
+            <span>{p.display_name}</span>
+            <span className="opacity-60">{p.score}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Black card */}
+      <div className="flex justify-center py-6 px-4">
+        {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo />}
+      </div>
+
+      {/* Phase-specific content */}
+      <AnimatePresence mode="wait">
+        {game.phase === "submitting" && (
+          <motion.div key="submitting" className="text-center px-4 pb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {game.isCzar ? (
+              <p className="text-accent font-bold text-sm uppercase tracking-widest">
+                You are the Card Czar — waiting for submissions ({roundSubs.length}/{game.players.length - 1})
+              </p>
+            ) : game.mySubmission ? (
+              <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+                Submitted! Waiting for others... ({roundSubs.length}/{game.players.length - 1})
+              </p>
+            ) : (
+              <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+                Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length}/{game.players.length - 1} submitted)
+              </p>
+            )}
+          </motion.div>
+        )}
+
+        {game.phase === "judging" && (
+          <motion.div key="judging" className="flex flex-col items-center gap-4 px-4 pb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <p className="text-accent font-bold text-sm uppercase tracking-widest">
+              {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {roundSubs.map((sub) => {
+                const cards = sub.white_card_ids.map((id) => whiteCards.find((c) => c.id === id)).filter(Boolean) as WhiteCard[];
+                return (
+                  <motion.div
+                    key={sub.id}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer" : ""}`}
+                    onClick={() => game.isCzar && game.pickWinner(sub.id)}
+                    whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                  >
+                    {cards.map((c) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    ))}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {game.phase === "round_result" && game.roundWinner && (
+          <motion.div key="result" className="flex flex-col items-center gap-4 px-4 pb-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+            <p className="text-3xl font-black text-accent">🎉 {game.roundWinner.name} wins!</p>
+            {game.room.created_by === user.id && (
+              <Button onClick={game.nextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+                Next Round →
+              </Button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hand (only for non-czar during submitting) */}
+      {game.phase === "submitting" && !game.isCzar && !game.mySubmission && (
+        <div className="mt-auto border-t border-border">
+          <div className="flex items-center justify-between px-4 md:px-8 py-3">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Your Hand</p>
+            <Button
+              size="sm"
+              disabled={selectedCards.length < pick}
+              onClick={handleSubmit}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
+            >
+              Submit
+            </Button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto px-4 md:px-8 pb-6 pt-2">
+            {game.myHand.map((card) => (
+              <GameCard
+                key={card.id}
+                text={card.text}
+                type="white"
+                small
+                selected={selectedCards.includes(card.id)}
+                onClick={() => handleSelectCard(card.id)}
+                logo
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
