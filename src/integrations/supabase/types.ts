@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_black_card_id: number | null
+          current_round: number
+          czar_user_id: string | null
+          id: string
+          max_rounds: number
+          room_code: string
+          status: string
+          updated_at: string
+          used_black_card_ids: Json
+          used_white_card_ids: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_black_card_id?: number | null
+          current_round?: number
+          czar_user_id?: string | null
+          id?: string
+          max_rounds?: number
+          room_code: string
+          status?: string
+          updated_at?: string
+          used_black_card_ids?: Json
+          used_white_card_ids?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_black_card_id?: number | null
+          current_round?: number
+          czar_user_id?: string | null
+          id?: string
+          max_rounds?: number
+          room_code?: string
+          status?: string
+          updated_at?: string
+          used_black_card_ids?: Json
+          used_white_card_ids?: Json
+        }
+        Relationships: []
+      }
       game_scores: {
         Row: {
           ai_score: number
@@ -71,12 +116,92 @@ export type Database = {
         }
         Relationships: []
       }
+      room_players: {
+        Row: {
+          created_at: string
+          display_name: string
+          hand: Json
+          id: string
+          room_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          hand?: Json
+          id?: string
+          room_id: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          hand?: Json
+          id?: string
+          room_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_submissions: {
+        Row: {
+          created_at: string
+          id: string
+          is_winner: boolean
+          room_id: string
+          round_number: number
+          user_id: string
+          white_card_ids: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          room_id: string
+          round_number: number
+          user_id: string
+          white_card_ids?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          room_id?: string
+          round_number?: number
+          user_id?: string
+          white_card_ids?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_submissions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_room_code: { Args: never; Returns: string }
+      is_room_member: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
