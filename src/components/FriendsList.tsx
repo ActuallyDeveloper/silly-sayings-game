@@ -24,10 +24,12 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
   const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
   const { getStatus } = useUserStatus();
+  const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [tab, setTab] = useState<"friends" | "requests" | "invites">("friends");
+  const [blockReportTarget, setBlockReportTarget] = useState<{ userId: string; username: string } | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
