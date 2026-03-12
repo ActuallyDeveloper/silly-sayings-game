@@ -95,10 +95,20 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
+    touch-action: manipulation;
+  }
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    @apply select-none;
+  }
+  input, textarea, select {
+    font-size: 16px; /* Prevent iOS zoom on focus */
   }
 }
 
