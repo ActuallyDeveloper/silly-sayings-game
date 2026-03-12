@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import GameCard from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
+import { User, LogOut } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-4">
@@ -15,6 +18,35 @@ const Index = () => {
       </div>
       <div className="absolute bottom-10 right-10 rotate-[12deg] opacity-20 hidden md:block">
         <GameCard text="Poor life choices." type="white" small logo />
+      </div>
+
+      {/* Auth status */}
+      <div className="absolute top-4 right-4 flex items-center gap-3">
+        {user ? (
+          <>
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
+              <User className="w-4 h-4" />
+              {profile?.display_name || user.email}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => signOut()}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/auth")}
+            className="border-muted-foreground/30 text-foreground"
+          >
+            Sign In
+          </Button>
+        )}
       </div>
 
       <ExoticLogo />
@@ -51,8 +83,22 @@ const Index = () => {
         </Button>
       </motion.div>
 
+      {!user && (
+        <motion.p
+          className="text-muted-foreground/70 text-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+        >
+          <button onClick={() => navigate("/auth")} className="text-accent hover:underline">
+            Sign in
+          </button>{" "}
+          to save your scores
+        </motion.p>
+      )}
+
       <motion.p
-        className="text-muted-foreground/50 text-sm mt-8"
+        className="text-muted-foreground/50 text-sm mt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
