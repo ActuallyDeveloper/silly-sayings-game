@@ -344,7 +344,7 @@ const PlayGame = () => {
               ...game.aiPlayers.map(a => ({ name: a.name, score: a.score })),
             ],
             lastBlackCard: game.currentBlackCard?.text,
-            lastWinner: game.judgeResult?.winner,
+            lastWinner: game.winner || undefined,
           }}
         />
       )}
