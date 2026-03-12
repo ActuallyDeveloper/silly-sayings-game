@@ -14,11 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          description: string
+          icon: string
+          id: string
+          key: string
+          mode: string
+          requirement_type: string
+          requirement_value: number
+          tier: string
+          title: string
+        }
+        Insert: {
+          description: string
+          icon?: string
+          id?: string
+          key: string
+          mode?: string
+          requirement_type: string
+          requirement_value?: number
+          tier?: string
+          title: string
+        }
+        Update: {
+          description?: string
+          icon?: string
+          id?: string
+          key?: string
+          mode?: string
+          requirement_type?: string
+          requirement_value?: number
+          tier?: string
+          title?: string
+        }
+        Relationships: []
+      }
       custom_cards: {
         Row: {
           card_type: string
           created_at: string
           id: string
+          mode: string
           pick: number
           text: string
           user_id: string
@@ -27,6 +64,7 @@ export type Database = {
           card_type?: string
           created_at?: string
           id?: string
+          mode?: string
           pick?: number
           text: string
           user_id: string
@@ -35,6 +73,7 @@ export type Database = {
           card_type?: string
           created_at?: string
           id?: string
+          mode?: string
           pick?: number
           text?: string
           user_id?: string
@@ -100,6 +139,7 @@ export type Database = {
           ai_score: number
           created_at: string
           id: string
+          mode: string
           packs_used: Json | null
           player_score: number
           rounds_played: number
@@ -110,6 +150,7 @@ export type Database = {
           ai_score?: number
           created_at?: string
           id?: string
+          mode?: string
           packs_used?: Json | null
           player_score?: number
           rounds_played?: number
@@ -120,6 +161,7 @@ export type Database = {
           ai_score?: number
           created_at?: string
           id?: string
+          mode?: string
           packs_used?: Json | null
           player_score?: number
           rounds_played?: number
@@ -136,6 +178,7 @@ export type Database = {
           id: string
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -144,6 +187,7 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -152,6 +196,7 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -266,6 +311,38 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          mode: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          mode?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          mode?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       leaderboard: {
@@ -281,9 +358,38 @@ export type Database = {
         }
         Relationships: []
       }
+      mp_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          losses: number | null
+          total_games: number | null
+          total_points: number | null
+          user_id: string | null
+          username: string | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
+      sp_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          losses: number | null
+          total_games: number | null
+          total_points: number | null
+          user_id: string | null
+          username: string | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_room_code: { Args: never; Returns: string }
+      get_email_by_username: { Args: { _username: string }; Returns: string }
       is_room_member: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean

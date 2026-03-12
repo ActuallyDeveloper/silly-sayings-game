@@ -2,13 +2,19 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+interface Profile {
+  display_name: string | null;
+  avatar_url: string | null;
+  username: string | null;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: { display_name: string | null; avatar_url: string | null } | null;
+  profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName: string, username: string) => Promise<{ error: Error | null }>;
+  signIn: (username: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -17,7 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // Defer profile fetch to avoid deadlock
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
         setProfile(null);
@@ -45,29 +50,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_url, username")
       .eq("user_id", userId)
       .single();
     setProfile(data);
   }
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string, username: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: { display_name: displayName, username },
         emailRedirectTo: window.location.origin,
       },
     });
     return { error: error as Error | null };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+  const signIn = async (username: string, password: string) => {
+    try {
+      const { data: email, error: rpcError } = await (supabase.rpc as any)("get_email_by_username", { _username: username });
+      if (rpcError || !email) {
+        return { error: new Error("Username not found") };
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error as Error | null };
+    } catch (e: any) {
+      return { error: new Error(e.message || "Sign in failed") };
+    }
   };
 
   const signOut = async () => {

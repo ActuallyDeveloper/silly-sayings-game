@@ -6,9 +6,13 @@ import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Gamepad2, Users } from "lucide-react";
 
-const AuthPage = () => {
+interface AuthFormProps {
+  mode: "singleplayer" | "multiplayer";
+}
+
+const AuthForm = ({ mode }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -19,6 +23,9 @@ const AuthPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  const isSP = mode === "singleplayer";
+  const redirectTo = isSP ? "/play" : "/multiplayer";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,7 @@ const AuthPage = () => {
     if (isLogin) {
       const { error } = await signIn(username, password);
       if (error) setError(error.message);
-      else navigate("/");
+      else navigate(redirectTo);
     } else {
       if (!email.trim()) { setError("Email is required"); setSubmitting(false); return; }
       const { error } = await signUp(email, password, username, username);
@@ -45,6 +52,13 @@ const AuthPage = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <ExoticLogo />
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {isSP ? <Gamepad2 className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+        <span className="text-xs font-bold uppercase tracking-widest">
+          {isSP ? "Single Player" : "Multiplayer"}
+        </span>
+      </div>
+
       <motion.form
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4"
@@ -107,4 +121,4 @@ const AuthPage = () => {
   );
 };
 
-export default AuthPage;
+export default AuthForm;
