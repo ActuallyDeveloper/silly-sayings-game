@@ -127,6 +127,11 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                         <Gamepad2 className="w-4 h-4" />
                       </Button>
                     )}
+                    <Button size="sm" variant="ghost"
+                      onClick={() => setBlockReportTarget({ userId: f.friend_profile!.user_id, username: f.friend_profile!.username || f.friend_profile!.display_name || "" })}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                      <MoreVertical className="w-3 h-3" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => removeFriend(f.id)}
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
                       <UserX className="w-3 h-3" />
