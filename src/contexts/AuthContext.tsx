@@ -14,6 +14,8 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  spProfile: Profile | null;
+  mpProfile: Profile | null;
   loading: boolean;
   activeMode: GameMode;
   signUp: (email: string, password: string, displayName: string, username: string) => Promise<{ error: Error | null }>;
@@ -21,6 +23,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   setActiveMode: (mode: GameMode) => void;
   ensureMode: (mode: GameMode) => Promise<boolean>;
+  fetchModeProfile: (userId: string, mode: "singleplayer" | "multiplayer") => Promise<void>;
+  getModeProfile: (mode: "singleplayer" | "multiplayer") => Profile | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [spProfile, setSpProfile] = useState<Profile | null>(null);
+  const [mpProfile, setMpProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMode, setActiveMode] = useState<GameMode>(null);
 
@@ -37,9 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchProfile(session.user.id), 0);
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+          fetchModeProfile(session.user.id, "singleplayer");
+          fetchModeProfile(session.user.id, "multiplayer");
+        }, 0);
       } else {
         setProfile(null);
+        setSpProfile(null);
+        setMpProfile(null);
         setActiveMode(null);
       }
     });
@@ -49,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+        fetchModeProfile(session.user.id, "singleplayer");
+        fetchModeProfile(session.user.id, "multiplayer");
       }
       setLoading(false);
     });
@@ -64,6 +78,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     setProfile(data);
   }
+
+  const fetchModeProfile = useCallback(async (userId: string, mode: "singleplayer" | "multiplayer") => {
+    const table = mode === "singleplayer" ? "sp_profiles" : "mp_profiles";
+    const { data } = await (supabase as any)
+      .from(table)
+      .select("display_name, avatar_url, username")
+      .eq("user_id", userId)
+      .single();
+    if (mode === "singleplayer") setSpProfile(data);
+    else setMpProfile(data);
+  }, []);
+
+  const getModeProfile = useCallback((mode: "singleplayer" | "multiplayer"): Profile | null => {
+    return mode === "singleplayer" ? spProfile : mpProfile;
+  }, [spProfile, mpProfile]);
 
   const signUp = async (email: string, password: string, displayName: string, username: string) => {
     const { error } = await supabase.auth.signUp({
@@ -95,25 +124,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveMode(null);
   };
 
-  // Ensures the user is in the correct mode. If switching modes, signs out first.
-  // Returns true if the user can proceed (is signed in for this mode or was signed out).
   const ensureMode = useCallback(async (mode: GameMode): Promise<boolean> => {
     if (!user) {
       setActiveMode(mode);
       return true;
     }
     if (activeMode && activeMode !== mode) {
-      // Different mode - sign out first
       await supabase.auth.signOut();
       setActiveMode(mode);
-      return false; // User needs to sign in again
+      return false;
     }
     setActiveMode(mode);
     return true;
   }, [user, activeMode]);
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, activeMode, signUp, signIn, signOut, setActiveMode, ensureMode }}>
+    <AuthContext.Provider value={{
+      session, user, profile, spProfile, mpProfile, loading, activeMode,
+      signUp, signIn, signOut, setActiveMode, ensureMode, fetchModeProfile, getModeProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );
