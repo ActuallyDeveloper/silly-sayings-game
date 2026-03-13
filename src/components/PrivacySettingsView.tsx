@@ -120,6 +120,37 @@ const PrivacySettingsView = () => {
           <option value="friends">Friends Only</option>
         </select>
       </div>
+
+      {/* Blocked Users */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-black text-foreground flex items-center gap-2">
+          <ShieldBan className="w-4 h-4 text-destructive" /> Blocked Users
+        </h3>
+        {blockedUsers.length === 0 ? (
+          <p className="text-xs text-muted-foreground">You haven't blocked anyone.</p>
+        ) : (
+          <div className="space-y-2">
+            {blockedUsers.map((b) => (
+              <div key={b.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <UserX className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-bold text-foreground">
+                    {blockedProfiles[b.blocked_id] || "Loading..."}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => { await unblockUser(b.blocked_id); refresh(); }}
+                  className="text-accent hover:text-accent-foreground hover:bg-accent text-xs font-bold min-h-[36px]"
+                >
+                  Unblock
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };
