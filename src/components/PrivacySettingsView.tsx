@@ -1,10 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrivacySettings } from "@/hooks/usePrivacySettings";
 import { useUserStatus, UserStatusType } from "@/hooks/useUserStatus";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import StatusIndicator, { statusLabels } from "@/components/StatusIndicator";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Shield, Eye, MessageCircle, Gamepad2, UserPlus, Circle } from "lucide-react";
+import { Shield, Eye, MessageCircle, Gamepad2, UserPlus, Circle, ShieldBan, UserX } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 const selectClass = "w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground min-h-[44px] active:scale-[0.98] transition-transform";
 
