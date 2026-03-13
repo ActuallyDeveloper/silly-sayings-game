@@ -5,7 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, Flame, Target, Gamepad2, Calendar, TrendingUp, User, Zap, Award } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Trophy, Flame, Target, Gamepad2, Calendar, TrendingUp, User, Zap, Award, Save } from "lucide-react";
 
 interface GameScore {
   id: string;
@@ -24,13 +26,18 @@ interface ProfileViewProps {
 
 const ProfileView = ({ mode }: ProfileViewProps) => {
   const navigate = useNavigate();
-  const { user, profile, ensureMode } = useAuth();
+  const { user, getModeProfile, fetchModeProfile, ensureMode } = useAuth();
   const [games, setGames] = useState<GameScore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [saving, setSaving] = useState(false);
   const isSP = mode === "singleplayer";
   const authRoute = isSP ? "/sp/auth" : "/mp/auth";
+  const modeProfile = getModeProfile(mode);
+  const profileTable = isSP ? "sp_profiles" : "mp_profiles";
 
-  // Ensure correct mode on mount
   useEffect(() => {
     ensureMode(mode).then((canProceed) => {
       if (!canProceed) navigate(authRoute);
@@ -52,21 +59,35 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
 
   useEffect(() => {
     fetchGames();
-
     if (!user) return;
-    // Realtime subscription for new scores
     const channel = supabase
       .channel(`profile-scores-${mode}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "game_scores",
         filter: `user_id=eq.${user.id}`,
-      }, () => {
-        fetchGames();
-      })
+      }, () => fetchGames())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user, mode, fetchGames]);
+
+  useEffect(() => {
+    if (modeProfile) {
+      setEditName(modeProfile.display_name || "");
+      setEditUsername(modeProfile.username || "");
+    }
+  }, [modeProfile]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    await (supabase as any)
+      .from(profileTable)
+      .update({ display_name: editName, username: editUsername })
+      .eq("user_id", user.id);
+    await fetchModeProfile(user.id, mode);
+    setEditing(false);
+    setSaving(false);
+  };
 
   if (!user) {
     return (
@@ -94,6 +115,8 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
   for (const g of games) { if (Array.isArray((g as any).packs_used)) { for (const p of (g as any).packs_used) { packCounts[p] = (packCounts[p] || 0) + 1; } } }
   const favoritePack = Object.entries(packCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || "—";
 
+  const displayName = modeProfile?.username || modeProfile?.display_name || "Player";
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
@@ -111,9 +134,28 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
             <User className="w-8 h-8 text-accent" />
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground">{profile?.username || profile?.display_name || "Player"}</h1>
-            <p className="text-sm text-muted-foreground">@{profile?.username || "player"} · {isSP ? "SP" : "MP"}</p>
+          <div className="flex-1">
+            {editing ? (
+              <div className="space-y-2">
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Display Name"
+                  className="bg-secondary border-border text-foreground h-10" />
+                <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} placeholder="Username"
+                  className="bg-secondary border-border text-foreground h-10" />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSaveProfile} disabled={saving}
+                    className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+                    <Save className="w-3 h-3 mr-1" /> {saving ? "..." : "Save"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl sm:text-3xl font-black text-foreground">{displayName}</h1>
+                <p className="text-sm text-muted-foreground">@{modeProfile?.username || "player"} · {isSP ? "SP" : "MP"}</p>
+                <button onClick={() => setEditing(true)} className="text-xs text-accent hover:underline mt-1">Edit Profile</button>
+              </>
+            )}
           </div>
         </motion.div>
 

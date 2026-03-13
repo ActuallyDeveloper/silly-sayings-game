@@ -6,7 +6,7 @@ import { useUserStatus } from "@/hooks/useUserStatus";
 import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import StatusIndicator from "@/components/StatusIndicator";
+import StatusBadge from "@/components/StatusBadge";
 import BlockReportDialog from "@/components/BlockReportDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -123,7 +123,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
               return (
                 <div key={f.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3 min-h-[52px]">
                   <div className="flex items-center gap-2">
-                    {status && <StatusIndicator status={status.status as any} size={8} />}
+                    {status && <StatusBadge status={status.status as any} showLabel={false} />}
                     <span className="font-bold text-foreground text-sm">@{f.friend_profile?.username || f.friend_profile?.display_name}</span>
                   </div>
                   <div className="flex items-center gap-1">

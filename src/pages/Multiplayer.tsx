@@ -162,7 +162,7 @@ const Multiplayer = () => {
         <p className="text-muted-foreground text-sm">Share the code with your friends!</p>
 
         <div className="w-full max-w-sm space-y-2">
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Players ({game.players.length})</p>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Players ({game.players.length}{(aiRequired || enableAiBots) ? ` + ${Math.max(aiCount, minAi)} AI` : ""})</p>
           {game.players.map((p) => (
             <motion.div
               key={p.id}
@@ -180,6 +180,19 @@ const Multiplayer = () => {
                 {p.ready ? "Ready" : "Not Ready"}
               </span>
               {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
+            </motion.div>
+          ))}
+          {/* Show AI players in lobby */}
+          {(aiRequired || enableAiBots) && getAIPersonalities(Math.max(aiCount, minAi)).map((ai) => (
+            <motion.div
+              key={`ai-${ai.id}`}
+              className="flex items-center gap-3 bg-secondary/60 rounded-lg px-4 py-3 border border-border/50"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <Bot className="w-4 h-4 text-accent" />
+              <span className="font-bold text-foreground">{ai.name}</span>
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-accent">AI</span>
             </motion.div>
           ))}
         </div>

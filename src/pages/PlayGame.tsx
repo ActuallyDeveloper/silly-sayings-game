@@ -34,7 +34,7 @@ const PlayGame = () => {
   const [customCards, setCustomCards] = useState<CustomCardsInput | undefined>();
 
   const game = useGameState(localRounds, localPacks, localAiCount, localPoints, customCards);
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, spProfile: profile, loading: authLoading } = useAuth();
   const scoreSaved = useRef(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBigConfetti, setShowBigConfetti] = useState(false);
