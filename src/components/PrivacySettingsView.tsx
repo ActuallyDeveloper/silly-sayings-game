@@ -16,6 +16,25 @@ const PrivacySettingsView = () => {
   const { user } = useAuth();
   const { settings, updateSettings } = usePrivacySettings();
   const { myStatus, setStatus } = useUserStatus();
+  const { blockedUsers, unblockUser, refresh } = useBlockReport();
+  const [blockedProfiles, setBlockedProfiles] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (blockedUsers.length === 0) return;
+    const fetchNames = async () => {
+      const ids = blockedUsers.map(b => b.blocked_id);
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, username, display_name")
+        .in("user_id", ids);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((p: any) => { map[p.user_id] = p.username || p.display_name || "Unknown"; });
+        setBlockedProfiles(map);
+      }
+    };
+    fetchNames();
+  }, [blockedUsers]);
 
   if (!user) return null;
 
