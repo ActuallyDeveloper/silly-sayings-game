@@ -1,10 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrivacySettings } from "@/hooks/usePrivacySettings";
 import { useUserStatus, UserStatusType } from "@/hooks/useUserStatus";
+import { useBlockReport } from "@/hooks/useBlockReport";
 import StatusIndicator, { statusLabels } from "@/components/StatusIndicator";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Shield, Eye, MessageCircle, Gamepad2, UserPlus, Circle } from "lucide-react";
+import { Shield, Eye, MessageCircle, Gamepad2, UserPlus, Circle, ShieldBan, UserX } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 const selectClass = "w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground min-h-[44px] active:scale-[0.98] transition-transform";
 
@@ -12,6 +16,25 @@ const PrivacySettingsView = () => {
   const { user } = useAuth();
   const { settings, updateSettings } = usePrivacySettings();
   const { myStatus, setStatus } = useUserStatus();
+  const { blockedUsers, unblockUser, refresh } = useBlockReport();
+  const [blockedProfiles, setBlockedProfiles] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (blockedUsers.length === 0) return;
+    const fetchNames = async () => {
+      const ids = blockedUsers.map(b => b.blocked_id);
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, username, display_name")
+        .in("user_id", ids);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((p: any) => { map[p.user_id] = p.username || p.display_name || "Unknown"; });
+        setBlockedProfiles(map);
+      }
+    };
+    fetchNames();
+  }, [blockedUsers]);
 
   if (!user) return null;
 
@@ -96,6 +119,37 @@ const PrivacySettingsView = () => {
           <option value="everyone">Everyone</option>
           <option value="friends">Friends Only</option>
         </select>
+      </div>
+
+      {/* Blocked Users */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-black text-foreground flex items-center gap-2">
+          <ShieldBan className="w-4 h-4 text-destructive" /> Blocked Users
+        </h3>
+        {blockedUsers.length === 0 ? (
+          <p className="text-xs text-muted-foreground">You haven't blocked anyone.</p>
+        ) : (
+          <div className="space-y-2">
+            {blockedUsers.map((b) => (
+              <div key={b.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <UserX className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-bold text-foreground">
+                    {blockedProfiles[b.blocked_id] || "Loading..."}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => { await unblockUser(b.blocked_id); refresh(); }}
+                  className="text-accent hover:text-accent-foreground hover:bg-accent text-xs font-bold min-h-[36px]"
+                >
+                  Unblock
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );

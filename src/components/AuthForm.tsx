@@ -57,8 +57,18 @@ const AuthForm = ({ mode }: AuthFormProps) => {
     } else {
       if (!email.trim()) { setError("Email is required"); setSubmitting(false); return; }
       const { error } = await signUp(email, password, username, username);
-      if (error) setError(error.message);
-      else setMessage("Check your email to confirm your account!");
+      if (error) {
+        setError(error.message);
+      } else {
+        // Auto-confirm is enabled, sign in immediately
+        const { error: signInError } = await signIn(username, password);
+        if (signInError) {
+          setError(signInError.message);
+        } else {
+          setActiveMode(mode);
+          navigate(redirectTo);
+        }
+      }
     }
     setSubmitting(false);
   };
