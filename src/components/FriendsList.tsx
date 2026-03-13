@@ -6,7 +6,7 @@ import { useUserStatus } from "@/hooks/useUserStatus";
 import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import StatusIndicator from "@/components/StatusIndicator";
+import StatusBadge from "@/components/StatusBadge";
 import BlockReportDialog from "@/components/BlockReportDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {

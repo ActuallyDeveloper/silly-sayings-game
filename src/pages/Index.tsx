@@ -10,7 +10,7 @@ import { blackCards, whiteCards } from "@/data/cards";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, spProfile, mpProfile, signOut } = useAuth();
 
   const displayName = profile?.username || profile?.display_name || user?.email;
 
