@@ -153,7 +153,7 @@ export function useMultiplayerGame() {
       // Join as player
       const { error: joinErr } = await supabase
         .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: profile.display_name || user.email || "Player" });
+        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
       if (joinErr) throw joinErr;
 
       // Fetch players
