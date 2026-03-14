@@ -33,7 +33,7 @@ const Multiplayer = () => {
     });
   }, []);
   const game = useMultiplayerGame();
-  const { getStatus } = useStatus();
+  const { getStatusWithPrivacy } = useStatus();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
@@ -44,6 +44,9 @@ const Multiplayer = () => {
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [countdownActive, setCountdownActive] = useState(false);
+  
+  // Track shuffled order to keep it consistent during judging phase
+  const [shuffledSubs, setShuffledSubs] = useState<typeof game.submissions>([]);
 
   // Auto-trigger countdown when all players ready
   useEffect(() => {
@@ -54,6 +57,25 @@ const Multiplayer = () => {
       setCountdownActive(false);
     }
   }, [game.allReady, game.phase, game.room, countdownActive]);
+
+  // Shuffle submissions once when entering judging phase
+  const roundSubs = game.submissions.filter((s) => s.round_number === game.room?.current_round);
+  useEffect(() => {
+    if (game.phase === "judging" && roundSubs.length > 0) {
+      // Only shuffle once when we first enter judging
+      if (shuffledSubs.length === 0 || shuffledSubs.length !== roundSubs.length) {
+        const shuffled = [...roundSubs].sort(() => Math.random() - 0.5);
+        setShuffledSubs(shuffled);
+      }
+    }
+  }, [game.phase, roundSubs.length]);
+
+  // Clear shuffled submissions when starting a new round
+  useEffect(() => {
+    if (game.phase === "submitting" || game.phase === "lobby") {
+      setShuffledSubs([]);
+    }
+  }, [game.phase]);
 
   const handleCountdownComplete = useCallback(() => {
     setCountdownActive(false);
@@ -178,7 +200,10 @@ const Multiplayer = () => {
               ) : (
                 <Circle className="w-4 h-4 text-muted-foreground" />
               )}
-              <StatusIndicator status={(getStatus(p.user_id)?.status as any) || "invisible"} size={8} />
+              {(() => {
+                const { status, canView } = getStatusWithPrivacy(p.user_id);
+                return canView ? <StatusIndicator status={status as any} size={8} /> : null;
+              })()}
               <span className="font-bold text-foreground">{p.display_name}</span>
               <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest ${p.ready ? "text-green-500" : "text-muted-foreground/50"}`}>
                 {p.ready ? "Ready" : "Not Ready"}
@@ -339,7 +364,6 @@ const Multiplayer = () => {
   }
 
   // PLAYING PHASES
-  const roundSubs = game.submissions.filter((s) => s.round_number === game.room!.current_round);
   const pick = game.currentBlackCard?.pick || 1;
 
   const handleSelectCard = (cardId: number) => {
@@ -381,7 +405,10 @@ const Multiplayer = () => {
             }`}
           >
             {p.user_id === game.room!.czar_user_id && <Crown className="w-3 h-3" />}
-            <StatusIndicator status={(getStatus(p.user_id)?.status as any) || "invisible"} size={7} />
+            {(() => {
+              const { status, canView } = getStatusWithPrivacy(p.user_id);
+              return canView ? <StatusIndicator status={status as any} size={7} /> : null;
+            })()}
             <span>{p.display_name}</span>
             <span className="opacity-60">{p.score}</span>
           </div>
@@ -431,8 +458,8 @@ const Multiplayer = () => {
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-              {/* Shuffle submissions to anonymize them during judging */}
-              {[...roundSubs].sort(() => Math.random() - 0.5).map((sub, idx) => {
+              {/* Use stable shuffled order - names hidden during judging */}
+              {shuffledSubs.map((sub, idx) => {
                 const cards = sub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
                   .filter(Boolean) as WhiteCard[];
@@ -471,6 +498,40 @@ const Multiplayer = () => {
               <Trophy className="w-8 h-8 text-accent" />
               <p className="text-3xl font-black text-accent">{game.roundWinner.name} wins!</p>
             </div>
+            
+            {/* Show all submissions with player names revealed after winner is picked */}
+            <div className="flex flex-wrap justify-center gap-4 max-w-3xl mt-2">
+              {shuffledSubs.map((sub, idx) => {
+                const player = game.players.find(p => p.user_id === sub.user_id);
+                const isWinner = sub.user_id === game.roundWinner?.userId;
+                const cards = sub.white_card_ids
+                  .map((id) => whiteCards.find((c) => c.id === id))
+                  .filter(Boolean) as WhiteCard[];
+                return (
+                  <motion.div 
+                    key={`result-${sub.id}`} 
+                    className={`text-center p-2 rounded-lg ${isWinner ? "bg-accent/10 ring-2 ring-accent" : "bg-secondary/30"}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      {isWinner && <Crown className="w-3 h-3 text-accent" />}
+                      <Users className="w-3 h-3 text-muted-foreground" />
+                      <span className={`text-[10px] sm:text-xs font-bold ${isWinner ? "text-accent" : "text-muted-foreground"}`}>
+                        {player?.display_name || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      {cards.map((c) => (
+                        <GameCard key={c.id} text={c.text} type="white" small logo />
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+            
             {game.room.created_by === user.id && (
               <Button
                 onClick={game.nextRound}

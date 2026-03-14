@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTypingIndicator } from "@/contexts/RealtimeContext";
+import { useRealtime } from "@/contexts/RealtimeContext";
+import { useEnhancedTypingIndicator } from "@/hooks/useRealtimeSubscriptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MediaCapture from "@/components/MediaCapture";
@@ -53,6 +54,28 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
   const spontaneousTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playerName = mpProfile?.username || mpProfile?.display_name || "Player";
+
+  // Real-time typing indicator
+  const { typingUsers, sendTyping } = useEnhancedTypingIndicator(`room-chat-${roomId}`, playerName);
+  const typingTimeoutRef2 = useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle typing input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    
+    // Send typing start
+    sendTyping(true);
+    
+    // Clear previous timeout
+    if (typingTimeoutRef2.current) {
+      clearTimeout(typingTimeoutRef2.current);
+    }
+    
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef2.current = setTimeout(() => {
+      sendTyping(false);
+    }, 2000);
+  };
 
   useEffect(() => {
     supabase
@@ -289,8 +312,23 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
                   )}
                 </div>
               ))}
+              {/* Real player typing indicators */}
+              {typingUsers.length > 0 && (
+                <TypingIndicator 
+                  names={typingUsers} 
+                  color="hsl(var(--primary))" 
+                  variant="wave"
+                  size="sm"
+                />
+              )}
+              {/* AI responding indicator */}
               {aiResponding && (
-                <TypingIndicator names={aiPlayers.map(ai => ai.name).slice(0, 2)} color="hsl(var(--accent))" />
+                <TypingIndicator 
+                  names={aiPlayers.map(ai => ai.name).slice(0, 2)} 
+                  color="hsl(var(--accent))" 
+                  variant="pulse"
+                  size="sm"
+                />
               )}
             </div>
 
@@ -308,7 +346,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
               <div className="flex gap-2">
                 <Input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                   placeholder="Type a message..."
                   className="text-sm bg-background border-border"

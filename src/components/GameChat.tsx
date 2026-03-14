@@ -8,6 +8,7 @@ import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
 import AIIcon from "@/components/AIIcon";
 import TypingIndicator from "@/components/TypingIndicator";
+import { useRealtime } from "@/contexts/RealtimeContext";
 
 interface ChatMessage {
   id: string;
@@ -231,7 +232,12 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
                 </div>
               ))}
               {responding && (
-                <TypingIndicator names={["AI"]} color="hsl(var(--accent))" />
+                <TypingIndicator 
+                  names={aiPlayers.slice(0, 2).map(ai => ai.name)} 
+                  color="hsl(var(--accent))" 
+                  variant="wave"
+                  size="sm"
+                />
               )}
             </div>
 
