@@ -21,6 +21,8 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, toggleReaction, uploadMedia } = useDirectMessages(otherUserId);
   const { isBlocked } = useBlockReport();
+  const { getStatus } = useUserStatus();
+  const otherStatus = getStatus(otherUserId);
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
