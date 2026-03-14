@@ -19,7 +19,7 @@ interface GameScore {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, spProfile } = useAuth();
   const [games, setGames] = useState<GameScore[]>([]);
   const [loading, setLoading] = useState(true);
 
