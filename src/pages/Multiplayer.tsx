@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
-import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle } from "lucide-react";
+import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle, User } from "lucide-react";
 import StatusIndicator from "@/components/StatusIndicator";
 import { useStatus } from "@/contexts/StatusContext";
 import type { WhiteCard, PackId } from "@/data/cards";

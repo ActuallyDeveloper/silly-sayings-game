@@ -8,7 +8,6 @@ import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
 import AIIcon from "@/components/AIIcon";
 import TypingIndicator from "@/components/TypingIndicator";
-import { useRealtime } from "@/contexts/RealtimeContext";
 
 interface ChatMessage {
   id: string;

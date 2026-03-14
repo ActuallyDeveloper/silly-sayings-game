@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRealtime } from "@/contexts/RealtimeContext";
 import { useEnhancedTypingIndicator } from "@/hooks/useRealtimeSubscriptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
