@@ -127,7 +127,7 @@ export function useMultiplayerGame() {
   }, [room?.id]);
 
   const createRoom = useCallback(async () => {
-    if (!user || !profile) return;
+    if (!user || !mpProfile) return;
     setLoading(true);
     setError("");
     try {
