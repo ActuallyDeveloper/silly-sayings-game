@@ -31,6 +31,7 @@ interface StatusBadgeProps extends VariantProps<typeof badgeVariants> {
   icon?: React.ReactNode;
   pulse?: boolean;
   tooltip?: string;
+  className?: string;
 }
 
 export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
