@@ -196,7 +196,7 @@ export function useMultiplayerGame() {
       setError(e.message);
     }
     setLoading(false);
-  }, [user, profile]);
+  }, [user, mpProfile]);
 
   const startGame = useCallback(async () => {
     if (!room || !user || players.length < 2) return;
