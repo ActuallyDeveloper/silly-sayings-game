@@ -155,11 +155,16 @@ export function useGameState(
     // AI players that are NOT the czar submit cards
     const nonCzarAIs = prev.aiPlayers.filter(ai => ai.id !== prev.czarId);
     const deckCopy = [...prev.whiteDeck];
+    
+    // Ensure we have enough cards for all AI players
     const aiHands = nonCzarAIs.map((ai) => {
       const handSize = Math.min(HAND_SIZE, deckCopy.length);
       const hand = deckCopy.splice(0, handSize);
       return { ai, hand };
     });
+
+    // Filter out AI players with no cards
+    const validAiHands = aiHands.filter(h => h.hand.length >= pick);
 
     try {
       const { data } = await supabase.functions.invoke("game-ai", {
@@ -167,7 +172,7 @@ export function useGameState(
           type: "ai_pick_multi",
           blackCard: prev.currentBlackCard.text,
           pick,
-          aiPlayers: aiHands.map((h) => ({
+          aiPlayers: validAiHands.map((h) => ({
             name: h.ai.name,
             personality: h.ai.personality.personality,
             cards: h.hand.map((c) => c.text),
@@ -175,30 +180,40 @@ export function useGameState(
         },
       });
 
-      const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => {
+      const aiSubmissions: AISubmission[] = validAiHands.map(({ ai, hand }) => {
         const aiPick = data?.picks?.find((p: any) => p.name === ai.name);
         let selectedCards: WhiteCard[];
-        if (aiPick?.selectedCards) {
+        if (aiPick?.selectedCards && Array.isArray(aiPick.selectedCards)) {
           selectedCards = aiPick.selectedCards
-            .map((text: string) => hand.find((c) => c.text === text))
+            .map((text: string) => hand.find((c) => c.text.toLowerCase().trim() === text.toLowerCase().trim()))
             .filter(Boolean)
             .slice(0, pick);
-          while (selectedCards.length < pick) {
+          // Fill missing cards with random from hand
+          while (selectedCards.length < pick && hand.length > selectedCards.length) {
             const remaining = hand.filter((c) => !selectedCards.includes(c));
-            if (remaining.length > 0) selectedCards.push(remaining[0]); else break;
+            if (remaining.length > 0) {
+              selectedCards.push(remaining[Math.floor(Math.random() * remaining.length)]);
+            } else break;
           }
         } else {
-          selectedCards = hand.slice(0, pick);
+          // Fallback: pick random cards from hand
+          const shuffledHand = [...hand].sort(() => Math.random() - 0.5);
+          selectedCards = shuffledHand.slice(0, pick);
         }
         return { playerId: ai.id, playerName: ai.name, cards: selectedCards };
       });
 
-      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      // Ensure all AI submissions have valid cards
+      const validSubmissions = aiSubmissions.filter(sub => sub.cards.length > 0 && sub.cards.every(c => c && c.text));
+      
+      setState((s) => ({ ...s, aiSubmissions: validSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
     } catch {
-      const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => ({
-        playerId: ai.id, playerName: ai.name, cards: hand.slice(0, pick),
-      }));
-      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      const aiSubmissions: AISubmission[] = validAiHands.map(({ ai, hand }) => {
+        const shuffledHand = [...hand].sort(() => Math.random() - 0.5);
+        return { playerId: ai.id, playerName: ai.name, cards: shuffledHand.slice(0, pick) };
+      });
+      const validSubmissions = aiSubmissions.filter(sub => sub.cards.length > 0 && sub.cards.every(c => c && c.text));
+      setState((s) => ({ ...s, aiSubmissions: validSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
     }
   }, []);
 

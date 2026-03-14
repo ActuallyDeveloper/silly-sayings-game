@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTypingIndicator } from "@/contexts/RealtimeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MediaCapture from "@/components/MediaCapture";
@@ -10,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
 import AIIcon from "@/components/AIIcon";
+import TypingIndicator from "@/components/TypingIndicator";
 
 interface ChatMessage {
   id: string;
@@ -288,11 +290,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
                 </div>
               ))}
               {aiResponding && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
-                    AI is typing...
-                  </motion.span>
-                </div>
+                <TypingIndicator names={aiPlayers.map(ai => ai.name).slice(0, 2)} color="hsl(var(--accent))" />
               )}
             </div>
 
