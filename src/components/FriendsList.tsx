@@ -123,7 +123,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
               return (
                 <div key={f.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3 min-h-[52px]">
                   <div className="flex items-center gap-2">
-                    {status && <StatusBadge status={status.status as any} showLabel={false} />}
+                    {status && <StatusIndicator status={status.status as any} showLabel={false} />}
                     <span className="font-bold text-foreground text-sm">@{f.friend_profile?.username || f.friend_profile?.display_name}</span>
                   </div>
                   <div className="flex items-center gap-1">
