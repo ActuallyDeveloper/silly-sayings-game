@@ -336,6 +336,43 @@ export function useMultiplayerGame() {
     setPhase("lobby");
   }, [room, user]);
 
+  // Track if scores have been saved for this game
+  const [scoresSaved, setScoresSaved] = useState(false);
+
+  // Save scores for all players when game ends
+  const saveScores = useCallback(async () => {
+    if (!room || scoresSaved || players.length === 0) return;
+    
+    try {
+      const sorted = [...players].sort((a, b) => b.score - a.score);
+      const winnerScore = sorted[0]?.score || 0;
+      
+      // Save score for each player
+      for (const player of players) {
+        const won = player.score === winnerScore && player.score > 0;
+        await (supabase as any).from("game_scores").insert({
+          user_id: player.user_id,
+          player_score: player.score,
+          ai_score: 0, // MP doesn't have AI scores in the same way
+          rounds_played: room.current_round,
+          won,
+          mode: "multiplayer",
+        });
+      }
+      
+      setScoresSaved(true);
+    } catch (err) {
+      console.error("Error saving MP scores:", err);
+    }
+  }, [room, players, scoresSaved]);
+
+  // Reset scoresSaved when entering a new game
+  useEffect(() => {
+    if (room?.status === "waiting") {
+      setScoresSaved(false);
+    }
+  }, [room?.status]);
+
   const [readyLoading, setReadyLoading] = useState(false);
 
   const toggleReady = useCallback(async () => {
@@ -353,7 +390,7 @@ export function useMultiplayerGame() {
   return {
     room, players, submissions, phase, error, loading,
     isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
-    allReady, readyLoading,
-    createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
+    allReady, readyLoading, scoresSaved,
+    createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady, saveScores,
   };
 }

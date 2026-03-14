@@ -2,11 +2,10 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameInvites } from "@/hooks/useGameInvites";
-import { useStatus } from "@/contexts/StatusContext";
 import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import StatusIndicator from "@/components/StatusIndicator";
+import UserStatusDot from "@/components/UserStatusDot";
 import BlockReportDialog from "@/components/BlockReportDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,7 +22,6 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { user } = useAuth();
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
   const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
-  const { getStatusWithPrivacy } = useStatus();
   const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -118,12 +116,10 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
           <motion.div key="friends" className="space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {friends.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No friends yet. Search and add some!</p>
-            ) : friends.map(f => {
-              const { status, canView } = getStatusWithPrivacy(f.friend_profile?.user_id || "");
-              return (
+            ) : friends.map(f => (
                 <div key={f.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3 min-h-[52px]">
                   <div className="flex items-center gap-2">
-                    {canView && <StatusIndicator status={status as any} showLabel={false} />}
+                    <UserStatusDot userId={f.friend_profile?.user_id} size={8} />
                     <span className="font-bold text-foreground text-sm">@{f.friend_profile?.username || f.friend_profile?.display_name}</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -148,8 +144,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                     </Button>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </motion.div>
         )}
 
