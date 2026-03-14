@@ -29,6 +29,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getStatus } = useUserStatus();
   const isSP = mode === "singleplayer";
   const viewName = isSP ? "sp_leaderboard" : "mp_leaderboard";
 
