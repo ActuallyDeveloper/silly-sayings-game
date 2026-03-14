@@ -38,7 +38,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const subscriptionsRef = useRef<Map<string, Set<SubscriptionCallback>>>(new Map());
   const typingChannelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
-  const typingUsersRef = useRef<Map<string, Map<string, { username: string; timeout: NodeJS.Timeout }>>>(new Map());
   const [typingUsersState, setTypingUsersState] = useState<Map<string, string[]>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
   const [globalUpdates, setGlobalUpdates] = useState<Map<string, any>>(new Map());
@@ -201,58 +200,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     return typingUsersState.get(channelName) || [];
   }, [typingUsersState]);
 
-  // Setup typing indicator listener for a channel
-  const setupTypingListener = useCallback((channelName: string) => {
-    if (typingChannelsRef.current.has(channelName)) return;
-
-    const channel = supabase.channel(`typing-${channelName}`);
-    
-    channel.on("broadcast", { event: "typing" }, ({ payload }) => {
-      if (payload?.userId === user?.id) return;
-
-      const { userId, username, isTyping } = payload;
-      
-      if (!typingUsersRef.current.has(channelName)) {
-        typingUsersRef.current.set(channelName, new Map());
-      }
-      const channelTyping = typingUsersRef.current.get(channelName)!;
-
-      if (isTyping) {
-        // Clear existing timeout
-        const existing = channelTyping.get(userId);
-        if (existing?.timeout) clearTimeout(existing.timeout);
-
-        // Set auto-clear timeout
-        const timeout = setTimeout(() => {
-          channelTyping.delete(userId);
-          updateTypingState(channelName);
-        }, 3000);
-
-        channelTyping.set(userId, { username, timeout });
-        updateTypingState(channelName);
-      } else {
-        const existing = channelTyping.get(userId);
-        if (existing?.timeout) clearTimeout(existing.timeout);
-        channelTyping.delete(userId);
-        updateTypingState(channelName);
-      }
-    }).subscribe();
-
-    typingChannelsRef.current.set(channelName, channel);
-  }, [user?.id]);
-
-  const updateTypingState = useCallback((channelName: string) => {
-    const channelTyping = typingUsersRef.current.get(channelName);
-    const usernames = channelTyping 
-      ? Array.from(channelTyping.values()).map(t => t.username)
-      : [];
-    setTypingUsersState(prev => {
-      const next = new Map(prev);
-      next.set(channelName, usernames);
-      return next;
-    });
-  }, []);
-
   // Cleanup all channels on unmount
   useEffect(() => {
     return () => {
@@ -265,10 +212,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         supabase.removeChannel(channel);
       });
       typingChannelsRef.current.clear();
-      typingUsersRef.current.forEach((channelTyping) => {
-        channelTyping.forEach((t) => clearTimeout(t.timeout));
-      });
-      typingUsersRef.current.clear();
     };
   }, []);
 
