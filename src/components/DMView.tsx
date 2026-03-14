@@ -8,6 +8,8 @@ import MediaCapture from "@/components/MediaCapture";
 import MediaMessage from "@/components/MediaMessage";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
+import StatusIndicator from "@/components/StatusIndicator";
+import { useUserStatus } from "@/hooks/useUserStatus";
 
 interface DMViewProps {
   otherUserId: string;
