@@ -37,7 +37,7 @@ interface RoomChatProps {
 }
 
 const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gameScores = [], lastBlackCard, lastWinner }: RoomChatProps) => {
-  const { user, profile } = useAuth();
+  const { user, mpProfile } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
