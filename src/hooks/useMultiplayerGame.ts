@@ -336,17 +336,24 @@ export function useMultiplayerGame() {
     setPhase("lobby");
   }, [room, user]);
 
-  const toggleReady = useCallback(async () => {
-    if (!myPlayer) return;
-    await (supabase as any).from("room_players").update({ ready: !myPlayer.ready }).eq("id", myPlayer.id);
-  }, [myPlayer]);
+  const [readyLoading, setReadyLoading] = useState(false);
 
-  const allReady = players.length >= 2 && players.every((p) => p.ready);
+  const toggleReady = useCallback(async () => {
+    if (!myPlayer || readyLoading) return;
+    setReadyLoading(true);
+    try {
+      await (supabase as any).from("room_players").update({ ready: !myPlayer.ready }).eq("id", myPlayer.id);
+    } finally {
+      setReadyLoading(false);
+    }
+  }, [myPlayer, readyLoading]);
+
+  const allReady = players.length >= 1 && players.every((p) => p.ready);
 
   return {
     room, players, submissions, phase, error, loading,
     isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
-    allReady,
+    allReady, readyLoading,
     createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
   };
 }
