@@ -36,6 +36,8 @@ interface GameState {
   trashTalk: string | null;
   aiJudging: boolean;
   aiPickingCards: boolean;
+  czarId: number | null; // -1 = player, positive = AI player id
+  czarName: string;
 }
 
 const HAND_SIZE = 7;
@@ -51,6 +53,16 @@ function drawBlackChoices(blackDeck: BlackCard[]): { choices: BlackCard[]; remai
 export interface CustomCardsInput {
   blacks: BlackCard[];
   whites: WhiteCard[];
+}
+
+function pickRandomCzar(aiPlayers: AIPlayerState[]): { czarId: number; czarName: string } {
+  // -1 = human player, positive = AI player id
+  const allParticipants = [
+    { id: -1, name: "You" },
+    ...aiPlayers.map(ai => ({ id: ai.id, name: ai.name })),
+  ];
+  const pick = allParticipants[Math.floor(Math.random() * allParticipants.length)];
+  return { czarId: pick.id, czarName: pick.name };
 }
 
 function createInitialState(
@@ -72,11 +84,14 @@ function createInitialState(
     personality: p,
   }));
 
+  const { czarId, czarName } = pickRandomCzar(aiPlayers);
+
   return {
     phase: "choosing_black", blackCardChoices: choices, currentBlackCard: null,
     hand, selectedCards: [], aiPlayers, aiSubmissions: [],
     playerScore: 0, round: 1, maxRounds, pointsToWin, winner: null,
     blackDeck: remaining, whiteDeck, trashTalk: null, aiJudging: false, aiPickingCards: false,
+    czarId, czarName,
   };
 }
 
@@ -93,6 +108,9 @@ export function useGameState(
   const customCardsRef = useRef(customCards);
   customCardsRef.current = customCards;
 
+  const isCzar = state.czarId === -1; // player is czar
+  const isAICzar = state.czarId !== null && state.czarId > 0;
+
   const chooseBlackCard = useCallback((card: BlackCard) => {
     setState((prev) => {
       if (prev.phase !== "choosing_black") return prev;
@@ -100,9 +118,20 @@ export function useGameState(
     });
   }, []);
 
+  // AI czar auto-picks black card
+  const aiCzarPickBlack = useCallback(() => {
+    setState((prev) => {
+      if (prev.phase !== "choosing_black" || prev.czarId === -1) return prev;
+      const pick = prev.blackCardChoices[Math.floor(Math.random() * prev.blackCardChoices.length)];
+      return { ...prev, phase: "playing", currentBlackCard: pick, blackCardChoices: [] };
+    });
+  }, []);
+
   const selectCard = useCallback((card: WhiteCard) => {
     setState((prev) => {
       if (prev.phase !== "playing" || !prev.currentBlackCard) return prev;
+      // If player is czar, they don't play cards
+      if (prev.czarId === -1) return prev;
       const pick = prev.currentBlackCard.pick;
       const alreadySelected = prev.selectedCards.find((c) => c.id === card.id);
       if (alreadySelected) return { ...prev, selectedCards: prev.selectedCards.filter((c) => c.id !== card.id) };
@@ -114,13 +143,19 @@ export function useGameState(
   const submitCards = useCallback(async () => {
     const prev = stateRef.current;
     if (!prev.currentBlackCard) return;
-    if (prev.selectedCards.length < prev.currentBlackCard.pick) return;
+    
+    const playerIsCzar = prev.czarId === -1;
+    
+    // If player is not czar, they must have submitted cards
+    if (!playerIsCzar && prev.selectedCards.length < prev.currentBlackCard.pick) return;
 
     const pick = prev.currentBlackCard.pick;
     setState((s) => ({ ...s, phase: "judging", aiPickingCards: true, aiSubmissions: [] }));
 
+    // AI players that are NOT the czar submit cards
+    const nonCzarAIs = prev.aiPlayers.filter(ai => ai.id !== prev.czarId);
     const deckCopy = [...prev.whiteDeck];
-    const aiHands = prev.aiPlayers.map((ai) => {
+    const aiHands = nonCzarAIs.map((ai) => {
       const handSize = Math.min(HAND_SIZE, deckCopy.length);
       const hand = deckCopy.splice(0, handSize);
       return { ai, hand };
@@ -170,10 +205,13 @@ export function useGameState(
   const judgeWithAI = useCallback(async () => {
     setState((prev) => ({ ...prev, aiJudging: true }));
     const current = stateRef.current;
-    const submissions = [
-      { name: "You", cards: current.selectedCards.map((c) => c.text) },
-      ...current.aiSubmissions.map((s) => ({ name: s.playerName, cards: s.cards.map((c) => c.text) })),
-    ];
+    
+    // Build submissions list - player only submits if not czar
+    const submissions: { name: string; cards: string[] }[] = [];
+    if (current.czarId !== -1) {
+      submissions.push({ name: "You", cards: current.selectedCards.map((c) => c.text) });
+    }
+    submissions.push(...current.aiSubmissions.map((s) => ({ name: s.playerName, cards: s.cards.map((c) => c.text) })));
 
     try {
       const { data, error } = await supabase.functions.invoke("game-ai", {
@@ -226,6 +264,8 @@ export function useGameState(
         return { ...prev, phase: "gameover" as const, winner: winnerName, trashTalk: null, blackCardChoices: [], aiSubmissions: [] };
       }
 
+      const { czarId, czarName } = pickRandomCzar(prev.aiPlayers);
+
       const newHand = [...prev.hand.filter((c) => !prev.selectedCards.find((s) => s.id === c.id))];
       const deckCopy = [...prev.whiteDeck];
       while (newHand.length < HAND_SIZE && deckCopy.length > 0) newHand.push(deckCopy.shift()!);
@@ -234,6 +274,7 @@ export function useGameState(
         ...prev, phase: "choosing_black" as const, blackCardChoices: choices, currentBlackCard: null,
         hand: newHand, selectedCards: [], aiSubmissions: [], round: prev.round + 1,
         winner: null, blackDeck: remaining, whiteDeck: deckCopy, trashTalk: null,
+        czarId, czarName,
       };
     });
   }, []);
@@ -242,5 +283,5 @@ export function useGameState(
     setState(createInitialState(maxRounds, packsRef.current, aiPlayerCount, pointsToWin, customCardsRef.current));
   }, [maxRounds, aiPlayerCount, pointsToWin]);
 
-  return { ...state, chooseBlackCard, selectCard, submitCards, judgeWithAI, nextRound, resetGame };
+  return { ...state, isCzar, isAICzar, chooseBlackCard, aiCzarPickBlack, selectCard, submitCards, judgeWithAI, nextRound, resetGame };
 }
