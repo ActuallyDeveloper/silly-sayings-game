@@ -19,7 +19,7 @@ import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle } from "lucide-react";
 import StatusIndicator from "@/components/StatusIndicator";
-import { useUserStatus } from "@/hooks/useUserStatus";
+import { useStatus } from "@/contexts/StatusContext";
 import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
@@ -33,7 +33,7 @@ const Multiplayer = () => {
     });
   }, []);
   const game = useMultiplayerGame();
-  const { getStatus } = useUserStatus();
+  const { getStatus } = useStatus();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
@@ -244,24 +244,31 @@ const Multiplayer = () => {
         <div className="flex gap-3">
           <Button
             onClick={game.toggleReady}
+            disabled={game.readyLoading}
             variant={game.myPlayer?.ready ? "outline" : "default"}
             className={game.myPlayer?.ready
-              ? "border-green-500 text-green-500 hover:bg-green-500/10 font-bold"
-              : "bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+              ? "border-green-500 text-green-500 hover:bg-green-500/10 font-bold min-h-[44px] active:scale-95 transition-all"
+              : "bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold min-h-[44px] active:scale-95 transition-all"
             }
           >
-            {game.myPlayer?.ready ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</> : <><Circle className="w-4 h-4 mr-2" /> Ready Up</>}
+            {game.readyLoading ? (
+              <><div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" /> Updating...</>
+            ) : game.myPlayer?.ready ? (
+              <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</>
+            ) : (
+              <><Circle className="w-4 h-4 mr-2" /> Ready Up</>
+            )}
           </Button>
           {isHost && game.allReady && !countdownActive && (
             <Button
               onClick={() => setCountdownActive(true)}
               disabled={game.loading}
-              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold animate-pulse"
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold min-h-[44px] animate-pulse active:scale-95 transition-all"
             >
               Start Game
             </Button>
           )}
-          <Button variant="outline" onClick={game.leaveRoom} className="border-muted-foreground/30">
+          <Button variant="outline" onClick={game.leaveRoom} className="border-muted-foreground/30 min-h-[44px] active:scale-95 transition-all">
             Leave Room
           </Button>
         </div>

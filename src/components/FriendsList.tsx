@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFriends } from "@/hooks/useFriends";
 import { useGameInvites } from "@/hooks/useGameInvites";
-import { useUserStatus } from "@/hooks/useUserStatus";
+import { useStatus } from "@/contexts/StatusContext";
 import { useBlockReport } from "@/hooks/useBlockReport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { user } = useAuth();
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
   const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
-  const { getStatus } = useUserStatus();
+  const { getStatus } = useStatus();
   const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);

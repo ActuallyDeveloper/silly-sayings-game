@@ -82,6 +82,16 @@ const PlayGame = () => {
     }
   }, [game.phase, game.isAICzar, game.aiPickingCards, game.aiJudging, game.aiSubmissions.length]);
 
+  // When player is Czar, auto-trigger AI card submissions
+  useEffect(() => {
+    if (game.phase === "playing" && game.isCzar && gameStarted && !game.aiPickingCards && game.aiSubmissions.length === 0) {
+      const timeout = setTimeout(() => {
+        game.submitCards();
+      }, 1000 + Math.random() * 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [game.phase, game.isCzar, gameStarted, game.aiPickingCards, game.aiSubmissions.length]);
+
   useEffect(() => {
     if (game.phase === "gameover" && !scoreSaved.current) {
       scoreSaved.current = true;

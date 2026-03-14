@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { StatusProvider } from "@/contexts/StatusContext";
 import Index from "./pages/Index";
 import PlayGame from "./pages/PlayGame";
 import Multiplayer from "./pages/Multiplayer";
@@ -21,6 +22,8 @@ import SPCustomCards from "./pages/SPCustomCards";
 import MPCustomCards from "./pages/MPCustomCards";
 import MPSocial from "./pages/MPSocial";
 import Settings from "./pages/Settings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,7 @@ const App = () => (
       <BrowserRouter>
         <SettingsProvider>
           <AuthProvider>
+            <StatusProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/play" element={<PlayGame />} />
@@ -50,8 +54,11 @@ const App = () => (
               <Route path="/mp/custom-cards" element={<MPCustomCards />} />
               <Route path="/mp/social" element={<MPSocial />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/:mode/forgot-password" element={<ForgotPassword />} />
+              <Route path="/:mode/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </StatusProvider>
           </AuthProvider>
         </SettingsProvider>
       </BrowserRouter>

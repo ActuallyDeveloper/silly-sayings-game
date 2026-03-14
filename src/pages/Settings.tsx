@@ -4,9 +4,9 @@ import { useSettings } from "@/contexts/SettingsContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowLeft, Volume2, VolumeX, Hash, Sun, Moon } from "lucide-react";
 
 const Settings = () => {
@@ -17,7 +17,7 @@ const Settings = () => {
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border">
         <ExoticLogo size="sm" />
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground min-h-[44px]">
           <ArrowLeft className="w-4 h-4 mr-1" /> Home
         </Button>
       </header>
@@ -38,7 +38,7 @@ const Settings = () => {
           transition={{ delay: 0.1 }}
         >
           {/* Theme toggle */}
-          <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
+          <div className="bg-secondary rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-3">
               {theme === "dark" ? (
                 <Moon className="w-5 h-5 text-accent" />
@@ -47,17 +47,36 @@ const Settings = () => {
               )}
               <div>
                 <Label className="text-foreground font-bold text-base">Theme</Label>
-                <p className="text-xs text-muted-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</p>
+                <p className="text-xs text-muted-foreground">Choose your preferred appearance</p>
               </div>
             </div>
-            <Switch
-              checked={theme === "light"}
-              onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")}
-            />
+            <ToggleGroup 
+              type="single" 
+              value={theme} 
+              onValueChange={(value) => value && setTheme(value as "dark" | "light")}
+              className="w-full"
+            >
+              <ToggleGroupItem 
+                value="dark" 
+                aria-label="Dark mode"
+                className="flex-1 h-11 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground font-bold"
+              >
+                <Moon className="w-4 h-4 mr-2" />
+                Dark
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="light" 
+                aria-label="Light mode"
+                className="flex-1 h-11 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground font-bold"
+              >
+                <Sun className="w-4 h-4 mr-2" />
+                Light
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {/* Sound toggle */}
-          <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
+          <div className="bg-secondary rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-3">
               {soundEnabled ? (
                 <Volume2 className="w-5 h-5 text-accent" />
@@ -69,7 +88,29 @@ const Settings = () => {
                 <p className="text-xs text-muted-foreground">Play sounds during gameplay</p>
               </div>
             </div>
-            <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+            <ToggleGroup 
+              type="single" 
+              value={soundEnabled ? "on" : "off"} 
+              onValueChange={(value) => value && setSoundEnabled(value === "on")}
+              className="w-full"
+            >
+              <ToggleGroupItem 
+                value="on" 
+                aria-label="Sound on"
+                className="flex-1 h-11 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground font-bold"
+              >
+                <Volume2 className="w-4 h-4 mr-2" />
+                On
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="off" 
+                aria-label="Sound off"
+                className="flex-1 h-11 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground font-bold"
+              >
+                <VolumeX className="w-4 h-4 mr-2" />
+                Off
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {/* Rounds slider */}
