@@ -144,8 +144,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                     </Button>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </motion.div>
         )}
 
