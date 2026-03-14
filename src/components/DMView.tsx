@@ -9,7 +9,8 @@ import MediaMessage from "@/components/MediaMessage";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
 import StatusIndicator from "@/components/StatusIndicator";
-import { useUserStatus } from "@/hooks/useUserStatus";
+import TypingIndicator from "@/components/TypingIndicator";
+import { useStatusWithPrivacy, useEnhancedTypingIndicator } from "@/hooks/useRealtimeSubscriptions";
 
 interface DMViewProps {
   otherUserId: string;
@@ -18,15 +19,49 @@ interface DMViewProps {
 }
 
 const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
-  const { user } = useAuth();
+  const { user, mpProfile } = useAuth();
   const { messages, sendMessage, toggleReaction, uploadMedia } = useDirectMessages(otherUserId);
   const { isBlocked } = useBlockReport();
-  const { getStatus } = useUserStatus();
-  const otherStatus = getStatus(otherUserId);
+  const { status: otherStatus, canView: canViewStatus } = useStatusWithPrivacy(otherUserId);
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Get current user's username for typing indicator
+  const myUsername = mpProfile?.username || mpProfile?.display_name || "Player";
+  
+  // Enhanced typing indicator with debouncing
+  const { typingUsers, sendTyping } = useEnhancedTypingIndicator(`dm-${[user?.id, otherUserId].sort().join("-")}`, myUsername);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle typing input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    
+    // Send typing start
+    sendTyping(true);
+    
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(false);
+    }, 2000);
+  };
+  
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      sendTyping(false);
+    };
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -60,7 +95,7 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
         </Button>
         <div className="flex items-center gap-2">
           <User className="w-4 h-4 text-muted-foreground" />
-          <StatusIndicator status={(otherStatus?.status as any) || "invisible"} size={8} />
+          {canViewStatus && <StatusIndicator status={(otherStatus as any) || "invisible"} size={8} />}
           <span className="font-bold text-foreground">@{otherUsername}</span>
         </div>
       </div>
@@ -69,6 +104,17 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">Start a conversation!</p>
+        )}
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-start">
+            <TypingIndicator 
+              names={typingUsers} 
+              color="hsl(var(--muted-foreground))" 
+              variant="wave"
+              size="sm"
+            />
+          </div>
         )}
         {messages.map(msg => {
           const isMine = msg.sender_id === user?.id;
@@ -147,7 +193,7 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
           <div className="flex gap-2">
             <Input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type a message..."
               className="text-sm bg-background border-border h-11"

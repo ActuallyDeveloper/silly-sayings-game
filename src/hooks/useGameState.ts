@@ -156,15 +156,30 @@ export function useGameState(
     const nonCzarAIs = prev.aiPlayers.filter(ai => ai.id !== prev.czarId);
     const deckCopy = [...prev.whiteDeck];
     
-    // Ensure we have enough cards for all AI players
+    // Ensure we have enough cards for all AI players - give each AI a fresh hand
     const aiHands = nonCzarAIs.map((ai) => {
-      const handSize = Math.min(HAND_SIZE, deckCopy.length);
-      const hand = deckCopy.splice(0, handSize);
+      // Calculate how many cards we need
+      const neededCards = Math.max(HAND_SIZE, pick);
+      const availableCards = Math.min(neededCards, deckCopy.length);
+      
+      // If we don't have enough cards in deck, shuffle discard back in (simplified: just use what's available)
+      const hand = availableCards > 0 ? deckCopy.splice(0, availableCards) : [];
+      
+      // Ensure hand has enough cards for pick - if not, we need to handle this edge case
       return { ai, hand };
     });
 
-    // Filter out AI players with no cards
-    const validAiHands = aiHands.filter(h => h.hand.length >= pick);
+    // Filter out AI players with insufficient cards but log this issue
+    const validAiHands = aiHands.filter(h => {
+      const hasEnough = h.hand.length >= pick;
+      if (!hasEnough) {
+        console.log(`[v0] AI ${h.ai.name} has insufficient cards: ${h.hand.length}/${pick}`);
+      }
+      return hasEnough;
+    });
+
+    // If all AIs don't have enough cards, use what they have
+    const handsToUse = validAiHands.length > 0 ? validAiHands : aiHands.filter(h => h.hand.length > 0);
 
     try {
       const { data } = await supabase.functions.invoke("game-ai", {
@@ -172,7 +187,7 @@ export function useGameState(
           type: "ai_pick_multi",
           blackCard: prev.currentBlackCard.text,
           pick,
-          aiPlayers: validAiHands.map((h) => ({
+          aiPlayers: handsToUse.map((h) => ({
             name: h.ai.name,
             personality: h.ai.personality.personality,
             cards: h.hand.map((c) => c.text),
@@ -180,39 +195,74 @@ export function useGameState(
         },
       });
 
-      const aiSubmissions: AISubmission[] = validAiHands.map(({ ai, hand }) => {
+      const aiSubmissions: AISubmission[] = handsToUse.map(({ ai, hand }) => {
         const aiPick = data?.picks?.find((p: any) => p.name === ai.name);
-        let selectedCards: WhiteCard[];
+        let selectedCards: WhiteCard[] = [];
+        
         if (aiPick?.selectedCards && Array.isArray(aiPick.selectedCards)) {
+          // Try to match AI's selections
           selectedCards = aiPick.selectedCards
             .map((text: string) => hand.find((c) => c.text.toLowerCase().trim() === text.toLowerCase().trim()))
-            .filter(Boolean)
+            .filter((c): c is WhiteCard => c !== undefined && c !== null)
             .slice(0, pick);
-          // Fill missing cards with random from hand
-          while (selectedCards.length < pick && hand.length > selectedCards.length) {
-            const remaining = hand.filter((c) => !selectedCards.includes(c));
-            if (remaining.length > 0) {
-              selectedCards.push(remaining[Math.floor(Math.random() * remaining.length)]);
-            } else break;
-          }
-        } else {
-          // Fallback: pick random cards from hand
-          const shuffledHand = [...hand].sort(() => Math.random() - 0.5);
-          selectedCards = shuffledHand.slice(0, pick);
         }
+        
+        // Fill missing cards with random from hand to ensure we have enough
+        const usedIds = new Set(selectedCards.map(c => c.id));
+        const remainingCards = hand.filter((c) => !usedIds.has(c.id));
+        
+        while (selectedCards.length < pick && remainingCards.length > 0) {
+          const randomIdx = Math.floor(Math.random() * remainingCards.length);
+          const card = remainingCards.splice(randomIdx, 1)[0];
+          if (card && card.text) {
+            selectedCards.push(card);
+          }
+        }
+        
+        // Final fallback - if still not enough, use any cards from hand
+        if (selectedCards.length < pick) {
+          const shuffledHand = [...hand].sort(() => Math.random() - 0.5);
+          selectedCards = shuffledHand.slice(0, Math.min(pick, hand.length));
+        }
+        
         return { playerId: ai.id, playerName: ai.name, cards: selectedCards };
       });
 
-      // Ensure all AI submissions have valid cards
-      const validSubmissions = aiSubmissions.filter(sub => sub.cards.length > 0 && sub.cards.every(c => c && c.text));
+      // Ensure all AI submissions have valid cards with text
+      const validSubmissions = aiSubmissions.filter(sub => 
+        sub.cards.length > 0 && 
+        sub.cards.every(c => c && typeof c.text === 'string' && c.text.length > 0)
+      );
       
-      setState((s) => ({ ...s, aiSubmissions: validSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
-    } catch {
-      const aiSubmissions: AISubmission[] = validAiHands.map(({ ai, hand }) => {
-        const shuffledHand = [...hand].sort(() => Math.random() - 0.5);
-        return { playerId: ai.id, playerName: ai.name, cards: shuffledHand.slice(0, pick) };
+      // If we filtered out all submissions, create fallback random selections
+      if (validSubmissions.length === 0 && handsToUse.length > 0) {
+        const fallbackSubmissions: AISubmission[] = handsToUse.map(({ ai, hand }) => {
+          const shuffledHand = [...hand].filter(c => c && c.text).sort(() => Math.random() - 0.5);
+          return { 
+            playerId: ai.id, 
+            playerName: ai.name, 
+            cards: shuffledHand.slice(0, Math.min(pick, shuffledHand.length)) 
+          };
+        }).filter(sub => sub.cards.length > 0);
+        
+        setState((s) => ({ ...s, aiSubmissions: fallbackSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      } else {
+        setState((s) => ({ ...s, aiSubmissions: validSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      }
+    } catch (error) {
+      console.log("[v0] AI card selection error, using fallback:", error);
+      const aiSubmissions: AISubmission[] = handsToUse.map(({ ai, hand }) => {
+        const shuffledHand = [...hand].filter(c => c && c.text).sort(() => Math.random() - 0.5);
+        return { 
+          playerId: ai.id, 
+          playerName: ai.name, 
+          cards: shuffledHand.slice(0, Math.min(pick, shuffledHand.length)) 
+        };
       });
-      const validSubmissions = aiSubmissions.filter(sub => sub.cards.length > 0 && sub.cards.every(c => c && c.text));
+      const validSubmissions = aiSubmissions.filter(sub => 
+        sub.cards.length > 0 && 
+        sub.cards.every(c => c && typeof c.text === 'string' && c.text.length > 0)
+      );
       setState((s) => ({ ...s, aiSubmissions: validSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
     }
   }, []);

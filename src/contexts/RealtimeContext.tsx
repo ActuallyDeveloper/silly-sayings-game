@@ -12,11 +12,23 @@ interface Subscription {
   callback: SubscriptionCallback;
 }
 
+// Global app-wide subscriptions for tables that need real-time updates everywhere
+const GLOBAL_TABLES = [
+  "user_status",
+  "user_privacy_settings",
+  "friendships",
+  "direct_messages",
+  "game_invites",
+];
+
 interface RealtimeContextType {
   subscribe: (subscription: Subscription) => () => void;
   subscribeToTable: (table: string, callback: SubscriptionCallback, filter?: string) => () => void;
   subscribeToChannel: (channelName: string, eventName: string, callback: SubscriptionCallback) => () => void;
+  broadcastTyping: (channelName: string, username: string, isTyping: boolean) => void;
+  getTypingUsers: (channelName: string) => string[];
   isConnected: boolean;
+  globalUpdates: Map<string, any>;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined);
@@ -25,7 +37,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const subscriptionsRef = useRef<Map<string, Set<SubscriptionCallback>>>(new Map());
+  const typingChannelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
+  const typingUsersRef = useRef<Map<string, Map<string, { username: string; timeout: NodeJS.Timeout }>>>(new Map());
+  const [typingUsersState, setTypingUsersState] = useState<Map<string, string[]>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
+  const [globalUpdates, setGlobalUpdates] = useState<Map<string, any>>(new Map());
 
   // Subscribe to postgres_changes for a specific table
   const subscribe = useCallback((subscription: Subscription) => {
@@ -127,6 +143,116 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Setup global app-wide subscriptions
+  useEffect(() => {
+    if (!user) return;
+
+    const globalChannel = supabase.channel("global-realtime");
+
+    // Subscribe to all global tables
+    GLOBAL_TABLES.forEach((table) => {
+      globalChannel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        (payload) => {
+          setGlobalUpdates((prev) => {
+            const next = new Map(prev);
+            next.set(`${table}-${Date.now()}`, { table, ...payload });
+            // Keep only last 50 updates to prevent memory issues
+            if (next.size > 50) {
+              const firstKey = next.keys().next().value;
+              if (firstKey) next.delete(firstKey);
+            }
+            return next;
+          });
+        }
+      );
+    });
+
+    globalChannel.subscribe((status) => {
+      setIsConnected(status === "SUBSCRIBED");
+    });
+
+    return () => {
+      supabase.removeChannel(globalChannel);
+    };
+  }, [user?.id]);
+
+  // Broadcast typing indicator
+  const broadcastTyping = useCallback((channelName: string, username: string, isTyping: boolean) => {
+    if (!user) return;
+
+    let channel = typingChannelsRef.current.get(channelName);
+    if (!channel) {
+      channel = supabase.channel(`typing-${channelName}`);
+      channel.subscribe();
+      typingChannelsRef.current.set(channelName, channel);
+    }
+
+    channel.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: user.id, username, isTyping },
+    });
+  }, [user?.id]);
+
+  // Get typing users for a channel
+  const getTypingUsers = useCallback((channelName: string): string[] => {
+    return typingUsersState.get(channelName) || [];
+  }, [typingUsersState]);
+
+  // Setup typing indicator listener for a channel
+  const setupTypingListener = useCallback((channelName: string) => {
+    if (typingChannelsRef.current.has(channelName)) return;
+
+    const channel = supabase.channel(`typing-${channelName}`);
+    
+    channel.on("broadcast", { event: "typing" }, ({ payload }) => {
+      if (payload?.userId === user?.id) return;
+
+      const { userId, username, isTyping } = payload;
+      
+      if (!typingUsersRef.current.has(channelName)) {
+        typingUsersRef.current.set(channelName, new Map());
+      }
+      const channelTyping = typingUsersRef.current.get(channelName)!;
+
+      if (isTyping) {
+        // Clear existing timeout
+        const existing = channelTyping.get(userId);
+        if (existing?.timeout) clearTimeout(existing.timeout);
+
+        // Set auto-clear timeout
+        const timeout = setTimeout(() => {
+          channelTyping.delete(userId);
+          updateTypingState(channelName);
+        }, 3000);
+
+        channelTyping.set(userId, { username, timeout });
+        updateTypingState(channelName);
+      } else {
+        const existing = channelTyping.get(userId);
+        if (existing?.timeout) clearTimeout(existing.timeout);
+        channelTyping.delete(userId);
+        updateTypingState(channelName);
+      }
+    }).subscribe();
+
+    typingChannelsRef.current.set(channelName, channel);
+  }, [user?.id]);
+
+  const updateTypingState = useCallback((channelName: string) => {
+    const channelTyping = typingUsersRef.current.get(channelName);
+    const usernames = channelTyping 
+      ? Array.from(channelTyping.values()).map(t => t.username)
+      : [];
+    setTypingUsersState(prev => {
+      const next = new Map(prev);
+      next.set(channelName, usernames);
+      return next;
+    });
+  }, []);
+
   // Cleanup all channels on unmount
   useEffect(() => {
     return () => {
@@ -135,11 +261,27 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       });
       channelsRef.current.clear();
       subscriptionsRef.current.clear();
+      typingChannelsRef.current.forEach((channel) => {
+        supabase.removeChannel(channel);
+      });
+      typingChannelsRef.current.clear();
+      typingUsersRef.current.forEach((channelTyping) => {
+        channelTyping.forEach((t) => clearTimeout(t.timeout));
+      });
+      typingUsersRef.current.clear();
     };
   }, []);
 
   return (
-    <RealtimeContext.Provider value={{ subscribe, subscribeToTable, subscribeToChannel, isConnected }}>
+    <RealtimeContext.Provider value={{ 
+      subscribe, 
+      subscribeToTable, 
+      subscribeToChannel, 
+      broadcastTyping, 
+      getTypingUsers,
+      isConnected, 
+      globalUpdates 
+    }}>
       {children}
     </RealtimeContext.Provider>
   );

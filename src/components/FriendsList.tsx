@@ -23,7 +23,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { user } = useAuth();
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
   const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
-  const { getStatus } = useStatus();
+  const { getStatusWithPrivacy } = useStatus();
   const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -119,11 +119,11 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
             {friends.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No friends yet. Search and add some!</p>
             ) : friends.map(f => {
-              const status = getStatus(f.friend_profile?.user_id || "");
+              const { status, canView } = getStatusWithPrivacy(f.friend_profile?.user_id || "");
               return (
                 <div key={f.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3 min-h-[52px]">
                   <div className="flex items-center gap-2">
-                    {status && <StatusIndicator status={status.status as any} showLabel={false} />}
+                    {canView && <StatusIndicator status={status as any} showLabel={false} />}
                     <span className="font-bold text-foreground text-sm">@{f.friend_profile?.username || f.friend_profile?.display_name}</span>
                   </div>
                   <div className="flex items-center gap-1">
