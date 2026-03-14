@@ -41,7 +41,7 @@ type Phase = "lobby" | "submitting" | "judging" | "round_result" | "game_over";
 const HAND_SIZE = 7;
 
 export function useMultiplayerGame() {
-  const { user, profile } = useAuth();
+  const { user, mpProfile } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
