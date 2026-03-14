@@ -10,9 +10,9 @@ import { blackCards, whiteCards } from "@/data/cards";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, spProfile, mpProfile, signOut } = useAuth();
+  const { user, spProfile, mpProfile, signOut } = useAuth();
 
-  const displayName = profile?.username || profile?.display_name || user?.email;
+  const displayName = spProfile?.username || mpProfile?.username || spProfile?.display_name || mpProfile?.display_name || user?.email;
 
   // Pick random cards on each mount (page refresh)
   const randomBlack = useMemo(() => blackCards[Math.floor(Math.random() * blackCards.length)], []);

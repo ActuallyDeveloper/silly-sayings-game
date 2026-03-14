@@ -104,8 +104,8 @@ const Profile = () => {
             <User className="w-8 h-8 text-accent" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-foreground">{profile?.display_name || "Player"}</h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <h1 className="text-3xl font-black text-foreground">{spProfile?.username || spProfile?.display_name || "Player"}</h1>
+            <p className="text-sm text-muted-foreground">@{spProfile?.username || "player"}</p>
           </div>
         </motion.div>
 

@@ -50,7 +50,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
   const lastPhaseRef = useRef("");
   const spontaneousTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const playerName = profile?.username || profile?.display_name || "Player";
+  const playerName = mpProfile?.username || mpProfile?.display_name || "Player";
 
   useEffect(() => {
     supabase

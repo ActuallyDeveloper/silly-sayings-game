@@ -187,7 +187,7 @@ export function useMultiplayerGame() {
 
       const { error: joinErr } = await supabase
         .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: profile.display_name || user.email || "Player" });
+        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
       if (joinErr && !joinErr.message.includes("duplicate")) throw joinErr;
 
       const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", r.id);
