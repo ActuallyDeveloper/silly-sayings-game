@@ -1,0 +1,11 @@
+-- Enable realtime for key tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.friendships;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.direct_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_invites;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_status;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_rooms;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.room_players;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.room_submissions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.room_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.room_message_reactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reactions;
