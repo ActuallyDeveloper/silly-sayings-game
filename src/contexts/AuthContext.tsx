@@ -13,7 +13,6 @@ interface Profile {
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
   spProfile: Profile | null;
   mpProfile: Profile | null;
   loading: boolean;
@@ -32,7 +31,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [spProfile, setSpProfile] = useState<Profile | null>(null);
   const [mpProfile, setMpProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,12 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         setTimeout(() => {
-          fetchProfile(session.user.id);
           fetchModeProfile(session.user.id, "singleplayer");
           fetchModeProfile(session.user.id, "multiplayer");
         }, 0);
       } else {
-        setProfile(null);
         setSpProfile(null);
         setMpProfile(null);
         setActiveMode(null);
@@ -60,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
         fetchModeProfile(session.user.id, "singleplayer");
         fetchModeProfile(session.user.id, "multiplayer");
       }
@@ -69,15 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  async function fetchProfile(userId: string) {
-    const { data } = await (supabase as any)
-      .from("profiles")
-      .select("display_name, avatar_url, username")
-      .eq("user_id", userId)
-      .single();
-    setProfile(data);
-  }
 
   const fetchModeProfile = useCallback(async (userId: string, mode: "singleplayer" | "multiplayer") => {
     const table = mode === "singleplayer" ? "sp_profiles" : "mp_profiles";
@@ -140,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, user, profile, spProfile, mpProfile, loading, activeMode,
+      session, user, spProfile, mpProfile, loading, activeMode,
       signUp, signIn, signOut, setActiveMode, ensureMode, fetchModeProfile, getModeProfile
     }}>
       {children}

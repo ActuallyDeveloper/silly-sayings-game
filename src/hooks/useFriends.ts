@@ -29,7 +29,6 @@ export function useFriends() {
 
     if (!data) { setLoading(false); return; }
 
-    // Fetch profiles for all friend IDs
     const friendIds = data.map((f: any) =>
       f.requester_id === user.id ? f.addressee_id : f.requester_id
     );
@@ -38,7 +37,7 @@ export function useFriends() {
     let profiles: any[] = [];
     if (uniqueIds.length > 0) {
       const { data: p } = await (supabase as any)
-        .from("profiles")
+        .from("mp_profiles")
         .select("user_id, display_name, username, avatar_url")
         .in("user_id", uniqueIds);
       profiles = p || [];
@@ -92,7 +91,7 @@ export function useFriends() {
   const searchUsers = async (query: string) => {
     if (!query.trim() || !user) return [];
     const { data } = await (supabase as any)
-      .from("profiles")
+      .from("mp_profiles")
       .select("user_id, display_name, username, avatar_url")
       .neq("user_id", user.id)
       .ilike("username", `%${query}%`)

@@ -32,16 +32,14 @@ export function useGameInvites() {
 
     if (!data) { setLoading(false); return; }
 
-    // Fetch sender profiles
     const senderIds = [...new Set(data.map((i: any) => i.sender_id))] as string[];
     let profiles: any[] = [];
     if (senderIds.length > 0) {
       const { data: p } = await (supabase as any)
-        .from("profiles").select("user_id, display_name, username").in("user_id", senderIds);
+        .from("mp_profiles").select("user_id, display_name, username").in("user_id", senderIds);
       profiles = p || [];
     }
 
-    // Fetch rooms
     const roomIds = data.filter((i: any) => i.room_id).map((i: any) => i.room_id);
     let rooms: any[] = [];
     if (roomIds.length > 0) {

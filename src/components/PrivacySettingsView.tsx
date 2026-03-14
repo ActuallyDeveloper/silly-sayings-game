@@ -24,7 +24,7 @@ const PrivacySettingsView = () => {
     const fetchNames = async () => {
       const ids = blockedUsers.map(b => b.blocked_id);
       const { data } = await (supabase as any)
-        .from("profiles")
+        .from("mp_profiles")
         .select("user_id, username, display_name")
         .in("user_id", ids);
       if (data) {
