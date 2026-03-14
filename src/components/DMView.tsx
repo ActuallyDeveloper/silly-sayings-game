@@ -8,6 +8,8 @@ import MediaCapture from "@/components/MediaCapture";
 import MediaMessage from "@/components/MediaMessage";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
+import StatusIndicator from "@/components/StatusIndicator";
+import { useUserStatus } from "@/hooks/useUserStatus";
 
 interface DMViewProps {
   otherUserId: string;
@@ -19,6 +21,8 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, toggleReaction, uploadMedia } = useDirectMessages(otherUserId);
   const { isBlocked } = useBlockReport();
+  const { getStatus } = useUserStatus();
+  const otherStatus = getStatus(otherUserId);
   const [input, setInput] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -56,6 +60,7 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
         </Button>
         <div className="flex items-center gap-2">
           <User className="w-4 h-4 text-muted-foreground" />
+          <StatusIndicator status={(otherStatus?.status as any) || "invisible"} size={8} />
           <span className="font-bold text-foreground">@{otherUsername}</span>
         </div>
       </div>

@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trophy, Gamepad2, EyeOff } from "lucide-react";
+import StatusIndicator from "@/components/StatusIndicator";
+import { useUserStatus } from "@/hooks/useUserStatus";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -27,6 +29,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getStatus } = useUserStatus();
   const isSP = mode === "singleplayer";
   const viewName = isSP ? "sp_leaderboard" : "mp_leaderboard";
 
@@ -144,7 +147,10 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
                       {i < 3 ? medals[i] : `#${i + 1}`}
                     </span>
                     <div className="min-w-0">
-                      <p className="font-bold text-foreground truncate text-sm">{entry.username || entry.display_name || "Anonymous"}</p>
+                      <p className="font-bold text-foreground truncate text-sm flex items-center gap-1.5">
+                        {!isSP && entry.user_id && <StatusIndicator status={(getStatus(entry.user_id)?.status as any) || "invisible"} size={8} />}
+                        {entry.username || entry.display_name || "Anonymous"}
+                      </p>
                       <p className="text-xs text-muted-foreground">{entry.wins}W · {entry.losses}L · {entry.total_points}pts</p>
                     </div>
                   </div>
