@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
+import { useAchievements } from "@/hooks/useAchievements";
 import GameCard from "@/components/GameCard";
 import GameConfig from "@/components/GameConfig";
 import ExoticLogo from "@/components/ExoticLogo";
@@ -32,7 +33,9 @@ const Multiplayer = () => {
     });
   }, []);
   const game = useMultiplayerGame();
+  const { checkAchievements } = useAchievements("multiplayer");
   const [joinCode, setJoinCode] = useState("");
+  const hasCheckedAchievements = useRef(false);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
   const { selectedPacks } = useSettings();
@@ -55,6 +58,25 @@ const Multiplayer = () => {
       setCountdownActive(false);
     }
   }, [game.allReady, game.phase, game.room, countdownActive]);
+
+  // Save scores and check achievements when game ends
+  useEffect(() => {
+    if (game.phase === "game_over" && !game.scoresSaved) {
+      game.saveScores();
+    }
+  }, [game.phase, game.scoresSaved, game.saveScores]);
+
+  // Check achievements after scores are saved
+  useEffect(() => {
+    if (game.phase === "game_over" && game.scoresSaved && !hasCheckedAchievements.current) {
+      hasCheckedAchievements.current = true;
+      checkAchievements();
+    }
+    // Reset when starting a new game
+    if (game.phase === "lobby") {
+      hasCheckedAchievements.current = false;
+    }
+  }, [game.phase, game.scoresSaved, checkAchievements]);
 
   // Shuffle submissions once when entering judging phase
   const roundSubs = game.submissions.filter((s) => s.round_number === game.room?.current_round);

@@ -64,11 +64,26 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
     fetchGames();
     if (!user) return;
     const channel = supabase
-      .channel(`profile-scores-${mode}`)
+      .channel(`profile-scores-${mode}-${user.id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "game_scores",
         filter: `user_id=eq.${user.id}`,
-      }, () => fetchGames())
+      }, (payload) => {
+        const newScore = payload.new as any;
+        // Only update if this score is for our mode
+        if (newScore.mode === mode) {
+          fetchGames();
+        }
+      })
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "game_scores",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const updatedScore = payload.new as any;
+        if (updatedScore.mode === mode) {
+          fetchGames();
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, mode, fetchGames]);
