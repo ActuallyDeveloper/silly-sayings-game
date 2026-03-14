@@ -166,7 +166,7 @@ export function useMultiplayerGame() {
   }, [user, mpProfile]);
 
   const joinRoom = useCallback(async (code: string) => {
-    if (!user || !profile) return;
+    if (!user || !mpProfile) return;
     setLoading(true);
     setError("");
     try {
