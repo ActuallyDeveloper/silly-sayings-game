@@ -60,6 +60,7 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
         </Button>
         <div className="flex items-center gap-2">
           <User className="w-4 h-4 text-muted-foreground" />
+          <StatusIndicator status={(otherStatus?.status as any) || "invisible"} size={8} />
           <span className="font-bold text-foreground">@{otherUsername}</span>
         </div>
       </div>

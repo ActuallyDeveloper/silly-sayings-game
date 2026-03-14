@@ -374,6 +374,7 @@ const Multiplayer = () => {
             }`}
           >
             {p.user_id === game.room!.czar_user_id && <Crown className="w-3 h-3" />}
+            <StatusIndicator status={(getStatus(p.user_id)?.status as any) || "invisible"} size={7} />
             <span>{p.display_name}</span>
             <span className="opacity-60">{p.score}</span>
           </div>
