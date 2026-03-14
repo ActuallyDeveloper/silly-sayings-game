@@ -192,7 +192,6 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
 
   const handleLike = async (msgId: string) => {
     if (!user) return;
-    // Toggle like via room_message_reactions
     const { data: existing } = await (supabase as any)
       .from("room_message_reactions")
       .select("id")
@@ -307,7 +306,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
             )}
 
             <div className="p-2 border-t border-border space-y-1.5">
-              <MediaCapture onCapture={handleMediaCapture} disabled={uploading} />
+              <MediaCapture onCapture={handleMediaCapture} disabled={uploading} mode="multiplayer" />
               <div className="flex gap-2">
                 <Input
                   value={input}

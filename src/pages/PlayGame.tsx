@@ -41,7 +41,6 @@ const PlayGame = () => {
 
   const { ensureMode, setActiveMode } = useAuth();
 
-  // Set active mode to singleplayer
   useEffect(() => {
     ensureMode("singleplayer").then((canProceed) => {
       if (!canProceed) navigate("/sp/auth");
@@ -62,6 +61,26 @@ const PlayGame = () => {
   }, [user, localPacks]);
 
   useEffect(() => { setSoundEnabled(soundEnabled); }, [soundEnabled]);
+
+  // Auto-pick black card when AI is czar
+  useEffect(() => {
+    if (game.phase === "choosing_black" && game.isAICzar && gameStarted) {
+      const timeout = setTimeout(() => {
+        game.aiCzarPickBlack();
+      }, 1500 + Math.random() * 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [game.phase, game.isAICzar, gameStarted]);
+
+  // Auto-judge when AI is czar
+  useEffect(() => {
+    if (game.phase === "judging" && game.isAICzar && !game.aiPickingCards && !game.aiJudging && game.aiSubmissions.length > 0) {
+      const timeout = setTimeout(() => {
+        game.judgeWithAI();
+      }, 2000 + Math.random() * 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [game.phase, game.isAICzar, game.aiPickingCards, game.aiJudging, game.aiSubmissions.length]);
 
   useEffect(() => {
     if (game.phase === "gameover" && !scoreSaved.current) {
@@ -100,11 +119,13 @@ const PlayGame = () => {
   };
 
   const handleBlackTimerExpire = useCallback(() => {
-    if (game.phase === "choosing_black" && game.blackCardChoices.length > 0) { playCardSelect(); game.chooseBlackCard(game.blackCardChoices[0]); }
-  }, [game.phase, game.blackCardChoices, game.chooseBlackCard]);
+    if (game.phase === "choosing_black" && game.blackCardChoices.length > 0 && game.isCzar) {
+      playCardSelect(); game.chooseBlackCard(game.blackCardChoices[0]);
+    }
+  }, [game.phase, game.blackCardChoices, game.chooseBlackCard, game.isCzar]);
 
   const handlePlayTimerExpire = useCallback(() => {
-    if (game.phase === "playing" && game.currentBlackCard) {
+    if (game.phase === "playing" && game.currentBlackCard && !game.isCzar) {
       const pick = game.currentBlackCard.pick;
       if (game.selectedCards.length >= pick) handleSubmit();
       else {
@@ -114,9 +135,8 @@ const PlayGame = () => {
         setTimeout(() => { playCardSubmit(); game.submitCards(); }, 300);
       }
     }
-  }, [game.phase, game.currentBlackCard, game.selectedCards, game.hand, game.selectCard, game.submitCards, handleSubmit]);
+  }, [game.phase, game.currentBlackCard, game.selectedCards, game.hand, game.selectCard, game.submitCards, handleSubmit, game.isCzar]);
 
-  // Auth loading
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -125,7 +145,6 @@ const PlayGame = () => {
     );
   }
 
-  // Auth guard - require sign in
   if (!user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
@@ -147,7 +166,6 @@ const PlayGame = () => {
     );
   }
 
-  // Pre-game screen
   if (!gameStarted) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4 py-6">
@@ -211,9 +229,11 @@ const PlayGame = () => {
 
   // Scoreboard
   const allScores = [
-    { name: "You", score: game.playerScore, icon: "user" },
-    ...game.aiPlayers.map((ai) => ({ name: ai.name, score: ai.score, icon: ai.icon })),
+    { name: "You", score: game.playerScore, icon: "user", isCzar: game.czarId === -1 },
+    ...game.aiPlayers.map((ai) => ({ name: ai.name, score: ai.score, icon: ai.icon, isCzar: game.czarId === ai.id })),
   ];
+
+  const czarAI = game.isAICzar ? game.aiPlayers.find(ai => ai.id === game.czarId) : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -227,10 +247,19 @@ const PlayGame = () => {
         </div>
       </header>
 
+      {/* Czar indicator */}
+      <div className="flex items-center justify-center gap-2 py-1.5 bg-accent/5 border-b border-border">
+        <Crown className="w-3 h-3 text-accent" />
+        <span className="text-xs font-bold text-accent">
+          {game.isCzar ? "You are the Czar!" : `${game.czarName} is the Czar`}
+        </span>
+      </div>
+
       {/* Scoreboard bar */}
       <div className="flex gap-2 px-3 sm:px-4 md:px-8 py-1.5 overflow-x-auto border-b border-border">
         {allScores.map((s) => (
-          <div key={s.name} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0 ${s.name === "You" ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground"}`}>
+          <div key={s.name} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0 ${s.isCzar ? "bg-accent text-accent-foreground" : s.name === "You" ? "bg-primary/10 text-foreground" : "bg-secondary text-foreground"}`}>
+            {s.isCzar && <Crown className="w-3 h-3" />}
             <AIIcon icon={s.icon} size={12} animated={false} />
             <span>{s.name}</span>
             <span className="opacity-60">{s.score}</span>
@@ -242,26 +271,40 @@ const PlayGame = () => {
         {game.phase === "choosing_black" && (
           <motion.div key="choosing" className="flex flex-col items-center gap-4 sm:gap-6 py-6 sm:py-10 px-4 flex-1"
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <PhaseTimer duration={TIMER_BLACK} onExpire={handleBlackTimerExpire} active={game.phase === "choosing_black"} phaseKey={`black-${game.round}`} />
-            <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">Choose a black card</p>
-            <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
-              {game.blackCardChoices.map((card, i) => (
-                <motion.div key={card.id}
-                  initial={{ opacity: 0, rotateY: 180, scale: 0.8 }} animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-                  transition={{ delay: i * 0.2, duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
-                  style={{ perspective: 1000 }}>
-                  <GameCard text={card.text} type="black" logo onClick={() => { playCardSelect(); game.chooseBlackCard(card); }} />
-                </motion.div>
-              ))}
-            </div>
+            {game.isCzar ? (
+              <>
+                <PhaseTimer duration={TIMER_BLACK} onExpire={handleBlackTimerExpire} active={game.phase === "choosing_black"} phaseKey={`black-${game.round}`} />
+                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">You are Czar — Choose a black card</p>
+                <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
+                  {game.blackCardChoices.map((card, i) => (
+                    <motion.div key={card.id}
+                      initial={{ opacity: 0, rotateY: 180, scale: 0.8 }} animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+                      transition={{ delay: i * 0.2, duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
+                      style={{ perspective: 1000 }}>
+                      <GameCard text={card.text} type="black" logo onClick={() => { playCardSelect(); game.chooseBlackCard(card); }} />
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
+                  {czarAI && <AIIcon icon={czarAI.icon} size={14} color={czarAI.color} animated />}
+                  {game.czarName} is choosing a black card...
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 
         {game.phase === "playing" && (
           <motion.div key="playing" className="flex flex-col flex-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="px-4 pt-3">
-              <PhaseTimer duration={TIMER_PLAY} onExpire={handlePlayTimerExpire} active={game.phase === "playing"} phaseKey={`play-${game.round}`} />
-            </div>
+            {!game.isCzar && (
+              <div className="px-4 pt-3">
+                <PhaseTimer duration={TIMER_PLAY} onExpire={handlePlayTimerExpire} active={game.phase === "playing"} phaseKey={`play-${game.round}`} />
+              </div>
+            )}
             <div className="flex justify-center py-3 sm:py-6 px-4">
               {game.currentBlackCard && (
                 <motion.div initial={{ rotateY: 90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
@@ -270,25 +313,34 @@ const PlayGame = () => {
                 </motion.div>
               )}
             </div>
-            <div className="mt-auto border-t border-border">
-              <div className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-2 sm:py-3">
-                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Pick {game.currentBlackCard?.pick || 1}</p>
-                <Button size="sm" disabled={game.selectedCards.length < (game.currentBlackCard?.pick || 1)}
-                  onClick={handleSubmit} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30">
-                  Submit
-                </Button>
+            {game.isCzar ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Crown className="w-6 h-6 text-accent" />
+                <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
+                  You are the Czar — waiting for players to submit...
+                </p>
               </div>
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-3 sm:pb-5 pt-1">
-                {game.hand.map((card, i) => (
-                  <motion.div key={card.id} initial={{ opacity: 0, y: 40, rotateZ: -5 }}
-                    animate={{ opacity: 1, y: 0, rotateZ: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
-                    <GameCard text={card.text} type="white" small
-                      selected={!!game.selectedCards.find((c) => c.id === card.id)}
-                      onClick={() => handleSelectCard(card)} logo />
-                  </motion.div>
-                ))}
+            ) : (
+              <div className="mt-auto border-t border-border">
+                <div className="flex items-center justify-between px-3 sm:px-4 md:px-8 py-2 sm:py-3">
+                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Pick {game.currentBlackCard?.pick || 1}</p>
+                  <Button size="sm" disabled={game.selectedCards.length < (game.currentBlackCard?.pick || 1)}
+                    onClick={handleSubmit} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30">
+                    Submit
+                  </Button>
+                </div>
+                <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-3 sm:pb-5 pt-1">
+                  {game.hand.map((card, i) => (
+                    <motion.div key={card.id} initial={{ opacity: 0, y: 40, rotateZ: -5 }}
+                      animate={{ opacity: 1, y: 0, rotateZ: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
+                      <GameCard text={card.text} type="white" small
+                        selected={!!game.selectedCards.find((c) => c.id === card.id)}
+                        onClick={() => handleSelectCard(card)} logo />
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </motion.div>
         )}
 
@@ -301,27 +353,30 @@ const PlayGame = () => {
             {game.aiPickingCards ? (
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-accent" />
-                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">AI players are choosing...</p>
+                <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">Players are choosing...</p>
               </div>
             ) : (
               <>
                 <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-                  {game.aiJudging ? "AI is judging..." : "All cards are in!"}
+                  {game.aiJudging ? `${game.czarName} is judging...` : "All cards are in!"}
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
-                  <div className="text-center">
-                    <p className="text-[10px] sm:text-xs text-accent mb-1 font-bold flex items-center justify-center gap-1">
-                      <User className="w-3 h-3" /> YOU
-                    </p>
-                    <div className="flex gap-1">
-                      {game.selectedCards.map((c, i) => (
-                        <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                          transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }} style={{ perspective: 1000 }}>
-                          <GameCard text={c.text} type="white" small logo />
-                        </motion.div>
-                      ))}
+                  {/* Show player's cards only if they submitted (not czar) */}
+                  {game.czarId !== -1 && (
+                    <div className="text-center">
+                      <p className="text-[10px] sm:text-xs text-accent mb-1 font-bold flex items-center justify-center gap-1">
+                        <User className="w-3 h-3" /> YOU
+                      </p>
+                      <div className="flex gap-1">
+                        {game.selectedCards.map((c, i) => (
+                          <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
+                            transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }} style={{ perspective: 1000 }}>
+                            <GameCard text={c.text} type="white" small logo />
+                          </motion.div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {game.aiSubmissions.map((sub, subIdx) => {
                     const aiPlayer = game.aiPlayers.find((a) => a.id === sub.playerId);
                     return (
@@ -343,10 +398,19 @@ const PlayGame = () => {
                     );
                   })}
                 </div>
-                <Button onClick={game.judgeWithAI} disabled={game.aiJudging}
-                  className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50">
-                  {game.aiJudging ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...</>) : "Reveal Winner"}
-                </Button>
+                {/* Only show Reveal Winner button if player is czar */}
+                {game.isCzar && (
+                  <Button onClick={game.judgeWithAI} disabled={game.aiJudging}
+                    className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50">
+                    {game.aiJudging ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...</>) : "Pick Winner"}
+                  </Button>
+                )}
+                {game.isAICzar && !game.aiJudging && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-xs font-bold">{game.czarName} is picking the winner...</span>
+                  </div>
+                )}
               </>
             )}
           </motion.div>
@@ -374,7 +438,7 @@ const PlayGame = () => {
         )}
       </AnimatePresence>
 
-      {/* Game Chat with AI */}
+      {/* Game Chat with AI - NO media features for singleplayer */}
       {gameStarted && (
         <GameChat
           aiPlayers={game.aiPlayers.map((a) => a.personality)}
