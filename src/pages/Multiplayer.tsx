@@ -33,6 +33,7 @@ const Multiplayer = () => {
     });
   }, []);
   const game = useMultiplayerGame();
+  const { getStatus } = useUserStatus();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
