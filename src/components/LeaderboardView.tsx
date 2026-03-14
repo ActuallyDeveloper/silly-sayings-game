@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trophy, Gamepad2, EyeOff } from "lucide-react";
+import StatusIndicator from "@/components/StatusIndicator";
+import { useUserStatus } from "@/hooks/useUserStatus";
 
 interface LeaderboardEntry {
   user_id: string;
