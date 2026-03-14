@@ -1,63 +1,61 @@
-import { motion } from "framer-motion";
-import { Circle } from "lucide-react";
-import type { UserStatusType } from "@/hooks/useUserStatus";
+import React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
-const statusColors: Record<UserStatusType, string> = {
-  available: "text-green-500",
-  away: "text-yellow-500",
-  busy: "text-red-500",
-  invisible: "text-muted-foreground/30",
-};
+const badgeVariants = cva(
+  'inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium transition-all duration-200',
+  {
+    variants: {
+      variant: {
+        active: 'bg-green-100 text-green-800 border border-green-300 animate-pulse',
+        inactive: 'bg-gray-100 text-gray-700 border border-gray-300',
+        warning: 'bg-yellow-100 text-yellow-800 border border-yellow-300',
+        critical: 'bg-red-100 text-red-800 border border-red-300 animate-pulse',
+        muted: 'bg-blue-50 text-blue-700 border border-blue-200',
+      },
+      size: {
+        sm: 'text-xs px-2 py-0.5',
+        md: 'text-sm px-3 py-1',
+        lg: 'text-base px-4 py-1.5',
+      },
+    },
+    defaultVariants: {
+      variant: 'inactive',
+      size: 'md',
+    },
+  }
+);
 
-const statusLabels: Record<UserStatusType, string> = {
-  available: "Online",
-  away: "Away",
-  busy: "Busy",
-  invisible: "Offline",
-};
-
-const pulseColors: Record<UserStatusType, string> = {
-  available: "bg-green-500/30",
-  away: "bg-yellow-500/30",
-  busy: "bg-red-500/30",
-  invisible: "bg-muted/30",
-};
-
-interface StatusBadgeProps {
-  status: UserStatusType;
-  username?: string;
-  showLabel?: boolean;
-  size?: "sm" | "md";
+interface StatusBadgeProps extends VariantProps<typeof badgeVariants> {
+  label: string;
+  icon?: React.ReactNode;
+  pulse?: boolean;
+  tooltip?: string;
 }
 
-const StatusBadge = ({ status, username, showLabel = true, size = "sm" }: StatusBadgeProps) => {
-  const dotSize = size === "sm" ? 8 : 10;
-  const textSize = size === "sm" ? "text-[10px]" : "text-xs";
+export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
+  ({ label, icon, variant, size, pulse, tooltip, className }, ref) => (
+    <div
+      ref={ref}
+      className={cn(badgeVariants({ variant, size }), className)}
+      title={tooltip}
+      role="status"
+      aria-live="polite"
+    >
+      {icon && <span className="mr-1.5 inline-flex">{icon}</span>}
+      <span>{label}</span>
+    </div>
+  )
+);
 
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {username && <span className={`font-bold text-foreground ${textSize}`}>@{username}</span>}
-      <span className="relative inline-flex items-center">
-        {status === "available" && (
-          <motion.span
-            className={`absolute inset-0 rounded-full ${pulseColors[status]}`}
-            animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            style={{ width: dotSize, height: dotSize }}
-          />
-        )}
-        <Circle
-          className={`${statusColors[status]} fill-current relative z-10`}
-          style={{ width: dotSize, height: dotSize }}
-        />
-      </span>
-      {showLabel && (
-        <span className={`${textSize} text-muted-foreground font-medium`}>
-          {statusLabels[status]}
-        </span>
-      )}
-    </span>
-  );
-};
+StatusBadge.displayName = 'StatusBadge';
 
-export default StatusBadge;
+// Usage Examples:
+export const StatusBadgeDemo = () => (
+  <div className="flex flex-wrap gap-4">
+    <StatusBadge variant="active" label="Online" />
+    <StatusBadge variant="warning" label="In Game" icon={<span>⚔️</span>} />
+    <StatusBadge variant="critical" label="Low Health" pulse />
+    <StatusBadge variant="muted" label="Away" size="lg" />
+  </div>
+);
