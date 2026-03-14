@@ -41,7 +41,7 @@ type Phase = "lobby" | "submitting" | "judging" | "round_result" | "game_over";
 const HAND_SIZE = 7;
 
 export function useMultiplayerGame() {
-  const { user, profile } = useAuth();
+  const { user, mpProfile } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -127,7 +127,7 @@ export function useMultiplayerGame() {
   }, [room?.id]);
 
   const createRoom = useCallback(async () => {
-    if (!user || !profile) return;
+    if (!user || !mpProfile) return;
     setLoading(true);
     setError("");
     try {
@@ -153,7 +153,7 @@ export function useMultiplayerGame() {
       // Join as player
       const { error: joinErr } = await supabase
         .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: profile.display_name || user.email || "Player" });
+        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
       if (joinErr) throw joinErr;
 
       // Fetch players
@@ -163,10 +163,10 @@ export function useMultiplayerGame() {
       setError(e.message);
     }
     setLoading(false);
-  }, [user, profile]);
+  }, [user, mpProfile]);
 
   const joinRoom = useCallback(async (code: string) => {
-    if (!user || !profile) return;
+    if (!user || !mpProfile) return;
     setLoading(true);
     setError("");
     try {
@@ -187,7 +187,7 @@ export function useMultiplayerGame() {
 
       const { error: joinErr } = await supabase
         .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: profile.display_name || user.email || "Player" });
+        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
       if (joinErr && !joinErr.message.includes("duplicate")) throw joinErr;
 
       const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", r.id);
@@ -196,7 +196,7 @@ export function useMultiplayerGame() {
       setError(e.message);
     }
     setLoading(false);
-  }, [user, profile]);
+  }, [user, mpProfile]);
 
   const startGame = useCallback(async () => {
     if (!room || !user || players.length < 2) return;

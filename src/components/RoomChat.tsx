@@ -37,7 +37,7 @@ interface RoomChatProps {
 }
 
 const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gameScores = [], lastBlackCard, lastWinner }: RoomChatProps) => {
-  const { user, profile } = useAuth();
+  const { user, mpProfile } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
@@ -50,7 +50,7 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
   const lastPhaseRef = useRef("");
   const spontaneousTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const playerName = profile?.username || profile?.display_name || "Player";
+  const playerName = mpProfile?.username || mpProfile?.display_name || "Player";
 
   useEffect(() => {
     supabase
