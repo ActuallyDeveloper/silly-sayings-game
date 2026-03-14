@@ -178,6 +178,7 @@ const Multiplayer = () => {
               ) : (
                 <Circle className="w-4 h-4 text-muted-foreground" />
               )}
+              <StatusIndicator status={(getStatus(p.user_id)?.status as any) || "invisible"} size={8} />
               <span className="font-bold text-foreground">{p.display_name}</span>
               <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest ${p.ready ? "text-green-500" : "text-muted-foreground/50"}`}>
                 {p.ready ? "Ready" : "Not Ready"}
