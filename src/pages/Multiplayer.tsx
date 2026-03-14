@@ -18,8 +18,7 @@ import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle, User } from "lucide-react";
-import StatusIndicator from "@/components/StatusIndicator";
-import { useStatus } from "@/contexts/StatusContext";
+import UserStatusDot from "@/components/UserStatusDot";
 import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
@@ -33,7 +32,6 @@ const Multiplayer = () => {
     });
   }, []);
   const game = useMultiplayerGame();
-  const { getStatusWithPrivacy } = useStatus();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
@@ -200,10 +198,7 @@ const Multiplayer = () => {
               ) : (
                 <Circle className="w-4 h-4 text-muted-foreground" />
               )}
-              {(() => {
-                const { status, canView } = getStatusWithPrivacy(p.user_id);
-                return canView ? <StatusIndicator status={status as any} size={8} /> : null;
-              })()}
+              <UserStatusDot userId={p.user_id} size={8} />
               <span className="font-bold text-foreground">{p.display_name}</span>
               <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest ${p.ready ? "text-green-500" : "text-muted-foreground/50"}`}>
                 {p.ready ? "Ready" : "Not Ready"}
@@ -405,10 +400,7 @@ const Multiplayer = () => {
             }`}
           >
             {p.user_id === game.room!.czar_user_id && <Crown className="w-3 h-3" />}
-            {(() => {
-              const { status, canView } = getStatusWithPrivacy(p.user_id);
-              return canView ? <StatusIndicator status={status as any} size={7} /> : null;
-            })()}
+            <UserStatusDot userId={p.user_id} size={7} />
             <span>{p.display_name}</span>
             <span className="opacity-60">{p.score}</span>
           </div>
