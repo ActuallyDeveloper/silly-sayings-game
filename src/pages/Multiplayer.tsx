@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle } from "lucide-react";
+import StatusIndicator from "@/components/StatusIndicator";
+import { useUserStatus } from "@/hooks/useUserStatus";
 import type { WhiteCard, PackId } from "@/data/cards";
 
 const Multiplayer = () => {
