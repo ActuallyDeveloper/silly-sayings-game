@@ -163,7 +163,7 @@ export function useMultiplayerGame() {
       setError(e.message);
     }
     setLoading(false);
-  }, [user, profile]);
+  }, [user, mpProfile]);
 
   const joinRoom = useCallback(async (code: string) => {
     if (!user || !profile) return;
