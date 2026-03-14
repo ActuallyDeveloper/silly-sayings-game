@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
 import AIIcon from "@/components/AIIcon";
+import TypingIndicator from "@/components/TypingIndicator";
 
 interface ChatMessage {
   id: string;
@@ -230,14 +231,7 @@ const GameChat = ({ aiPlayers, gamePhase, roundNumber, playerName = "You", gameC
                 </div>
               ))}
               {responding && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <motion.span
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                  >
-                    AI is typing...
-                  </motion.span>
-                </div>
+                <TypingIndicator names={["AI"]} color="hsl(var(--accent))" />
               )}
             </div>
 

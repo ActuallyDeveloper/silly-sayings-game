@@ -431,17 +431,24 @@ const Multiplayer = () => {
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-              {roundSubs.map((sub) => {
+              {/* Shuffle submissions to anonymize them during judging */}
+              {[...roundSubs].sort(() => Math.random() - 0.5).map((sub, idx) => {
                 const cards = sub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
                   .filter(Boolean) as WhiteCard[];
                 return (
                   <motion.div
                     key={sub.id}
-                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer" : ""}`}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1 -m-1" : ""}`}
                     onClick={() => game.isCzar && game.pickWinner(sub.id)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.1 }}
                   >
+                    <p className="text-[10px] text-muted-foreground/50 font-bold text-center mb-0.5">
+                      CARD {idx + 1}
+                    </p>
                     {cards.map((c) => (
                       <GameCard key={c.id} text={c.text} type="white" small logo />
                     ))}

@@ -1,5 +1,5 @@
 import { Circle } from "lucide-react";
-import type { UserStatusType } from "@/hooks/useUserStatus";
+import type { UserStatusType } from "@/contexts/StatusContext";
 
 const statusColors: Record<UserStatusType, string> = {
   available: "text-green-500",

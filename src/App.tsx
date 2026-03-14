@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { StatusProvider } from "@/contexts/StatusContext";
+import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import Index from "./pages/Index";
 import PlayGame from "./pages/PlayGame";
 import Multiplayer from "./pages/Multiplayer";
@@ -36,6 +37,7 @@ const App = () => (
       <BrowserRouter>
         <SettingsProvider>
           <AuthProvider>
+            <RealtimeProvider>
             <StatusProvider>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -59,6 +61,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </StatusProvider>
+            </RealtimeProvider>
           </AuthProvider>
         </SettingsProvider>
       </BrowserRouter>

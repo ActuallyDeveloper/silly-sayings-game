@@ -371,42 +371,37 @@ const PlayGame = () => {
                   {game.aiJudging ? `${game.czarName} is judging...` : "All cards are in!"}
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
-                  {/* Show player's cards only if they submitted (not czar) */}
-                  {game.czarId !== -1 && (
-                    <div className="text-center">
-                      <p className="text-[10px] sm:text-xs text-accent mb-1 font-bold flex items-center justify-center gap-1">
-                        <User className="w-3 h-3" /> YOU
-                      </p>
-                      <div className="flex gap-1">
-                        {game.selectedCards.map((c, i) => (
-                          <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                            transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }} style={{ perspective: 1000 }}>
-                            <GameCard text={c.text} type="white" small logo />
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {game.aiSubmissions.map((sub, subIdx) => {
-                    const aiPlayer = game.aiPlayers.find((a) => a.id === sub.playerId);
-                    return (
-                      <div key={sub.playerId} className="text-center">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold flex items-center justify-center gap-1">
-                          {aiPlayer && <AIIcon icon={aiPlayer.icon} size={12} color={aiPlayer.color} animated={false} />}
-                          {sub.playerName.toUpperCase()}
+                  {/* Anonymize all submissions during judging - shuffle them */}
+                  {(() => {
+                    const allSubmissions = [
+                      ...(game.czarId !== -1 ? [{ playerId: -1, playerName: "You", cards: game.selectedCards, isPlayer: true }] : []),
+                      ...game.aiSubmissions.map(sub => ({ ...sub, isPlayer: false })),
+                    ];
+                    // Shuffle submissions so player can't tell who submitted what
+                    const shuffled = [...allSubmissions].sort(() => Math.random() - 0.5);
+                    return shuffled.map((sub, idx) => (
+                      <motion.div 
+                        key={`card-${idx}`} 
+                        className="text-center"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.15, duration: 0.4 }}
+                      >
+                        <p className="text-[10px] sm:text-xs text-muted-foreground/70 mb-1 font-bold">
+                          CARD {idx + 1}
                         </p>
                         <div className="flex gap-1">
                           {sub.cards.map((c, i) => (
                             <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.5, type: "spring" }}
+                              transition={{ delay: 0.2 + idx * 0.15 + i * 0.1, duration: 0.5, type: "spring" }}
                               style={{ perspective: 1000 }}>
                               <GameCard text={c.text} type="white" small logo />
                             </motion.div>
                           ))}
                         </div>
-                      </div>
-                    );
-                  })}
+                      </motion.div>
+                    ));
+                  })()}
                 </div>
                 {/* Only show Reveal Winner button if player is czar */}
                 {game.isCzar && (
