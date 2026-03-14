@@ -59,4 +59,14 @@ CustomToggle.displayName = 'CustomToggle';
 
 // Usage Example:
 export const CustomToggleDemo = () => {
-  const [soundEnabled, setSoundEnabled] = useState(
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  return (
+    <CustomToggle
+      label="Sound Effects"
+      defaultChecked={soundEnabled}
+      onChange={setSoundEnabled}
+      icon={{ on: <span>🔊</span>, off: <span>🔇</span> }}
+    />
+  );
+};
