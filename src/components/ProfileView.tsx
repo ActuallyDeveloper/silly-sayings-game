@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,8 @@ import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Trophy, Flame, Target, Gamepad2, Calendar, TrendingUp, User, Zap, Award, Save } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, Trophy, Flame, Target, Gamepad2, Calendar, TrendingUp, User, Zap, Award, Save, Camera, Loader2 } from "lucide-react";
 
 interface GameScore {
   id: string;
@@ -33,6 +34,8 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
   const [editName, setEditName] = useState("");
   const [editUsername, setEditUsername] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSP = mode === "singleplayer";
   const authRoute = isSP ? "/sp/auth" : "/mp/auth";
   const modeProfile = getModeProfile(mode);
@@ -76,6 +79,39 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
       setEditUsername(modeProfile.username || "");
     }
   }, [modeProfile]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const prefix = isSP ? "sp" : "mp";
+    const filePath = `${user.id}/${prefix}-avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      setUploading(false);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+    await (supabase as any)
+      .from(profileTable)
+      .update({ avatar_url: avatarUrl })
+      .eq("user_id", user.id);
+
+    await fetchModeProfile(user.id, mode);
+    setUploading(false);
+  };
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -131,9 +167,34 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8">
         <motion.div className="flex items-center gap-4 mb-8" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
-            <User className="w-8 h-8 text-accent" />
+          {/* Avatar with upload */}
+          <div className="relative group">
+            <Avatar className="w-16 h-16 border-2 border-accent/30">
+              <AvatarImage src={modeProfile?.avatar_url || undefined} alt={displayName} />
+              <AvatarFallback className="bg-accent/20 text-accent text-lg font-black">
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              {uploading ? (
+                <Loader2 className="w-5 h-5 text-accent animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-accent" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
           </div>
+
           <div className="flex-1">
             {editing ? (
               <div className="space-y-2">
