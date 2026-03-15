@@ -431,9 +431,30 @@ const Multiplayer = () => {
                 return (
                   <motion.div
                     key={sub.id}
-                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer" : ""}`}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
                     onClick={() => game.isCzar && game.pickWinner(sub.id)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                  >
+                    {cards.map((c) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    ))}
+                  </motion.div>
+                );
+              })}
+              {/* AI submissions (local state) */}
+              {game.aiSubmissions.map((aiSub, idx) => {
+                const cards = aiSub.white_card_ids
+                  .map((id) => whiteCards.find((c) => c.id === id))
+                  .filter(Boolean) as WhiteCard[];
+                return (
+                  <motion.div
+                    key={`ai-${idx}`}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
+                    onClick={() => game.isCzar && game.pickWinner(`ai-${idx}`)}
+                    whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
                   >
                     {cards.map((c) => (
                       <GameCard key={c.id} text={c.text} type="white" small logo />
