@@ -21,6 +21,8 @@ import SPCustomCards from "./pages/SPCustomCards";
 import MPCustomCards from "./pages/MPCustomCards";
 import MPSocial from "./pages/MPSocial";
 import Settings from "./pages/Settings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
               <Route path="/mp/custom-cards" element={<MPCustomCards />} />
               <Route path="/mp/social" element={<MPSocial />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

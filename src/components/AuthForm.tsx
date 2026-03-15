@@ -26,10 +26,8 @@ const AuthForm = ({ mode }: AuthFormProps) => {
 
   const isSP = mode === "singleplayer";
   const redirectTo = isSP ? "/play" : "/multiplayer";
-  const otherMode = isSP ? "multiplayer" : "singleplayer";
   const otherModeLabel = isSP ? "Multiplayer" : "Single Player";
 
-  // Set active mode on mount and handle mode switching
   useEffect(() => {
     ensureMode(mode).then((canProceed) => {
       if (!canProceed) {
@@ -93,6 +91,9 @@ const AuthForm = ({ mode }: AuthFormProps) => {
         <h2 className="text-2xl font-black text-center text-foreground">
           {isLogin ? "Welcome Back" : "Create Account"}
         </h2>
+        <p className="text-xs text-center text-muted-foreground">
+          {isSP ? "Single Player" : "Multiplayer"} profiles are separate. {isLogin ? "Sign in" : "Sign up"} for {isSP ? "SP" : "MP"}.
+        </p>
 
         {!isLogin && (
           <div className="space-y-2">
@@ -137,6 +138,14 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2 active:opacity-70">
           {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
         </button>
+
+        {isLogin && (
+          <button type="button"
+            onClick={() => navigate("/forgot-password")}
+            className="w-full text-center text-xs text-accent hover:underline py-1">
+            Forgot password?
+          </button>
+        )}
       </motion.form>
 
       <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground min-h-[44px]">

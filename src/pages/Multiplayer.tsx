@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
@@ -45,6 +46,11 @@ const Multiplayer = () => {
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [countdownActive, setCountdownActive] = useState(false);
 
+  const playerCount = game.players.length;
+  const minAi = playerCount <= 2 ? 1 : 0;
+  const maxAi = playerCount <= 2 ? 6 : 5;
+  const aiRequired = playerCount <= 2;
+
   // Auto-trigger countdown when all players ready
   useEffect(() => {
     if (game.allReady && game.phase === "lobby" && game.room && !countdownActive) {
@@ -55,12 +61,27 @@ const Multiplayer = () => {
     }
   }, [game.allReady, game.phase, game.room, countdownActive]);
 
-  const handleCountdownComplete = useCallback(() => {
+  const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
     if (game.room?.created_by === user?.id) {
+      const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
+      if (effectiveAiCount > 0) {
+        const aiPersonalities = getAIPersonalities(effectiveAiCount);
+        await (supabase as any).from("game_rooms").update({
+          ai_player_count: effectiveAiCount,
+          ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
+          max_rounds: lobbyRounds,
+          points_to_win: lobbyPoints,
+        }).eq("id", game.room.id);
+      } else {
+        await (supabase as any).from("game_rooms").update({
+          max_rounds: lobbyRounds,
+          points_to_win: lobbyPoints,
+        }).eq("id", game.room!.id);
+      }
       game.startGame();
     }
-  }, [game, user]);
+  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
@@ -71,11 +92,6 @@ const Multiplayer = () => {
       return [...prev, packId];
     });
   };
-
-  const playerCount = game.players.length;
-  const minAi = playerCount <= 2 ? 1 : 0;
-  const maxAi = playerCount <= 2 ? 6 : 5;
-  const aiRequired = playerCount <= 2;
 
   if (!user) {
     return (
@@ -237,8 +253,8 @@ const Multiplayer = () => {
           </>
         )}
 
-        {game.players.length < 2 && !aiRequired && (
-          <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
+        {game.players.length < 2 && !aiRequired && !enableAiBots && (
+          <p className="text-muted-foreground/50 text-sm">Need at least 2 players or enable AI bots to start</p>
         )}
 
         <div className="flex gap-3">
@@ -398,15 +414,15 @@ const Multiplayer = () => {
           >
             {game.isCzar ? (
               <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
-                You are the Card Czar — waiting for submissions ({roundSubs.length}/{game.players.length - 1})
+                You are the Card Czar — waiting for submissions ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)})
               </p>
             ) : game.mySubmission ? (
               <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-                Submitted! Waiting for others... ({roundSubs.length}/{game.players.length - 1})
+                Submitted! Waiting for others... ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)})
               </p>
             ) : (
               <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-                Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length}/{game.players.length - 1} submitted)
+                Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)} submitted)
               </p>
             )}
           </motion.div>
@@ -431,9 +447,30 @@ const Multiplayer = () => {
                 return (
                   <motion.div
                     key={sub.id}
-                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer" : ""}`}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
                     onClick={() => game.isCzar && game.pickWinner(sub.id)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                  >
+                    {cards.map((c) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    ))}
+                  </motion.div>
+                );
+              })}
+              {/* AI submissions (local state) */}
+              {game.aiSubmissions.map((aiSub, idx) => {
+                const cards = aiSub.white_card_ids
+                  .map((id) => whiteCards.find((c) => c.id === id))
+                  .filter(Boolean) as WhiteCard[];
+                return (
+                  <motion.div
+                    key={`ai-${idx}`}
+                    className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
+                    onClick={() => game.isCzar && game.pickWinner(`ai-${idx}`)}
+                    whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
                   >
                     {cards.map((c) => (
                       <GameCard key={c.id} text={c.text} type="white" small logo />
