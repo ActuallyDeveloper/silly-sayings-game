@@ -237,8 +237,8 @@ const Multiplayer = () => {
           </>
         )}
 
-        {game.players.length < 2 && !aiRequired && (
-          <p className="text-muted-foreground/50 text-sm">Need at least 2 players to start</p>
+        {game.players.length < 2 && !aiRequired && !enableAiBots && (
+          <p className="text-muted-foreground/50 text-sm">Need at least 2 players or enable AI bots to start</p>
         )}
 
         <div className="flex gap-3">
