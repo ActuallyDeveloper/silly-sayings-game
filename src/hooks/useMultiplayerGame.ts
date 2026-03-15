@@ -39,6 +39,12 @@ export interface Submission {
   is_winner: boolean;
 }
 
+export interface AISubmissionMP {
+  aiIndex: number;
+  aiName: string;
+  white_card_ids: number[];
+}
+
 type Phase = "lobby" | "submitting" | "judging" | "round_result" | "game_over";
 
 const HAND_SIZE = 7;
@@ -48,6 +54,7 @@ export function useMultiplayerGame() {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [aiSubmissions, setAiSubmissions] = useState<AISubmissionMP[]>([]);
   const [phase, setPhase] = useState<Phase>("lobby");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,15 +73,16 @@ export function useMultiplayerGame() {
     (s) => s.user_id === user?.id && s.round_number === room?.current_round
   );
 
-  // Count expected submissions: human players (not czar) + AI players (not czar)
-  const humanNonCzar = players.filter((p) => p.user_id !== room?.czar_user_id);
   const aiPlayerCount = room?.ai_player_count || 0;
-  // AI players won't be czar in multiplayer (czar is always a human)
-  const expectedSubmissions = humanNonCzar.length + aiPlayerCount;
+  const humanNonCzar = players.filter((p) => p.user_id !== room?.czar_user_id);
   const currentRoundSubs = submissions.filter((s) => s.round_number === room?.current_round);
-  const allSubmitted = room?.status === "playing" && expectedSubmissions > 0 && currentRoundSubs.length >= expectedSubmissions;
+  // All submitted when human non-czars submitted + AI cards are ready
+  const allSubmitted = room?.status === "playing" &&
+    humanNonCzar.length > 0 &&
+    currentRoundSubs.length >= humanNonCzar.length &&
+    (aiPlayerCount === 0 || aiSubmissions.length >= aiPlayerCount);
 
-  // Derive phase from room state
+  // Derive phase
   useEffect(() => {
     if (!room) { setPhase("lobby"); return; }
     if (room.status === "waiting") { setPhase("lobby"); return; }
@@ -84,7 +92,7 @@ export function useMultiplayerGame() {
     setPhase("submitting");
   }, [room, allSubmitted, roundWinner]);
 
-  // Subscribe to realtime changes
+  // Realtime subscriptions
   useEffect(() => {
     if (!room?.id) return;
 
@@ -133,6 +141,38 @@ export function useMultiplayerGame() {
     channelRef.current = channel;
     return () => { supabase.removeChannel(channel); };
   }, [room?.id]);
+
+  // Auto-generate AI submissions when a new round starts (host only)
+  useEffect(() => {
+    if (!room || room.status !== "playing" || !user || room.created_by !== user.id) return;
+    if (aiPlayerCount <= 0 || !currentBlackCard) return;
+
+    const timeout = setTimeout(() => {
+      const pick = currentBlackCard.pick || 1;
+      const usedWhites = [...room.used_white_card_ids];
+      const handsInUse = players.flatMap(p => p.hand);
+      const newAiSubs: AISubmissionMP[] = [];
+
+      for (let i = 0; i < aiPlayerCount; i++) {
+        const available = whiteCards.filter(
+          (c) => !usedWhites.includes(c.id) && !handsInUse.includes(c.id)
+        );
+        const picked = shuffle(available).slice(0, pick).map((c) => c.id);
+        usedWhites.push(...picked);
+        
+        const aiData = room.ai_players_data?.[i];
+        newAiSubs.push({
+          aiIndex: i,
+          aiName: aiData?.name || `AI Player ${i + 1}`,
+          white_card_ids: picked,
+        });
+      }
+
+      setAiSubmissions(newAiSubs);
+    }, 1500 + Math.random() * 1000);
+
+    return () => clearTimeout(timeout);
+  }, [room?.current_round, room?.status, aiPlayerCount, currentBlackCard?.id]);
 
   const createRoom = useCallback(async () => {
     if (!user || !mpProfile) return;
@@ -205,39 +245,6 @@ export function useMultiplayerGame() {
     setLoading(false);
   }, [user, mpProfile]);
 
-  // AI players submit cards for the current round (called by host)
-  const submitAICards = useCallback(async (aiCount: number) => {
-    if (!room || !user) return;
-    const pick = currentBlackCard?.pick || 1;
-    const usedWhites = [...room.used_white_card_ids];
-    
-    // Get all cards in human players' hands
-    const handsInUse = players.flatMap(p => p.hand);
-    
-    for (let i = 0; i < aiCount; i++) {
-      const aiId = `ai-player-${i}`;
-      // Check if this AI already submitted
-      const alreadySubmitted = submissions.find(
-        (s) => s.user_id === aiId && s.round_number === room.current_round
-      );
-      if (alreadySubmitted) continue;
-
-      // Pick random cards for AI
-      const available = whiteCards.filter(
-        (c) => !usedWhites.includes(c.id) && !handsInUse.includes(c.id)
-      );
-      const aiCards = shuffle(available).slice(0, pick).map((c) => c.id);
-      usedWhites.push(...aiCards);
-
-      await supabase.from("room_submissions").insert({
-        room_id: room.id,
-        round_number: room.current_round,
-        user_id: aiId,
-        white_card_ids: aiCards as any,
-      });
-    }
-  }, [room, user, currentBlackCard, players, submissions]);
-
   const startGame = useCallback(async () => {
     if (!room || !user || players.length < 1) return;
     setLoading(true);
@@ -278,19 +285,6 @@ export function useMultiplayerGame() {
     setLoading(false);
   }, [room, user, players]);
 
-  // Auto-submit AI cards when a new round starts and player is host
-  useEffect(() => {
-    if (!room || room.status !== "playing" || !user || room.created_by !== user.id) return;
-    if (aiPlayerCount <= 0 || !currentBlackCard) return;
-    
-    // Small delay to let the round settle
-    const timeout = setTimeout(() => {
-      submitAICards(aiPlayerCount);
-    }, 1500 + Math.random() * 1000);
-    
-    return () => clearTimeout(timeout);
-  }, [room?.current_round, room?.status, aiPlayerCount, currentBlackCard?.id]);
-
   const submitCards = useCallback(async (cardIds: number[]) => {
     if (!room || !user) return;
     try {
@@ -313,40 +307,42 @@ export function useMultiplayerGame() {
   const pickWinner = useCallback(async (submissionId: string) => {
     if (!room || !isCzar) return;
     try {
+      // Check if it's an AI submission (local state)
+      if (submissionId.startsWith("ai-")) {
+        const aiIndex = parseInt(submissionId.replace("ai-", ""));
+        const aiSub = aiSubmissions[aiIndex];
+        if (aiSub) {
+          setRoundWinner({
+            userId: `ai-${aiIndex}`,
+            name: aiSub.aiName,
+          });
+        }
+        return;
+      }
+
       await supabase.from("room_submissions").update({ is_winner: true }).eq("id", submissionId);
 
       const winnerSub = submissions.find((s) => s.id === submissionId);
       if (!winnerSub) return;
 
-      // Check if winner is an AI player
-      const isAIWinner = winnerSub.user_id.startsWith("ai-player-");
-      
-      if (!isAIWinner) {
-        const winnerPlayer = players.find((p) => p.user_id === winnerSub.user_id);
-        if (winnerPlayer) {
-          await supabase.from("room_players").update({ score: winnerPlayer.score + 1 }).eq("id", winnerPlayer.id);
-        }
-        setRoundWinner({
-          userId: winnerSub.user_id,
-          name: winnerPlayer?.display_name || "Unknown",
-        });
-      } else {
-        // AI winner - find AI name from room data
-        const aiIndex = parseInt(winnerSub.user_id.replace("ai-player-", ""));
-        const aiData = room.ai_players_data?.[aiIndex];
-        setRoundWinner({
-          userId: winnerSub.user_id,
-          name: aiData?.name || `AI Player ${aiIndex + 1}`,
-        });
+      const winnerPlayer = players.find((p) => p.user_id === winnerSub.user_id);
+      if (winnerPlayer) {
+        await supabase.from("room_players").update({ score: winnerPlayer.score + 1 }).eq("id", winnerPlayer.id);
       }
+
+      setRoundWinner({
+        userId: winnerSub.user_id,
+        name: winnerPlayer?.display_name || "Unknown",
+      });
     } catch (e: any) {
       setError(e.message);
     }
-  }, [room, isCzar, submissions, players]);
+  }, [room, isCzar, submissions, players, aiSubmissions]);
 
   const nextRound = useCallback(async () => {
     if (!room) return;
     setRoundWinner(null);
+    setAiSubmissions([]);
 
     const nextRoundNum = room.current_round + 1;
     if (nextRoundNum > room.max_rounds) {
@@ -354,7 +350,6 @@ export function useMultiplayerGame() {
       return;
     }
 
-    // Rotate czar among human players only
     const czarIndex = players.findIndex((p) => p.user_id === room.czar_user_id);
     const nextCzar = players[(czarIndex + 1) % players.length].user_id;
 
@@ -391,6 +386,7 @@ export function useMultiplayerGame() {
     setRoom(null);
     setPlayers([]);
     setSubmissions([]);
+    setAiSubmissions([]);
     setPhase("lobby");
   }, [room, user]);
 
@@ -406,7 +402,7 @@ export function useMultiplayerGame() {
   const allReady = players.length >= 1 && players.every((p) => p.ready);
 
   return {
-    room, players, submissions, phase, error, loading,
+    room, players, submissions, aiSubmissions, phase, error, loading,
     isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
     allReady,
     createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
