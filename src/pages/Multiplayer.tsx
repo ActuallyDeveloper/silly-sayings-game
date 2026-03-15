@@ -55,12 +55,28 @@ const Multiplayer = () => {
     }
   }, [game.allReady, game.phase, game.room, countdownActive]);
 
-  const handleCountdownComplete = useCallback(() => {
+  const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
     if (game.room?.created_by === user?.id) {
+      // Save AI config to room before starting
+      const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
+      if (effectiveAiCount > 0) {
+        const aiPersonalities = getAIPersonalities(effectiveAiCount);
+        await (supabase as any).from("game_rooms").update({
+          ai_player_count: effectiveAiCount,
+          ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
+          max_rounds: lobbyRounds,
+          points_to_win: lobbyPoints,
+        }).eq("id", game.room.id);
+      } else {
+        await (supabase as any).from("game_rooms").update({
+          max_rounds: lobbyRounds,
+          points_to_win: lobbyPoints,
+        }).eq("id", game.room!.id);
+      }
       game.startGame();
     }
-  }, [game, user]);
+  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
