@@ -46,6 +46,11 @@ const Multiplayer = () => {
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [countdownActive, setCountdownActive] = useState(false);
 
+  const playerCount = game.players.length;
+  const minAi = playerCount <= 2 ? 1 : 0;
+  const maxAi = playerCount <= 2 ? 6 : 5;
+  const aiRequired = playerCount <= 2;
+
   // Auto-trigger countdown when all players ready
   useEffect(() => {
     if (game.allReady && game.phase === "lobby" && game.room && !countdownActive) {
@@ -59,7 +64,6 @@ const Multiplayer = () => {
   const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
     if (game.room?.created_by === user?.id) {
-      // Save AI config to room before starting
       const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
       if (effectiveAiCount > 0) {
         const aiPersonalities = getAIPersonalities(effectiveAiCount);
@@ -88,11 +92,6 @@ const Multiplayer = () => {
       return [...prev, packId];
     });
   };
-
-  const playerCount = game.players.length;
-  const minAi = playerCount <= 2 ? 1 : 0;
-  const maxAi = playerCount <= 2 ? 6 : 5;
-  const aiRequired = playerCount <= 2;
 
   if (!user) {
     return (
