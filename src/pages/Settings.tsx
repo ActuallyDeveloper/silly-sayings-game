@@ -4,10 +4,50 @@ import { useSettings } from "@/contexts/SettingsContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Volume2, VolumeX, Hash, Sun, Moon } from "lucide-react";
+
+const ToggleButton = ({
+  activeLabel,
+  inactiveLabel,
+  activeIcon: ActiveIcon,
+  inactiveIcon: InactiveIcon,
+  isActive,
+  onToggle,
+}: {
+  activeLabel: string;
+  inactiveLabel: string;
+  activeIcon: React.ElementType;
+  inactiveIcon: React.ElementType;
+  isActive: boolean;
+  onToggle: () => void;
+}) => (
+  <div className="flex gap-2">
+    <button
+      onClick={() => !isActive && onToggle()}
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold min-h-[48px] transition-all active:scale-95 ${
+        !isActive
+          ? "bg-accent text-accent-foreground shadow-md"
+          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+      }`}
+    >
+      <InactiveIcon className="w-4 h-4" />
+      {inactiveLabel}
+    </button>
+    <button
+      onClick={() => isActive && onToggle()}
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold min-h-[48px] transition-all active:scale-95 ${
+        isActive
+          ? "bg-accent text-accent-foreground shadow-md"
+          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+      }`}
+    >
+      <ActiveIcon className="w-4 h-4" />
+      {activeLabel}
+    </button>
+  </div>
+);
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -38,38 +78,35 @@ const Settings = () => {
           transition={{ delay: 0.1 }}
         >
           {/* Theme toggle */}
-          <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              {theme === "dark" ? (
-                <Moon className="w-5 h-5 text-accent" />
-              ) : (
-                <Sun className="w-5 h-5 text-accent" />
-              )}
-              <div>
-                <Label className="text-foreground font-bold text-base">Theme</Label>
-                <p className="text-xs text-muted-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</p>
-              </div>
-            </div>
-            <Switch
-              checked={theme === "light"}
-              onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")}
+          <div className="space-y-3">
+            <Label className="text-foreground font-bold text-base flex items-center gap-2">
+              {theme === "dark" ? <Moon className="w-5 h-5 text-accent" /> : <Sun className="w-5 h-5 text-accent" />}
+              Theme
+            </Label>
+            <ToggleButton
+              activeLabel="Light"
+              inactiveLabel="Dark"
+              activeIcon={Sun}
+              inactiveIcon={Moon}
+              isActive={theme === "light"}
+              onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
             />
           </div>
 
           {/* Sound toggle */}
-          <div className="flex items-center justify-between bg-secondary rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              {soundEnabled ? (
-                <Volume2 className="w-5 h-5 text-accent" />
-              ) : (
-                <VolumeX className="w-5 h-5 text-muted-foreground" />
-              )}
-              <div>
-                <Label className="text-foreground font-bold text-base">Sound Effects</Label>
-                <p className="text-xs text-muted-foreground">Play sounds during gameplay</p>
-              </div>
-            </div>
-            <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+          <div className="space-y-3">
+            <Label className="text-foreground font-bold text-base flex items-center gap-2">
+              {soundEnabled ? <Volume2 className="w-5 h-5 text-accent" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
+              Sound Effects
+            </Label>
+            <ToggleButton
+              activeLabel="On"
+              inactiveLabel="Off"
+              activeIcon={Volume2}
+              inactiveIcon={VolumeX}
+              isActive={soundEnabled}
+              onToggle={() => setSoundEnabled(!soundEnabled)}
+            />
           </div>
 
           {/* Rounds slider */}
