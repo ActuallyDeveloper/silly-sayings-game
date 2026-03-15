@@ -398,15 +398,15 @@ const Multiplayer = () => {
           >
             {game.isCzar ? (
               <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
-                You are the Card Czar — waiting for submissions ({roundSubs.length}/{game.players.length - 1})
+                You are the Card Czar — waiting for submissions ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)})
               </p>
             ) : game.mySubmission ? (
               <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-                Submitted! Waiting for others... ({roundSubs.length}/{game.players.length - 1})
+                Submitted! Waiting for others... ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)})
               </p>
             ) : (
               <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
-                Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length}/{game.players.length - 1} submitted)
+                Pick {pick} card{pick > 1 ? "s" : ""} ({roundSubs.length + game.aiSubmissions.length}/{game.players.length - 1 + (game.room?.ai_player_count || 0)} submitted)
               </p>
             )}
           </motion.div>
