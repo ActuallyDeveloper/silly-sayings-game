@@ -250,8 +250,9 @@ const Multiplayer = () => {
           </>
         )}
 
-        {game.players.length < 2 && !aiRequired && !enableAiBots && (
-          <p className="text-muted-foreground/50 text-sm">Need at least 2 players or enable AI bots to start</p>
+        {/* Info about minimum players */}
+        {game.totalParticipants < 3 && (
+          <p className="text-muted-foreground/50 text-sm">Need at least 3 total participants (players + AI) to start</p>
         )}
 
         <div className="flex gap-3">
@@ -265,11 +266,11 @@ const Multiplayer = () => {
           >
             {game.myPlayer?.ready ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready!</> : <><Circle className="w-4 h-4 mr-2" /> Ready Up</>}
           </Button>
-          {isHost && game.allReady && !countdownActive && (
+          {isHost && (
             <Button
               onClick={() => setCountdownActive(true)}
-              disabled={game.loading}
-              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold animate-pulse"
+              disabled={!game.canStart || game.loading || countdownActive}
+              className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
             >
               Start Game
             </Button>
@@ -278,7 +279,10 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        {!game.allReady && game.players.length >= 2 && (
+        {game.allReady && !game.canStart && (
+          <p className="text-muted-foreground/50 text-xs">Need at least 3 total participants to start.</p>
+        )}
+        {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
         )}
         <LobbyCountdown active={countdownActive} onComplete={handleCountdownComplete} />
