@@ -51,15 +51,12 @@ const Multiplayer = () => {
   const maxAi = playerCount <= 2 ? 6 : 5;
   const aiRequired = playerCount <= 2;
 
-  // Auto-trigger countdown when all players ready
+  // Cancel countdown if not all ready
   useEffect(() => {
-    if (game.allReady && game.phase === "lobby" && game.room && !countdownActive) {
-      setCountdownActive(true);
-    }
     if (!game.allReady && countdownActive) {
       setCountdownActive(false);
     }
-  }, [game.allReady, game.phase, game.room, countdownActive]);
+  }, [game.allReady, countdownActive]);
 
   const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);

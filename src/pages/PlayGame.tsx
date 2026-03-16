@@ -398,12 +398,32 @@ const PlayGame = () => {
                     );
                   })}
                 </div>
-                {/* Only show Reveal Winner button if player is czar */}
-                {game.isCzar && (
-                  <Button onClick={game.judgeWithAI} disabled={game.aiJudging}
-                    className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold mt-2 disabled:opacity-50">
-                    {game.aiJudging ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Judging...</>) : "Pick Winner"}
-                  </Button>
+                {/* When player is czar, they pick the winner from the submissions */}
+                {game.isCzar && !game.aiPickingCards && game.aiSubmissions.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-accent font-bold text-xs uppercase tracking-widest mb-3">You are Czar — Pick the funniest!</p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {game.aiSubmissions.map((sub) => {
+                        const aiPlayer = game.aiPlayers.find((a) => a.id === sub.playerId);
+                        return (
+                          <motion.div key={sub.playerId}
+                            className="text-center cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-2"
+                            whileHover={{ scale: 1.05 }}
+                            onClick={() => game.pickWinnerManual(sub.playerName)}>
+                            <p className="text-[10px] text-muted-foreground mb-1 font-bold flex items-center justify-center gap-1">
+                              {aiPlayer && <AIIcon icon={aiPlayer.icon} size={12} color={aiPlayer.color} animated={false} />}
+                              {sub.playerName}
+                            </p>
+                            <div className="flex gap-1">
+                              {sub.cards.map((c, i) => (
+                                <GameCard key={c.id} text={c.text} type="white" small logo />
+                              ))}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
                 {game.isAICzar && !game.aiJudging && (
                   <div className="flex items-center gap-2 text-muted-foreground">
