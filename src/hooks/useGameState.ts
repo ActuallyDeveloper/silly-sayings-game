@@ -38,6 +38,8 @@ interface GameState {
   aiPickingCards: boolean;
   czarId: number | null; // -1 = player, positive = AI player id
   czarName: string;
+  czarOrder: number[]; // rotation order: -1 for player, ai ids for AI
+  czarIndex: number; // current index in czarOrder
 }
 
 const HAND_SIZE = 7;
@@ -55,14 +57,21 @@ export interface CustomCardsInput {
   whites: WhiteCard[];
 }
 
-function pickRandomCzar(aiPlayers: AIPlayerState[]): { czarId: number; czarName: string } {
-  // -1 = human player, positive = AI player id
-  const allParticipants = [
-    { id: -1, name: "You" },
-    ...aiPlayers.map(ai => ({ id: ai.id, name: ai.name })),
-  ];
-  const pick = allParticipants[Math.floor(Math.random() * allParticipants.length)];
-  return { czarId: pick.id, czarName: pick.name };
+function buildCzarOrder(aiPlayers: AIPlayerState[]): number[] {
+  // Build rotation: player (-1) + all AI ids, shuffled
+  const order = [-1, ...aiPlayers.map(ai => ai.id)];
+  // Shuffle for initial randomness
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+function getCzarFromOrder(order: number[], index: number, aiPlayers: AIPlayerState[]): { czarId: number; czarName: string } {
+  const czarId = order[index % order.length];
+  const czarName = czarId === -1 ? "You" : (aiPlayers.find(ai => ai.id === czarId)?.name || "AI");
+  return { czarId, czarName };
 }
 
 function createInitialState(
@@ -84,14 +93,16 @@ function createInitialState(
     personality: p,
   }));
 
-  const { czarId, czarName } = pickRandomCzar(aiPlayers);
+  const czarOrder = buildCzarOrder(aiPlayers);
+  const czarIndex = 0;
+  const { czarId, czarName } = getCzarFromOrder(czarOrder, czarIndex, aiPlayers);
 
   return {
     phase: "choosing_black", blackCardChoices: choices, currentBlackCard: null,
     hand, selectedCards: [], aiPlayers, aiSubmissions: [],
     playerScore: 0, round: 1, maxRounds, pointsToWin, winner: null,
     blackDeck: remaining, whiteDeck, trashTalk: null, aiJudging: false, aiPickingCards: false,
-    czarId, czarName,
+    czarId, czarName, czarOrder, czarIndex,
   };
 }
 
@@ -202,6 +213,21 @@ export function useGameState(
     }
   }, []);
 
+  // When player is czar, they pick the winner manually
+  const pickWinnerManual = useCallback((winnerName: string) => {
+    setState((prev) => {
+      if (prev.czarId !== -1) return prev; // only player-czar can pick manually
+      let trashTalk = `${winnerName} takes this round!`;
+      return {
+        ...prev, phase: "result",
+        playerScore: prev.playerScore + (winnerName === "You" ? 1 : 0),
+        aiPlayers: prev.aiPlayers.map((ai) => winnerName === ai.name ? { ...ai, score: ai.score + 1 } : ai),
+        winner: winnerName, trashTalk, aiJudging: false,
+      };
+    });
+  }, []);
+
+  // AI judges (used when AI is czar)
   const judgeWithAI = useCallback(async () => {
     setState((prev) => ({ ...prev, aiJudging: true }));
     const current = stateRef.current;
@@ -264,7 +290,9 @@ export function useGameState(
         return { ...prev, phase: "gameover" as const, winner: winnerName, trashTalk: null, blackCardChoices: [], aiSubmissions: [] };
       }
 
-      const { czarId, czarName } = pickRandomCzar(prev.aiPlayers);
+      // Sequential czar rotation
+      const nextCzarIndex = prev.czarIndex + 1;
+      const { czarId, czarName } = getCzarFromOrder(prev.czarOrder, nextCzarIndex, prev.aiPlayers);
 
       const newHand = [...prev.hand.filter((c) => !prev.selectedCards.find((s) => s.id === c.id))];
       const deckCopy = [...prev.whiteDeck];
@@ -274,7 +302,7 @@ export function useGameState(
         ...prev, phase: "choosing_black" as const, blackCardChoices: choices, currentBlackCard: null,
         hand: newHand, selectedCards: [], aiSubmissions: [], round: prev.round + 1,
         winner: null, blackDeck: remaining, whiteDeck: deckCopy, trashTalk: null,
-        czarId, czarName,
+        czarId, czarName, czarIndex: nextCzarIndex,
       };
     });
   }, []);
@@ -283,5 +311,5 @@ export function useGameState(
     setState(createInitialState(maxRounds, packsRef.current, aiPlayerCount, pointsToWin, customCardsRef.current));
   }, [maxRounds, aiPlayerCount, pointsToWin]);
 
-  return { ...state, isCzar, isAICzar, chooseBlackCard, aiCzarPickBlack, selectCard, submitCards, judgeWithAI, nextRound, resetGame };
+  return { ...state, isCzar, isAICzar, chooseBlackCard, aiCzarPickBlack, selectCard, submitCards, judgeWithAI, pickWinnerManual, nextRound, resetGame };
 }
