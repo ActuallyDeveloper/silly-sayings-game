@@ -76,7 +76,6 @@ export function useMultiplayerGame() {
   const aiPlayerCount = room?.ai_player_count || 0;
   const humanNonCzar = players.filter((p) => p.user_id !== room?.czar_user_id);
   const currentRoundSubs = submissions.filter((s) => s.round_number === room?.current_round);
-  // All submitted when human non-czars submitted + AI cards are ready
   const allSubmitted = room?.status === "playing" &&
     humanNonCzar.length > 0 &&
     currentRoundSubs.length >= humanNonCzar.length &&
@@ -251,6 +250,7 @@ export function useMultiplayerGame() {
     try {
       const shuffledBlack = shuffle(blackCards);
       const firstBlack = shuffledBlack[0];
+      // Rotate czar through players sequentially
       const czar = players[0].user_id;
 
       const shuffledWhite = shuffle(whiteCards);
@@ -350,6 +350,7 @@ export function useMultiplayerGame() {
       return;
     }
 
+    // Sequential czar rotation through human players
     const czarIndex = players.findIndex((p) => p.user_id === room.czar_user_id);
     const nextCzar = players[(czarIndex + 1) % players.length].user_id;
 
@@ -399,12 +400,17 @@ export function useMultiplayerGame() {
     }
   }, [myPlayer]);
 
+  // Ready check: all players ready (even if just 1 player)
   const allReady = players.length >= 1 && players.every((p) => p.ready);
+  
+  // Can start: need 3+ total participants (humans + AI)
+  const totalParticipants = players.length + (room?.ai_player_count || 0);
+  const canStart = allReady && totalParticipants >= 3;
 
   return {
     room, players, submissions, aiSubmissions, phase, error, loading,
     isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
-    allReady,
+    allReady, canStart, totalParticipants,
     createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
   };
 }

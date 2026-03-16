@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Award, Lock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Achievement {
   id: string;
@@ -46,10 +47,75 @@ interface AchievementsViewProps {
 const AchievementsView = ({ mode }: AchievementsViewProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [earned, setEarned] = useState<UserAchievement[]>([]);
   const [loading, setLoading] = useState(true);
   const isSP = mode === "singleplayer";
+
+  const checkAndAwardAchievements = useCallback(async (achList: Achievement[], currentEarned: UserAchievement[]) => {
+    if (!user) return currentEarned;
+
+    const { data: scores } = await (supabase as any)
+      .from("game_scores")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("mode", mode)
+      .order("created_at", { ascending: false });
+
+    if (!scores || !achList.length) return currentEarned;
+
+    const totalGames = scores.length;
+    const wins = scores.filter((s: any) => s.won).length;
+    const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
+    let bestStreak = 0, tempStreak = 0;
+    for (const s of scores) {
+      if ((s as any).won) { tempStreak++; if (tempStreak > bestStreak) bestStreak = tempStreak; }
+      else tempStreak = 0;
+    }
+
+    const earnedIds = new Set(currentEarned.map((e) => e.achievement_id));
+    const newAchievements: string[] = [];
+
+    for (const ach of achList) {
+      if (earnedIds.has(ach.id)) continue;
+      let met = false;
+      if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
+      else if (ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      else if (ach.requirement_type === "streak") met = bestStreak >= ach.requirement_value;
+      if (met) newAchievements.push(ach.id);
+    }
+
+    if (newAchievements.length > 0) {
+      const inserts = newAchievements.map((aid) => ({
+        user_id: user.id,
+        achievement_id: aid,
+        mode,
+      }));
+      await (supabase as any).from("user_achievements").insert(inserts);
+
+      // Show toast for each new achievement
+      for (const aid of newAchievements) {
+        const ach = achList.find(a => a.id === aid);
+        if (ach) {
+          toast({
+            title: "🏆 Achievement Unlocked!",
+            description: ach.title,
+          });
+        }
+      }
+
+      const { data: updatedEarned } = await (supabase as any)
+        .from("user_achievements")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("mode", mode);
+      return updatedEarned || currentEarned;
+    }
+
+    return currentEarned;
+  }, [user, mode, toast]);
 
   useEffect(() => {
     (async () => {
@@ -66,58 +132,47 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
           .select("*")
           .eq("user_id", user.id)
           .eq("mode", mode);
-        setEarned(earnedData || []);
-
-        // Check for new achievements
-        const { data: scores } = await (supabase as any)
-          .from("game_scores")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("mode", mode)
-          .order("created_at", { ascending: false });
-
-        if (scores && achData) {
-          const totalGames = scores.length;
-          const wins = scores.filter((s: any) => s.won).length;
-          const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
-          let bestStreak = 0, tempStreak = 0;
-          for (const s of scores) {
-            if ((s as any).won) { tempStreak++; if (tempStreak > bestStreak) bestStreak = tempStreak; }
-            else tempStreak = 0;
-          }
-
-          const earnedIds = new Set((earnedData || []).map((e: any) => e.achievement_id));
-          const newAchievements: string[] = [];
-
-          for (const ach of achData) {
-            if (earnedIds.has(ach.id)) continue;
-            let met = false;
-            if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
-            else if (ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
-            else if (ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
-            else if (ach.requirement_type === "streak") met = bestStreak >= ach.requirement_value;
-            if (met) newAchievements.push(ach.id);
-          }
-
-          if (newAchievements.length > 0) {
-            const inserts = newAchievements.map((aid) => ({
-              user_id: user.id,
-              achievement_id: aid,
-              mode,
-            }));
-            await (supabase as any).from("user_achievements").insert(inserts);
-            const { data: updatedEarned } = await (supabase as any)
-              .from("user_achievements")
-              .select("*")
-              .eq("user_id", user.id)
-              .eq("mode", mode);
-            setEarned(updatedEarned || []);
-          }
-        }
+        
+        const updated = await checkAndAwardAchievements(achData || [], earnedData || []);
+        setEarned(updated);
       }
       setLoading(false);
     })();
   }, [user, mode]);
+
+  // Real-time: listen for new scores to re-check achievements
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`achievements-${mode}-${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "game_scores",
+        filter: `user_id=eq.${user.id}`,
+      }, async () => {
+        const updated = await checkAndAwardAchievements(achievements, earned);
+        setEarned(updated);
+      })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "user_achievements",
+        filter: `user_id=eq.${user.id}`,
+      }, async (payload) => {
+        const newAch = payload.new as any;
+        if (newAch.mode === mode) {
+          setEarned(prev => {
+            if (prev.find(e => e.achievement_id === newAch.achievement_id)) return prev;
+            return [...prev, newAch];
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, mode, achievements, earned, checkAndAwardAchievements]);
 
   const earnedIds = new Set(earned.map((e) => e.achievement_id));
   const tiers = ["bronze", "silver", "gold", "platinum"];

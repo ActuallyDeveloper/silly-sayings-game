@@ -42,7 +42,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
 
     if (!data) { setEntries([]); setLoading(false); return; }
 
-    // For multiplayer, filter out users with private profiles (unless they're friends or the current user)
+    // For multiplayer, filter out users with private profiles
     if (!isSP) {
       const userIds = data.map((e: any) => e.user_id).filter(Boolean);
       if (userIds.length > 0) {
@@ -51,7 +51,6 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
           .select("user_id, profile_visibility")
           .in("user_id", userIds);
 
-        // Get current user's friends
         let friendIds: string[] = [];
         if (user) {
           const { data: friendships } = await (supabase as any)
@@ -71,11 +70,11 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
         );
 
         const filtered = data.filter((entry: any) => {
-          if (entry.user_id === user?.id) return true; // Always show self
+          if (entry.user_id === user?.id) return true;
           const visibility = privacyMap.get(entry.user_id) || "public";
           if (visibility === "private") return false;
           if (visibility === "friends") return friendIds.includes(entry.user_id);
-          return true; // public
+          return true;
         });
 
         setEntries(filtered);
@@ -91,6 +90,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
   useEffect(() => {
     fetchEntries();
 
+    // Real-time: listen for new scores and refresh leaderboard
     const channel = supabase
       .channel(`leaderboard-${mode}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "game_scores" }, () => {
@@ -99,7 +99,7 @@ const LeaderboardView = ({ mode }: LeaderboardViewProps) => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [viewName, fetchEntries]);
+  }, [viewName, fetchEntries, mode]);
 
   const medals = ["#1", "#2", "#3"];
 

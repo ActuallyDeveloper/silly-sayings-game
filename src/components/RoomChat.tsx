@@ -11,6 +11,12 @@ import type { AIPersonality } from "@/data/aiPersonalities";
 import { getRandomReaction } from "@/data/aiPersonalities";
 import AIIcon from "@/components/AIIcon";
 
+interface ReactionCount {
+  messageId: string;
+  count: number;
+  liked: boolean;
+}
+
 interface ChatMessage {
   id: string;
   sender: string;
@@ -22,8 +28,6 @@ interface ChatMessage {
   message_type?: string;
   media_url?: string;
   reply_to_id?: string;
-  likes?: number;
-  liked?: boolean;
 }
 
 interface RoomChatProps {
@@ -39,6 +43,7 @@ interface RoomChatProps {
 const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gameScores = [], lastBlackCard, lastWinner }: RoomChatProps) => {
   const { user, mpProfile } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [reactions, setReactions] = useState<Map<string, ReactionCount>>(new Map());
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -52,6 +57,26 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
 
   const playerName = mpProfile?.username || mpProfile?.display_name || "Player";
 
+  // Fetch reactions for all messages
+  const fetchReactions = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    const { data } = await (supabase as any)
+      .from("room_message_reactions")
+      .select("message_id, user_id")
+      .in("message_id", messageIds);
+
+    if (data) {
+      const map = new Map<string, ReactionCount>();
+      for (const r of data) {
+        const existing = map.get(r.message_id) || { messageId: r.message_id, count: 0, liked: false };
+        existing.count++;
+        if (r.user_id === user?.id) existing.liked = true;
+        map.set(r.message_id, existing);
+      }
+      setReactions(map);
+    }
+  }, [user]);
+
   useEffect(() => {
     supabase
       .from("room_messages")
@@ -60,13 +85,15 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (data) {
-          setMessages(data.map((m: any) => ({
+          const msgs = data.map((m: any) => ({
             id: m.id, sender: m.display_name, message: m.message,
             isPlayer: m.user_id === user?.id, isAI: false,
             message_type: m.message_type || "text",
             media_url: m.media_url,
             reply_to_id: m.reply_to_id,
-          })));
+          }));
+          setMessages(msgs);
+          fetchReactions(msgs.filter((m: any) => !m.id.startsWith("ai-")).map((m: any) => m.id));
         }
       });
 
@@ -91,7 +118,43 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Real-time reactions
+    const reactionsChannel = supabase
+      .channel(`chat-reactions-${roomId}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "room_message_reactions",
+      }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          const r = payload.new as any;
+          setReactions(prev => {
+            const map = new Map(prev);
+            const existing = map.get(r.message_id) || { messageId: r.message_id, count: 0, liked: false };
+            existing.count++;
+            if (r.user_id === user?.id) existing.liked = true;
+            map.set(r.message_id, existing);
+            return map;
+          });
+        } else if (payload.eventType === "DELETE") {
+          const r = payload.old as any;
+          setReactions(prev => {
+            const map = new Map(prev);
+            const existing = map.get(r.message_id);
+            if (existing) {
+              existing.count = Math.max(0, existing.count - 1);
+              if (r.user_id === user?.id) existing.liked = false;
+              if (existing.count === 0) map.delete(r.message_id);
+              else map.set(r.message_id, existing);
+            }
+            return map;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(reactionsChannel);
+    };
   }, [roomId]);
 
   const getChatHistory = useCallback(() => {
@@ -191,15 +254,19 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
   };
 
   const handleLike = async (msgId: string) => {
-    if (!user) return;
-    const { data: existing } = await (supabase as any)
-      .from("room_message_reactions")
-      .select("id")
-      .eq("message_id", msgId)
-      .eq("user_id", user.id)
-      .single();
-    if (existing) {
-      await (supabase as any).from("room_message_reactions").delete().eq("id", existing.id);
+    if (!user || msgId.startsWith("ai-")) return;
+    const reaction = reactions.get(msgId);
+    if (reaction?.liked) {
+      // Unlike - find and delete
+      const { data: existing } = await (supabase as any)
+        .from("room_message_reactions")
+        .select("id")
+        .eq("message_id", msgId)
+        .eq("user_id", user.id)
+        .single();
+      if (existing) {
+        await (supabase as any).from("room_message_reactions").delete().eq("id", existing.id);
+      }
     } else {
       await (supabase as any).from("room_message_reactions").insert({
         message_id: msgId, user_id: user.id, reaction: "like",
@@ -240,53 +307,57 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
               {messages.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-4">No messages yet. Say something!</p>
               )}
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex flex-col ${msg.isPlayer ? "items-end" : "items-start"}`}>
-                  <div className="flex items-center gap-1 mb-0.5">
-                    {msg.isAI && msg.icon ? (
-                      <AIIcon icon={msg.icon} size={12} color={msg.color} animated={false} />
-                    ) : (
-                      <User className="w-3 h-3 text-muted-foreground" />
-                    )}
-                    <span className="text-[10px] font-bold" style={{ color: msg.isAI && msg.color ? msg.color : undefined }}>
-                      {msg.sender}
-                    </span>
-                  </div>
-
-                  {msg.reply_to_id && (
-                    <div className="text-[9px] text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 mb-0.5 max-w-[80%] truncate">
-                      <Reply className="w-2 h-2 inline mr-0.5" />
-                      {messages.find(m => m.id === msg.reply_to_id)?.message || "Media"}
+              {messages.map(msg => {
+                const reaction = reactions.get(msg.id);
+                return (
+                  <div key={msg.id} className={`flex flex-col ${msg.isPlayer ? "items-end" : "items-start"}`}>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      {msg.isAI && msg.icon ? (
+                        <AIIcon icon={msg.icon} size={12} color={msg.color} animated={false} />
+                      ) : (
+                        <User className="w-3 h-3 text-muted-foreground" />
+                      )}
+                      <span className="text-[10px] font-bold" style={{ color: msg.isAI && msg.color ? msg.color : undefined }}>
+                        {msg.sender}
+                      </span>
                     </div>
-                  )}
 
-                  <div className={`rounded-lg max-w-[85%] ${
-                    msg.isPlayer ? "bg-accent text-accent-foreground" : msg.isAI ? "bg-muted/80 text-foreground" : "bg-muted text-foreground"
-                  }`}>
-                    {msg.message_type && msg.message_type !== "text" && msg.media_url ? (
-                      <div className="p-1">
-                        <MediaMessage type={msg.message_type as any} url={msg.media_url} />
-                        {msg.message && <p className="text-sm px-2 py-0.5">{msg.message}</p>}
+                    {msg.reply_to_id && (
+                      <div className="text-[9px] text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 mb-0.5 max-w-[80%] truncate">
+                        <Reply className="w-2 h-2 inline mr-0.5" />
+                        {messages.find(m => m.id === msg.reply_to_id)?.message || "Media"}
                       </div>
-                    ) : (
-                      <p className="px-3 py-1.5 text-sm">{msg.message}</p>
+                    )}
+
+                    <div className={`rounded-lg max-w-[85%] ${
+                      msg.isPlayer ? "bg-accent text-accent-foreground" : msg.isAI ? "bg-muted/80 text-foreground" : "bg-muted text-foreground"
+                    }`}>
+                      {msg.message_type && msg.message_type !== "text" && msg.media_url ? (
+                        <div className="p-1">
+                          <MediaMessage type={msg.message_type as any} url={msg.media_url} />
+                          {msg.message && <p className="text-sm px-2 py-0.5">{msg.message}</p>}
+                        </div>
+                      ) : (
+                        <p className="px-3 py-1.5 text-sm">{msg.message}</p>
+                      )}
+                    </div>
+
+                    {!msg.isAI && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <button onClick={() => handleLike(msg.id)}
+                          className={`text-[10px] flex items-center gap-0.5 active:scale-90 transition-transform ${reaction?.liked ? "text-red-400" : "text-muted-foreground hover:text-red-400"}`}>
+                          <Heart className={`w-3 h-3 ${reaction?.liked ? "fill-red-400" : ""}`} />
+                          {reaction && reaction.count > 0 && <span>{reaction.count}</span>}
+                        </button>
+                        <button onClick={() => setReplyTo(msg.id)}
+                          className="text-[10px] text-muted-foreground hover:text-foreground active:scale-90 transition-transform">
+                          <Reply className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  {!msg.isAI && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <button onClick={() => handleLike(msg.id)}
-                        className="text-[10px] text-muted-foreground hover:text-red-400 active:scale-90 transition-transform">
-                        <Heart className="w-3 h-3" />
-                      </button>
-                      <button onClick={() => setReplyTo(msg.id)}
-                        className="text-[10px] text-muted-foreground hover:text-foreground active:scale-90 transition-transform">
-                        <Reply className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {aiResponding && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>

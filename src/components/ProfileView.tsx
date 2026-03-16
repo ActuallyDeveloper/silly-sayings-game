@@ -63,13 +63,21 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
   useEffect(() => {
     fetchGames();
     if (!user) return;
+    
+    // Real-time stats: listen for new scores
     const channel = supabase
-      .channel(`profile-scores-${mode}`)
+      .channel(`profile-scores-${mode}-${user.id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "game_scores",
         filter: `user_id=eq.${user.id}`,
-      }, () => fetchGames())
+      }, (payload) => {
+        const newScore = payload.new as any;
+        if (newScore.mode === mode) {
+          setGames(prev => [newScore, ...prev]);
+        }
+      })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [user, mode, fetchGames]);
 
@@ -167,7 +175,6 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:py-8">
         <motion.div className="flex items-center gap-4 mb-8" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Avatar with upload */}
           <div className="relative group">
             <Avatar className="w-16 h-16 border-2 border-accent/30">
               <AvatarImage src={modeProfile?.avatar_url || undefined} alt={displayName} />
