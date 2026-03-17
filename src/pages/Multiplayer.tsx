@@ -280,7 +280,7 @@ const Multiplayer = () => {
           </Button>
         </div>
         {game.allReady && !game.canStart && (
-          <p className="text-muted-foreground/50 text-xs">Need at least 3 total participants to start.</p>
+          <p className="text-muted-foreground/50 text-xs">Need at least 3 human players to start.</p>
         )}
         {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
