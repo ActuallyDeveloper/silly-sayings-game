@@ -281,10 +281,21 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
   };
 
   const handleLike = async (msgId: string) => {
-    if (!user || msgId.startsWith("ai-")) return;
+    if (!user || msgId.startsWith("ai-") || msgId.startsWith("local-")) return;
     const reaction = reactions.get(msgId);
     if (reaction?.liked) {
-      // Unlike - find and delete
+      // Optimistic unlike
+      setReactions(prev => {
+        const map = new Map(prev);
+        const existing = map.get(msgId);
+        if (existing) {
+          const updated = { ...existing, liked: false, count: Math.max(0, existing.count - 1) };
+          if (updated.count === 0) map.delete(msgId);
+          else map.set(msgId, updated);
+        }
+        return map;
+      });
+      // Delete from DB
       const { data: existing } = await (supabase as any)
         .from("room_message_reactions")
         .select("id")
@@ -295,6 +306,13 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
         await (supabase as any).from("room_message_reactions").delete().eq("id", existing.id);
       }
     } else {
+      // Optimistic like
+      setReactions(prev => {
+        const map = new Map(prev);
+        const existing = map.get(msgId) || { messageId: msgId, count: 0, liked: false };
+        map.set(msgId, { ...existing, liked: true, count: existing.count + 1 });
+        return map;
+      });
       await (supabase as any).from("room_message_reactions").insert({
         message_id: msgId, user_id: user.id, reaction: "like",
       });

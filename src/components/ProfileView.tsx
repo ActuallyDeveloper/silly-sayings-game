@@ -64,7 +64,7 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
     fetchGames();
     if (!user) return;
     
-    // Real-time stats: listen for new scores
+    // Real-time stats: listen for new scores AND updates
     const channel = supabase
       .channel(`profile-scores-${mode}-${user.id}`)
       .on("postgres_changes", {
@@ -78,8 +78,22 @@ const ProfileView = ({ mode }: ProfileViewProps) => {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, mode, fetchGames]);
+    // Also listen for profile changes to update display name/avatar in real-time
+    const profileChannel = supabase
+      .channel(`profile-update-${mode}-${user.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: profileTable,
+        filter: `user_id=eq.${user.id}`,
+      }, () => {
+        fetchModeProfile(user.id, mode);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user, mode, fetchGames, profileTable, fetchModeProfile]);
 
   useEffect(() => {
     if (modeProfile) {
