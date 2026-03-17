@@ -126,7 +126,7 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
       const { data: achData } = await (supabase as any)
         .from("achievements")
         .select("*")
-        .eq("mode", mode)
+        .or(`mode.eq.${mode},mode.eq.both`)
         .order("tier", { ascending: true });
       setAchievements(achData || []);
 
