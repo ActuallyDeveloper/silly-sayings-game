@@ -104,13 +104,17 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
         filter: `room_id=eq.${roomId}`,
       }, (payload) => {
         const msg = payload.new as any;
-        setMessages(prev => [...prev, {
-          id: msg.id, sender: msg.display_name, message: msg.message,
-          isPlayer: msg.user_id === user?.id, isAI: false,
-          message_type: msg.message_type || "text",
-          media_url: msg.media_url,
-          reply_to_id: msg.reply_to_id,
-        }]);
+        setMessages(prev => {
+          // Skip if already added optimistically or by previous event
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, {
+            id: msg.id, sender: msg.display_name, message: msg.message,
+            isPlayer: msg.user_id === user?.id, isAI: false,
+            message_type: msg.message_type || "text",
+            media_url: msg.media_url,
+            reply_to_id: msg.reply_to_id,
+          }];
+        });
         if (!open) setUnread(u => u + 1);
         if (aiPlayers.length > 0 && msg.user_id !== user?.id && Math.random() > 0.5) {
           setTimeout(() => callAIGroupChat("reply_to_player"), 1000 + Math.random() * 2000);
