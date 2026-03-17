@@ -199,7 +199,7 @@ const Multiplayer = () => {
               {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
             </motion.div>
           ))}
-          {/* Show AI players in lobby */}
+          {/* Show AI players in lobby - always shown as ready */}
           {(aiRequired || enableAiBots) && getAIPersonalities(Math.max(aiCount, minAi)).map((ai) => (
             <motion.div
               key={`ai-${ai.id}`}
@@ -207,9 +207,10 @@ const Multiplayer = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
               <Bot className="w-4 h-4 text-accent" />
               <span className="font-bold text-foreground">{ai.name}</span>
-              <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-accent">AI</span>
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-green-500">Ready</span>
             </motion.div>
           ))}
         </div>

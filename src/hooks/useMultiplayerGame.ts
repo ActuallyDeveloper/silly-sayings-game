@@ -393,14 +393,19 @@ export function useMultiplayerGame() {
 
   const toggleReady = useCallback(async () => {
     if (!myPlayer) return;
-    const { error } = await (supabase as any).from("room_players").update({ ready: !myPlayer.ready }).eq("id", myPlayer.id);
+    const newReady = !myPlayer.ready;
+    // Optimistic update so UI reflects immediately
+    setPlayers((prev) => prev.map((p) => p.id === myPlayer.id ? { ...p, ready: newReady } : p));
+    const { error } = await (supabase as any).from("room_players").update({ ready: newReady }).eq("id", myPlayer.id);
     if (error) {
       console.error("Toggle ready error:", error);
       setError("Failed to toggle ready state");
+      // Revert optimistic update
+      setPlayers((prev) => prev.map((p) => p.id === myPlayer.id ? { ...p, ready: !newReady } : p));
     }
   }, [myPlayer]);
 
-  // Ready check: all players ready (even if just 1 player)
+  // Ready check: all human players ready (even if just 1 player)
   const allReady = players.length >= 1 && players.every((p) => p.ready);
   
   // Can start: need 3+ HUMAN players 
