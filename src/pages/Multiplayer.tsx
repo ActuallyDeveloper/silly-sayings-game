@@ -251,8 +251,8 @@ const Multiplayer = () => {
         )}
 
         {/* Info about minimum players */}
-        {game.totalParticipants < 3 && (
-          <p className="text-muted-foreground/50 text-sm">Need at least 3 total participants (players + AI) to start</p>
+        {players.length < 3 && (
+          <p className="text-muted-foreground/50 text-sm">Need at least 3 human players to start</p>
         )}
 
         <div className="flex gap-3">
