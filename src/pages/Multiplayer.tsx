@@ -251,7 +251,7 @@ const Multiplayer = () => {
         )}
 
         {/* Info about minimum players */}
-        {players.length < 3 && (
+        {game.players.length < 3 && (
           <p className="text-muted-foreground/50 text-sm">Need at least 3 human players to start</p>
         )}
 
