@@ -227,12 +227,35 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
     const msg = text?.trim() || input.trim();
     if (!msg && !mediaUrl) return;
     if (!user) return;
-    await (supabase as any).from("room_messages").insert({
+    
+    // Optimistic local add so message shows immediately
+    const optimisticId = `local-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: optimisticId,
+      sender: playerName,
+      message: msg || "",
+      isPlayer: true,
+      isAI: false,
+      message_type: type,
+      media_url: mediaUrl || undefined,
+      reply_to_id: replyTo || undefined,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    
+    const { data } = await (supabase as any).from("room_messages").insert({
       room_id: roomId, user_id: user.id,
       display_name: playerName, message: msg || "",
       message_type: type, media_url: mediaUrl || null,
       reply_to_id: replyTo || null,
-    });
+    }).select().single();
+    
+    // Replace optimistic message with real one if returned
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === optimisticId ? {
+        ...m, id: data.id,
+      } : m));
+    }
+    
     setInput("");
     setReplyTo(null);
     if (aiPlayers.length > 0 && type === "text") {
