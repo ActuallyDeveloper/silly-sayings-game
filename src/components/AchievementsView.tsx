@@ -81,9 +81,13 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
       if (earnedIds.has(ach.id)) continue;
       let met = false;
       if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
-      else if (ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
-      else if (ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      else if (ach.requirement_type === "games_played" || ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "total_points" || ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
       else if (ach.requirement_type === "streak") met = bestStreak >= ach.requirement_value;
+      else if (ach.requirement_type === "max_score") {
+        const maxScore = scores.reduce((max: number, s: any) => Math.max(max, s.player_score), 0);
+        met = maxScore >= ach.requirement_value;
+      }
       if (met) newAchievements.push(ach.id);
     }
 
@@ -122,7 +126,7 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
       const { data: achData } = await (supabase as any)
         .from("achievements")
         .select("*")
-        .eq("mode", mode)
+        .or(`mode.eq.${mode},mode.eq.both`)
         .order("tier", { ascending: true });
       setAchievements(achData || []);
 

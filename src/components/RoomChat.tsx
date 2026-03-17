@@ -104,13 +104,17 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
         filter: `room_id=eq.${roomId}`,
       }, (payload) => {
         const msg = payload.new as any;
-        setMessages(prev => [...prev, {
-          id: msg.id, sender: msg.display_name, message: msg.message,
-          isPlayer: msg.user_id === user?.id, isAI: false,
-          message_type: msg.message_type || "text",
-          media_url: msg.media_url,
-          reply_to_id: msg.reply_to_id,
-        }]);
+        setMessages(prev => {
+          // Skip if already added optimistically or by previous event
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, {
+            id: msg.id, sender: msg.display_name, message: msg.message,
+            isPlayer: msg.user_id === user?.id, isAI: false,
+            message_type: msg.message_type || "text",
+            media_url: msg.media_url,
+            reply_to_id: msg.reply_to_id,
+          }];
+        });
         if (!open) setUnread(u => u + 1);
         if (aiPlayers.length > 0 && msg.user_id !== user?.id && Math.random() > 0.5) {
           setTimeout(() => callAIGroupChat("reply_to_player"), 1000 + Math.random() * 2000);
@@ -227,12 +231,35 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
     const msg = text?.trim() || input.trim();
     if (!msg && !mediaUrl) return;
     if (!user) return;
-    await (supabase as any).from("room_messages").insert({
+    
+    // Optimistic local add so message shows immediately
+    const optimisticId = `local-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: optimisticId,
+      sender: playerName,
+      message: msg || "",
+      isPlayer: true,
+      isAI: false,
+      message_type: type,
+      media_url: mediaUrl || undefined,
+      reply_to_id: replyTo || undefined,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    
+    const { data } = await (supabase as any).from("room_messages").insert({
       room_id: roomId, user_id: user.id,
       display_name: playerName, message: msg || "",
       message_type: type, media_url: mediaUrl || null,
       reply_to_id: replyTo || null,
-    });
+    }).select().single();
+    
+    // Replace optimistic message with real one if returned
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === optimisticId ? {
+        ...m, id: data.id,
+      } : m));
+    }
+    
     setInput("");
     setReplyTo(null);
     if (aiPlayers.length > 0 && type === "text") {

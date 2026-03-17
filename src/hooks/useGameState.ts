@@ -163,7 +163,7 @@ export function useGameState(
     const pick = prev.currentBlackCard.pick;
     setState((s) => ({ ...s, phase: "judging", aiPickingCards: true, aiSubmissions: [] }));
 
-    // AI players that are NOT the czar submit cards
+    // ALL AI players submit cards (including when player is czar — all AIs play)
     const nonCzarAIs = prev.aiPlayers.filter(ai => ai.id !== prev.czarId);
     const deckCopy = [...prev.whiteDeck];
     const aiHands = nonCzarAIs.map((ai) => {

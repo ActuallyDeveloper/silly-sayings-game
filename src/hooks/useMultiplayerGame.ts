@@ -403,9 +403,9 @@ export function useMultiplayerGame() {
   // Ready check: all players ready (even if just 1 player)
   const allReady = players.length >= 1 && players.every((p) => p.ready);
   
-  // Can start: need 3+ total participants (humans + AI)
+  // Can start: need 3+ HUMAN players 
   const totalParticipants = players.length + (room?.ai_player_count || 0);
-  const canStart = allReady && totalParticipants >= 3;
+  const canStart = allReady && players.length >= 3;
 
   return {
     room, players, submissions, aiSubmissions, phase, error, loading,

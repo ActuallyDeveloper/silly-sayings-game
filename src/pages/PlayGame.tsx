@@ -72,6 +72,16 @@ const PlayGame = () => {
     }
   }, [game.phase, game.isAICzar, gameStarted]);
 
+  // When player is czar, auto-trigger submitCards so AI players generate their cards
+  useEffect(() => {
+    if (game.phase === "playing" && game.isCzar && gameStarted) {
+      const timeout = setTimeout(() => {
+        game.submitCards();
+      }, 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [game.phase, game.isCzar, gameStarted]);
+
   // Auto-judge when AI is czar
   useEffect(() => {
     if (game.phase === "judging" && game.isAICzar && !game.aiPickingCards && !game.aiJudging && game.aiSubmissions.length > 0) {
@@ -317,7 +327,7 @@ const PlayGame = () => {
               <div className="flex flex-col items-center gap-3 py-6">
                 <Crown className="w-6 h-6 text-accent" />
                 <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
-                  You are the Czar — waiting for players to submit...
+                  You are the Czar — AI players are choosing cards...
                 </p>
               </div>
             ) : (
