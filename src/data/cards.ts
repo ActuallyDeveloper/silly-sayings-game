@@ -309,6 +309,16 @@ const nsfwWhite: WhiteCard[] = [
   { id: 338, text: "Underprivileged children.", pack: "nsfw" },
   { id: 339, text: "Amputees.", pack: "nsfw" },
   { id: 340, text: "Glenn Beck catching a Mexican cold.", pack: "nsfw" },
+  { id: 341, text: "A lap dance from a clown.", pack: "nsfw" },
+  { id: 342, text: "The walk-in freezer at Wendy's.", pack: "nsfw" },
+  { id: 343, text: "Getting pegged.", pack: "nsfw" },
+  { id: 344, text: "A glory hole.", pack: "nsfw" },
+  { id: 345, text: "Taking a dump in the yard.", pack: "nsfw" },
+  { id: 346, text: "Your mom's OnlyFans.", pack: "nsfw" },
+  { id: 347, text: "A suspicious massage parlor.", pack: "nsfw" },
+  { id: 348, text: "Revenge porn.", pack: "nsfw" },
+  { id: 349, text: "Prison wine.", pack: "nsfw" },
+  { id: 350, text: "A body pillow of an anime character.", pack: "nsfw" },
 ];
 
 // ===== POP CULTURE PACK =====
