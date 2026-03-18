@@ -391,6 +391,16 @@ const popcultureWhite: WhiteCard[] = [
   { id: 438, text: "Beyoncé.", pack: "popculture" },
   { id: 439, text: "A hot take nobody agrees with.", pack: "popculture" },
   { id: 440, text: "Deleting your post after zero likes.", pack: "popculture" },
+  { id: 441, text: "An AI-generated boyfriend.", pack: "popculture" },
+  { id: 442, text: "Discord moderators.", pack: "popculture" },
+  { id: 443, text: "The Steam sale backlog.", pack: "popculture" },
+  { id: 444, text: "Touch grass.", pack: "popculture" },
+  { id: 445, text: "A Wikipedia rabbit hole.", pack: "popculture" },
+  { id: 446, text: "The Apple Vision Pro.", pack: "popculture" },
+  { id: 447, text: "Getting doxxed.", pack: "popculture" },
+  { id: 448, text: "A Wes Anderson remake of _.", pack: "popculture" },
+  { id: 449, text: "Doom scrolling during a meeting.", pack: "popculture" },
+  { id: 450, text: "A 10-part true crime documentary.", pack: "popculture" },
 ];
 
 // Combined accessors
