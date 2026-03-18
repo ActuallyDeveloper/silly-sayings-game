@@ -338,6 +338,16 @@ const popcultureBlack: BlackCard[] = [
   { id: 413, text: "AI will eventually replace _.", pick: 1, pack: "popculture" },
   { id: 414, text: "The podcast nobody asked for: The _ Experience.", pick: 1, pack: "popculture" },
   { id: 415, text: "What's trending on Twitter right now?", pick: 1, pack: "popculture" },
+  { id: 416, text: "The Oscars were ruined by _.", pick: 1, pack: "popculture" },
+  { id: 417, text: "Amazon's new product category is _.", pick: 1, pack: "popculture" },
+  { id: 418, text: "The Rock's next movie features him fighting _.", pick: 1, pack: "popculture" },
+  { id: 419, text: "The viral LinkedIn post was about _.", pick: 1, pack: "popculture" },
+  { id: 420, text: "The worst YouTube apology video: 'I'm sorry for _.'", pick: 1, pack: "popculture" },
+  { id: 421, text: "The most unhinged reality TV show: _ Island.", pick: 1, pack: "popculture" },
+  { id: 422, text: "AI-generated art of _ broke the internet.", pick: 1, pack: "popculture" },
+  { id: 423, text: "The next big social media platform is all about _.", pick: 1, pack: "popculture" },
+  { id: 424, text: "What did Kanye name his next kid?", pick: 1, pack: "popculture" },
+  { id: 425, text: "The unexpected cameo in the Avengers was _.", pick: 1, pack: "popculture" },
 ];
 
 const popcultureWhite: WhiteCard[] = [
