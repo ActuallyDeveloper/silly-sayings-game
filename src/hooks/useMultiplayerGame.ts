@@ -135,6 +135,12 @@ export function useMultiplayerGame() {
           }
         }
       )
+      // Listen for AI submissions broadcast from host
+      .on("broadcast", { event: "ai_submissions" }, (payload) => {
+        if (payload.payload?.submissions) {
+          setAiSubmissions(payload.payload.submissions as AISubmissionMP[]);
+        }
+      })
       .subscribe();
 
     channelRef.current = channel;
