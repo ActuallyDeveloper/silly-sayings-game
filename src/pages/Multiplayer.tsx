@@ -44,6 +44,7 @@ const Multiplayer = () => {
   const [aiCount, setAiCount] = useState(1);
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
+  const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
 
   const playerCount = game.players.length;
