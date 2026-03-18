@@ -174,6 +174,14 @@ export function useMultiplayerGame() {
       }
 
       setAiSubmissions(newAiSubs);
+      // Broadcast AI submissions to all players in the room
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "ai_submissions",
+          payload: { submissions: newAiSubs },
+        });
+      }
     }, 1500 + Math.random() * 1000);
 
     return () => clearTimeout(timeout);
