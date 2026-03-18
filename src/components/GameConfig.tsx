@@ -1,6 +1,7 @@
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Users, Hash, Target } from "lucide-react";
+import { Users, Hash, Target, Sparkles } from "lucide-react";
 
 interface GameConfigProps {
   aiPlayerCount: number;
@@ -12,6 +13,8 @@ interface GameConfigProps {
   minAi?: number;
   maxAi?: number;
   aiRequired?: boolean;
+  useAiGeneratedCards?: boolean;
+  onUseAiGeneratedCardsChange?: (v: boolean) => void;
 }
 
 const GameConfig = ({
@@ -24,6 +27,8 @@ const GameConfig = ({
   minAi = 2,
   maxAi = 7,
   aiRequired = true,
+  useAiGeneratedCards = false,
+  onUseAiGeneratedCardsChange,
 }: GameConfigProps) => {
   return (
     <div className="space-y-4 w-full max-w-sm">
@@ -88,6 +93,20 @@ const GameConfig = ({
           <span>20</span>
         </div>
       </div>
+
+      {/* AI Generated Cards Toggle */}
+      {onUseAiGeneratedCardsChange && (
+        <div className="flex items-center justify-between bg-secondary rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <div>
+              <Label className="text-foreground font-bold text-sm">AI Generated Cards</Label>
+              <p className="text-[10px] text-muted-foreground">Use AI to create unique cards each game</p>
+            </div>
+          </div>
+          <Switch checked={useAiGeneratedCards} onCheckedChange={onUseAiGeneratedCardsChange} />
+        </div>
+      )}
     </div>
   );
 };

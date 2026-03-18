@@ -31,6 +31,7 @@ const PlayGame = () => {
   const [localAiCount, setLocalAiCount] = useState(3);
   const [localRounds, setLocalRounds] = useState(10);
   const [localPoints, setLocalPoints] = useState(10);
+  const [useAiCards, setUseAiCards] = useState(false);
   const [customCards, setCustomCards] = useState<CustomCardsInput | undefined>();
 
   const game = useGameState(localRounds, localPacks, localAiCount, localPoints, customCards);
@@ -185,7 +186,8 @@ const PlayGame = () => {
         <PackSelector selectedPacks={localPacks} onTogglePack={handleLocalTogglePack} />
         <GameConfig aiPlayerCount={localAiCount} onAiPlayerCountChange={setLocalAiCount}
           rounds={localRounds} onRoundsChange={setLocalRounds}
-          pointsToWin={localPoints} onPointsToWinChange={setLocalPoints} minAi={2} maxAi={7} />
+          pointsToWin={localPoints} onPointsToWinChange={setLocalPoints} minAi={2} maxAi={7}
+          useAiGeneratedCards={useAiCards} onUseAiGeneratedCardsChange={setUseAiCards} />
         <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
           <Button onClick={() => { setGameStarted(true); game.resetGame(); }}
             disabled={localPacks.length === 0}

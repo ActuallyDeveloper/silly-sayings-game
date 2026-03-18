@@ -135,6 +135,12 @@ export function useMultiplayerGame() {
           }
         }
       )
+      // Listen for AI submissions broadcast from host
+      .on("broadcast", { event: "ai_submissions" }, (payload) => {
+        if (payload.payload?.submissions) {
+          setAiSubmissions(payload.payload.submissions as AISubmissionMP[]);
+        }
+      })
       .subscribe();
 
     channelRef.current = channel;
@@ -168,6 +174,14 @@ export function useMultiplayerGame() {
       }
 
       setAiSubmissions(newAiSubs);
+      // Broadcast AI submissions to all players in the room
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "ai_submissions",
+          payload: { submissions: newAiSubs },
+        });
+      }
     }, 1500 + Math.random() * 1000);
 
     return () => clearTimeout(timeout);
@@ -408,9 +422,9 @@ export function useMultiplayerGame() {
   // Ready check: all human players ready (even if just 1 player)
   const allReady = players.length >= 1 && players.every((p) => p.ready);
   
-  // Can start: need 3+ HUMAN players 
+  // Can start: need 3+ total participants (humans + AI), minimum 2 humans
   const totalParticipants = players.length + (room?.ai_player_count || 0);
-  const canStart = allReady && players.length >= 3;
+  const canStart = allReady && players.length >= 2 && totalParticipants >= 3;
 
   return {
     room, players, submissions, aiSubmissions, phase, error, loading,

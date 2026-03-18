@@ -44,6 +44,7 @@ const Multiplayer = () => {
   const [aiCount, setAiCount] = useState(1);
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
+  const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
 
   const playerCount = game.players.length;
@@ -221,16 +222,18 @@ const Multiplayer = () => {
 
             {/* Game config */}
             <div className="w-full max-w-sm space-y-3">
-              <GameConfig
-                aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
-                onAiPlayerCountChange={(v) => setAiCount(v)}
-                rounds={lobbyRounds}
-                onRoundsChange={setLobbyRounds}
-                pointsToWin={lobbyPoints}
-                onPointsToWinChange={setLobbyPoints}
-                minAi={Math.max(minAi, 1)}
-                maxAi={maxAi}
-              />
+            <GameConfig
+              aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
+              onAiPlayerCountChange={(v) => setAiCount(v)}
+              rounds={lobbyRounds}
+              onRoundsChange={setLobbyRounds}
+              pointsToWin={lobbyPoints}
+              onPointsToWinChange={setLobbyPoints}
+              minAi={Math.max(minAi, 1)}
+              maxAi={maxAi}
+              useAiGeneratedCards={useAiCards}
+              onUseAiGeneratedCardsChange={setUseAiCards}
+            />
 
               {!aiRequired && (
                 <div className="flex items-center justify-between bg-secondary rounded-lg p-3">
@@ -252,8 +255,14 @@ const Multiplayer = () => {
         )}
 
         {/* Info about minimum players */}
-        {game.players.length < 3 && (
-          <p className="text-muted-foreground/50 text-sm">Need at least 3 human players to start</p>
+        {!game.canStart && (
+          <p className="text-muted-foreground/50 text-sm">
+            {game.players.length < 2
+              ? "Need at least 2 human players to start"
+              : game.totalParticipants < 3
+                ? "Need at least 3 total participants (add AI bots or more players)"
+                : "Waiting for all players to ready up"}
+          </p>
         )}
 
         <div className="flex gap-3">
@@ -281,7 +290,9 @@ const Multiplayer = () => {
           </Button>
         </div>
         {game.allReady && !game.canStart && (
-          <p className="text-muted-foreground/50 text-xs">Need at least 3 human players to start.</p>
+          <p className="text-muted-foreground/50 text-xs">
+            {game.players.length < 2 ? "Need at least 2 human players." : "Need at least 3 total participants."}
+          </p>
         )}
         {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>

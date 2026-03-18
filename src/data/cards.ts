@@ -23,10 +23,10 @@ export interface CardPack {
 }
 
 export const cardPacks: CardPack[] = [
-  { id: "classic", name: "Classic", iconName: "layers", description: "The original Cards Against Humanity experience", blackCount: 30, whiteCount: 60 },
-  { id: "pg13", name: "PG-13", iconName: "heart", description: "Family-friendlier prompts & answers", blackCount: 20, whiteCount: 50 },
-  { id: "nsfw", name: "NSFW", iconName: "flame", description: "Adults only. You've been warned.", blackCount: 15, whiteCount: 40 },
-  { id: "popculture", name: "Pop Culture", iconName: "clapperboard", description: "Movies, music, memes & internet culture", blackCount: 15, whiteCount: 40 },
+  { id: "classic", name: "Classic", iconName: "layers", description: "The original Cards Against Humanity experience", blackCount: 40, whiteCount: 75 },
+  { id: "pg13", name: "PG-13", iconName: "heart", description: "Family-friendlier prompts & answers", blackCount: 30, whiteCount: 50 },
+  { id: "nsfw", name: "NSFW", iconName: "flame", description: "Adults only. You've been warned.", blackCount: 25, whiteCount: 50 },
+  { id: "popculture", name: "Pop Culture", iconName: "clapperboard", description: "Movies, music, memes & internet culture", blackCount: 25, whiteCount: 50 },
   { id: "custom", name: "My Cards", iconName: "pencil", description: "Your custom-created cards", blackCount: 0, whiteCount: 0 },
 ];
 
@@ -62,6 +62,16 @@ const classicBlack: BlackCard[] = [
   { id: 28, text: "Why can't I sleep at night?", pick: 1, pack: "classic" },
   { id: 29, text: "What are my parents hiding from me?", pick: 1, pack: "classic" },
   { id: 30, text: "What helps Obama unwind?", pick: 1, pack: "classic" },
+  { id: 31, text: "What's the worst wedding gift?", pick: 1, pack: "classic" },
+  { id: 32, text: "Step 1: _. Step 2: _. Step 3: Profit.", pick: 2, pack: "classic" },
+  { id: 33, text: "What's the new fad diet?", pick: 1, pack: "classic" },
+  { id: 34, text: "When all else fails, I can always masturbate to _.", pick: 1, pack: "classic" },
+  { id: 35, text: "What left this stain on my couch?", pick: 1, pack: "classic" },
+  { id: 36, text: "The healing power of _.", pick: 1, pack: "classic" },
+  { id: 37, text: "What would grandma find disturbing, yet oddly charming?", pick: 1, pack: "classic" },
+  { id: 38, text: "I never truly understood _ until I encountered _.", pick: 2, pack: "classic" },
+  { id: 39, text: "What made the economy collapse?", pick: 1, pack: "classic" },
+  { id: 40, text: "Coming to Broadway this season, _ The Musical.", pick: 1, pack: "classic" },
 ];
 
 const classicWhite: WhiteCard[] = [
@@ -125,6 +135,21 @@ const classicWhite: WhiteCard[] = [
   { id: 58, text: "Boogers.", pack: "classic" },
   { id: 59, text: "Christopher Walken.", pack: "classic" },
   { id: 60, text: "Doing the right thing.", pack: "classic" },
+  { id: 61, text: "A falcon with a cap on its head.", pack: "classic" },
+  { id: 62, text: "Giving 110%.", pack: "classic" },
+  { id: 63, text: "A moment of silence.", pack: "classic" },
+  { id: 64, text: "Licking things to claim them as your own.", pack: "classic" },
+  { id: 65, text: "Genghis Khan.", pack: "classic" },
+  { id: 66, text: "A time travel paradox.", pack: "classic" },
+  { id: 67, text: "A can of whoop-ass.", pack: "classic" },
+  { id: 68, text: "Bees?", pack: "classic" },
+  { id: 69, text: "An M. Night Shyamalan plot twist.", pack: "classic" },
+  { id: 70, text: "A robust retirement plan.", pack: "classic" },
+  { id: 71, text: "Running with scissors.", pack: "classic" },
+  { id: 72, text: "A middle-school dance.", pack: "classic" },
+  { id: 73, text: "Hope.", pack: "classic" },
+  { id: 74, text: "The heart of a child.", pack: "classic" },
+  { id: 75, text: "Existing.", pack: "classic" },
 ];
 
 // ===== PG-13 PACK =====
@@ -149,6 +174,16 @@ const pg13Black: BlackCard[] = [
   { id: 218, text: "The school cafeteria is now serving _.", pick: 1, pack: "pg13" },
   { id: 219, text: "The weirdest thing in the lost and found is _.", pick: 1, pack: "pg13" },
   { id: 220, text: "Mom said I can't have _ for dinner.", pick: 1, pack: "pg13" },
+  { id: 221, text: "The substitute teacher accidentally taught us about _.", pick: 1, pack: "pg13" },
+  { id: 222, text: "What did the magic 8-ball predict?", pick: 1, pack: "pg13" },
+  { id: 223, text: "The principal's announcement: '_' is now banned.", pick: 1, pack: "pg13" },
+  { id: 224, text: "What did the dog eat this time?", pick: 1, pack: "pg13" },
+  { id: 225, text: "The science fair project went wrong because of _.", pick: 1, pack: "pg13" },
+  { id: 226, text: "What's hiding under my bed?", pick: 1, pack: "pg13" },
+  { id: 227, text: "The new school mascot is _.", pick: 1, pack: "pg13" },
+  { id: 228, text: "The dentist found _ in my teeth.", pick: 1, pack: "pg13" },
+  { id: 229, text: "_ and _ make the perfect combination.", pick: 2, pack: "pg13" },
+  { id: 230, text: "Camp counselor said we can't do _ anymore.", pick: 1, pack: "pg13" },
 ];
 
 const pg13White: WhiteCard[] = [
@@ -221,6 +256,16 @@ const nsfwBlack: BlackCard[] = [
   { id: 313, text: "The sex ed class covered _ this year.", pick: 1, pack: "nsfw" },
   { id: 314, text: "My OnlyFans specializes in _.", pick: 1, pack: "nsfw" },
   { id: 315, text: "_ is the reason I was banned from the bar.", pick: 1, pack: "nsfw" },
+  { id: 316, text: "What does the 'special sauce' actually contain?", pick: 1, pack: "nsfw" },
+  { id: 317, text: "My last words will be '_'.", pick: 1, pack: "nsfw" },
+  { id: 318, text: "What's really in Area 51?", pick: 1, pack: "nsfw" },
+  { id: 319, text: "The fetish I'm most ashamed of is _.", pick: 1, pack: "nsfw" },
+  { id: 320, text: "How did I lose my virginity?", pick: 1, pack: "nsfw" },
+  { id: 321, text: "_ and _ is the most cursed combination.", pick: 2, pack: "nsfw" },
+  { id: 322, text: "The real reason I got fired was _.", pick: 1, pack: "nsfw" },
+  { id: 323, text: "What's in the briefcase in Pulp Fiction?", pick: 1, pack: "nsfw" },
+  { id: 324, text: "The cult was actually about _.", pick: 1, pack: "nsfw" },
+  { id: 325, text: "What did Florida Man do now?", pick: 1, pack: "nsfw" },
 ];
 
 const nsfwWhite: WhiteCard[] = [
@@ -264,6 +309,16 @@ const nsfwWhite: WhiteCard[] = [
   { id: 338, text: "Underprivileged children.", pack: "nsfw" },
   { id: 339, text: "Amputees.", pack: "nsfw" },
   { id: 340, text: "Glenn Beck catching a Mexican cold.", pack: "nsfw" },
+  { id: 341, text: "A lap dance from a clown.", pack: "nsfw" },
+  { id: 342, text: "The walk-in freezer at Wendy's.", pack: "nsfw" },
+  { id: 343, text: "Getting pegged.", pack: "nsfw" },
+  { id: 344, text: "A glory hole.", pack: "nsfw" },
+  { id: 345, text: "Taking a dump in the yard.", pack: "nsfw" },
+  { id: 346, text: "Your mom's OnlyFans.", pack: "nsfw" },
+  { id: 347, text: "A suspicious massage parlor.", pack: "nsfw" },
+  { id: 348, text: "Revenge porn.", pack: "nsfw" },
+  { id: 349, text: "Prison wine.", pack: "nsfw" },
+  { id: 350, text: "A body pillow of an anime character.", pack: "nsfw" },
 ];
 
 // ===== POP CULTURE PACK =====
@@ -283,6 +338,16 @@ const popcultureBlack: BlackCard[] = [
   { id: 413, text: "AI will eventually replace _.", pick: 1, pack: "popculture" },
   { id: 414, text: "The podcast nobody asked for: The _ Experience.", pick: 1, pack: "popculture" },
   { id: 415, text: "What's trending on Twitter right now?", pick: 1, pack: "popculture" },
+  { id: 416, text: "The Oscars were ruined by _.", pick: 1, pack: "popculture" },
+  { id: 417, text: "Amazon's new product category is _.", pick: 1, pack: "popculture" },
+  { id: 418, text: "The Rock's next movie features him fighting _.", pick: 1, pack: "popculture" },
+  { id: 419, text: "The viral LinkedIn post was about _.", pick: 1, pack: "popculture" },
+  { id: 420, text: "The worst YouTube apology video: 'I'm sorry for _.'", pick: 1, pack: "popculture" },
+  { id: 421, text: "The most unhinged reality TV show: _ Island.", pick: 1, pack: "popculture" },
+  { id: 422, text: "AI-generated art of _ broke the internet.", pick: 1, pack: "popculture" },
+  { id: 423, text: "The next big social media platform is all about _.", pick: 1, pack: "popculture" },
+  { id: 424, text: "What did Kanye name his next kid?", pick: 1, pack: "popculture" },
+  { id: 425, text: "The unexpected cameo in the Avengers was _.", pick: 1, pack: "popculture" },
 ];
 
 const popcultureWhite: WhiteCard[] = [
@@ -326,6 +391,16 @@ const popcultureWhite: WhiteCard[] = [
   { id: 438, text: "Beyoncé.", pack: "popculture" },
   { id: 439, text: "A hot take nobody agrees with.", pack: "popculture" },
   { id: 440, text: "Deleting your post after zero likes.", pack: "popculture" },
+  { id: 441, text: "An AI-generated boyfriend.", pack: "popculture" },
+  { id: 442, text: "Discord moderators.", pack: "popculture" },
+  { id: 443, text: "The Steam sale backlog.", pack: "popculture" },
+  { id: 444, text: "Touch grass.", pack: "popculture" },
+  { id: 445, text: "A Wikipedia rabbit hole.", pack: "popculture" },
+  { id: 446, text: "The Apple Vision Pro.", pack: "popculture" },
+  { id: 447, text: "Getting doxxed.", pack: "popculture" },
+  { id: 448, text: "A Wes Anderson remake of _.", pack: "popculture" },
+  { id: 449, text: "Doom scrolling during a meeting.", pack: "popculture" },
+  { id: 450, text: "A 10-part true crime documentary.", pack: "popculture" },
 ];
 
 // Combined accessors
