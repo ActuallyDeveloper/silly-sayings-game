@@ -19,11 +19,11 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
   const showFlip = flipped !== undefined;
 
   return (
-    <div className={`perspective-1000 ${small ? "w-[130px] sm:w-[150px]" : "w-[180px] sm:w-[220px]"}`}>
+    <div className={`perspective-1000 shrink-0 ${small ? "w-[130px] h-[160px] sm:w-[150px] sm:h-[180px]" : "w-[180px] h-[230px] sm:w-[220px] sm:h-[270px]"}`}>
       <motion.div
         className={`${type === "black" ? "game-card-black" : "game-card-white"} ${
           selected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
-        } ${small ? "!w-[130px] !h-[160px] sm:!w-[150px] sm:!h-[180px] !p-2.5 sm:!p-3" : "!w-[180px] !h-[230px] sm:!w-[220px] sm:!h-[270px]"} flex flex-col justify-between card-flip-inner`}
+        } ${small ? "p-2.5 sm:p-3" : "p-3 sm:p-5"} flex flex-col justify-between card-flip-inner rounded-xl`}
         onClick={onClick}
         whileHover={onClick ? { y: -6, scale: 1.02 } : {}}
         whileTap={onClick ? { scale: 0.97 } : {}}
