@@ -174,6 +174,16 @@ const pg13Black: BlackCard[] = [
   { id: 218, text: "The school cafeteria is now serving _.", pick: 1, pack: "pg13" },
   { id: 219, text: "The weirdest thing in the lost and found is _.", pick: 1, pack: "pg13" },
   { id: 220, text: "Mom said I can't have _ for dinner.", pick: 1, pack: "pg13" },
+  { id: 221, text: "The substitute teacher accidentally taught us about _.", pick: 1, pack: "pg13" },
+  { id: 222, text: "What did the magic 8-ball predict?", pick: 1, pack: "pg13" },
+  { id: 223, text: "The principal's announcement: '_' is now banned.", pick: 1, pack: "pg13" },
+  { id: 224, text: "What did the dog eat this time?", pick: 1, pack: "pg13" },
+  { id: 225, text: "The science fair project went wrong because of _.", pick: 1, pack: "pg13" },
+  { id: 226, text: "What's hiding under my bed?", pick: 1, pack: "pg13" },
+  { id: 227, text: "The new school mascot is _.", pick: 1, pack: "pg13" },
+  { id: 228, text: "The dentist found _ in my teeth.", pick: 1, pack: "pg13" },
+  { id: 229, text: "_ and _ make the perfect combination.", pick: 2, pack: "pg13" },
+  { id: 230, text: "Camp counselor said we can't do _ anymore.", pick: 1, pack: "pg13" },
 ];
 
 const pg13White: WhiteCard[] = [
