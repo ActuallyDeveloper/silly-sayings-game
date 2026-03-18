@@ -222,16 +222,18 @@ const Multiplayer = () => {
 
             {/* Game config */}
             <div className="w-full max-w-sm space-y-3">
-              <GameConfig
-                aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
-                onAiPlayerCountChange={(v) => setAiCount(v)}
-                rounds={lobbyRounds}
-                onRoundsChange={setLobbyRounds}
-                pointsToWin={lobbyPoints}
-                onPointsToWinChange={setLobbyPoints}
-                minAi={Math.max(minAi, 1)}
-                maxAi={maxAi}
-              />
+            <GameConfig
+              aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
+              onAiPlayerCountChange={(v) => setAiCount(v)}
+              rounds={lobbyRounds}
+              onRoundsChange={setLobbyRounds}
+              pointsToWin={lobbyPoints}
+              onPointsToWinChange={setLobbyPoints}
+              minAi={Math.max(minAi, 1)}
+              maxAi={maxAi}
+              useAiGeneratedCards={useAiCards}
+              onUseAiGeneratedCardsChange={setUseAiCards}
+            />
 
               {!aiRequired && (
                 <div className="flex items-center justify-between bg-secondary rounded-lg p-3">
