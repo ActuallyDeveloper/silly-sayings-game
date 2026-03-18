@@ -62,6 +62,16 @@ const classicBlack: BlackCard[] = [
   { id: 28, text: "Why can't I sleep at night?", pick: 1, pack: "classic" },
   { id: 29, text: "What are my parents hiding from me?", pick: 1, pack: "classic" },
   { id: 30, text: "What helps Obama unwind?", pick: 1, pack: "classic" },
+  { id: 31, text: "What's the worst wedding gift?", pick: 1, pack: "classic" },
+  { id: 32, text: "Step 1: _. Step 2: _. Step 3: Profit.", pick: 2, pack: "classic" },
+  { id: 33, text: "What's the new fad diet?", pick: 1, pack: "classic" },
+  { id: 34, text: "When all else fails, I can always masturbate to _.", pick: 1, pack: "classic" },
+  { id: 35, text: "What left this stain on my couch?", pick: 1, pack: "classic" },
+  { id: 36, text: "The healing power of _.", pick: 1, pack: "classic" },
+  { id: 37, text: "What would grandma find disturbing, yet oddly charming?", pick: 1, pack: "classic" },
+  { id: 38, text: "I never truly understood _ until I encountered _.", pick: 2, pack: "classic" },
+  { id: 39, text: "What made the economy collapse?", pick: 1, pack: "classic" },
+  { id: 40, text: "Coming to Broadway this season, _ The Musical.", pick: 1, pack: "classic" },
 ];
 
 const classicWhite: WhiteCard[] = [
