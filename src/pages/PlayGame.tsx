@@ -31,6 +31,7 @@ const PlayGame = () => {
   const [localAiCount, setLocalAiCount] = useState(3);
   const [localRounds, setLocalRounds] = useState(10);
   const [localPoints, setLocalPoints] = useState(10);
+  const [useAiCards, setUseAiCards] = useState(false);
   const [customCards, setCustomCards] = useState<CustomCardsInput | undefined>();
 
   const game = useGameState(localRounds, localPacks, localAiCount, localPoints, customCards);
