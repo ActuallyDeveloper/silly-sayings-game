@@ -135,6 +135,21 @@ const classicWhite: WhiteCard[] = [
   { id: 58, text: "Boogers.", pack: "classic" },
   { id: 59, text: "Christopher Walken.", pack: "classic" },
   { id: 60, text: "Doing the right thing.", pack: "classic" },
+  { id: 61, text: "A falcon with a cap on its head.", pack: "classic" },
+  { id: 62, text: "Giving 110%.", pack: "classic" },
+  { id: 63, text: "A moment of silence.", pack: "classic" },
+  { id: 64, text: "Licking things to claim them as your own.", pack: "classic" },
+  { id: 65, text: "Genghis Khan.", pack: "classic" },
+  { id: 66, text: "A time travel paradox.", pack: "classic" },
+  { id: 67, text: "A can of whoop-ass.", pack: "classic" },
+  { id: 68, text: "Bees?", pack: "classic" },
+  { id: 69, text: "An M. Night Shyamalan plot twist.", pack: "classic" },
+  { id: 70, text: "A robust retirement plan.", pack: "classic" },
+  { id: 71, text: "Running with scissors.", pack: "classic" },
+  { id: 72, text: "A middle-school dance.", pack: "classic" },
+  { id: 73, text: "Hope.", pack: "classic" },
+  { id: 74, text: "The heart of a child.", pack: "classic" },
+  { id: 75, text: "Existing.", pack: "classic" },
 ];
 
 // ===== PG-13 PACK =====
