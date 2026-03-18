@@ -256,6 +256,16 @@ const nsfwBlack: BlackCard[] = [
   { id: 313, text: "The sex ed class covered _ this year.", pick: 1, pack: "nsfw" },
   { id: 314, text: "My OnlyFans specializes in _.", pick: 1, pack: "nsfw" },
   { id: 315, text: "_ is the reason I was banned from the bar.", pick: 1, pack: "nsfw" },
+  { id: 316, text: "What does the 'special sauce' actually contain?", pick: 1, pack: "nsfw" },
+  { id: 317, text: "My last words will be '_'.", pick: 1, pack: "nsfw" },
+  { id: 318, text: "What's really in Area 51?", pick: 1, pack: "nsfw" },
+  { id: 319, text: "The fetish I'm most ashamed of is _.", pick: 1, pack: "nsfw" },
+  { id: 320, text: "How did I lose my virginity?", pick: 1, pack: "nsfw" },
+  { id: 321, text: "_ and _ is the most cursed combination.", pick: 2, pack: "nsfw" },
+  { id: 322, text: "The real reason I got fired was _.", pick: 1, pack: "nsfw" },
+  { id: 323, text: "What's in the briefcase in Pulp Fiction?", pick: 1, pack: "nsfw" },
+  { id: 324, text: "The cult was actually about _.", pick: 1, pack: "nsfw" },
+  { id: 325, text: "What did Florida Man do now?", pick: 1, pack: "nsfw" },
 ];
 
 const nsfwWhite: WhiteCard[] = [
