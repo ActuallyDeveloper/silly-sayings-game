@@ -155,6 +155,27 @@ RESPOND WITH ONLY A JSON ARRAY, nothing else:
       return jsonResponse({ messages: [] });
     }
 
+    // Generate unique cards using AI
+    if (type === "generate_cards") {
+      const { count = 10, style = "classic" } = body;
+      const blackCount = Math.max(3, Math.floor(count * 0.4));
+      const whiteCount = count - blackCount;
+      const prompt = `Generate ${blackCount} black cards and ${whiteCount} white cards for Cards Against Humanity.
+Style: ${style}. Be creative, funny, and original. Black cards must have a blank (____) for players to fill in.
+
+Return JSON ONLY:
+{"black":[{"text":"Something ____ something","pick":1}],"white":[{"text":"Card text"}]}
+
+pick should be 1 for most cards, 2 for "pick 2" cards (max 2 pick-2 cards).`;
+
+      const result = await callAI([{ role: "user", content: prompt }], "google/gemini-3-flash-preview", 1.1);
+      const parsed = parseJSON(result);
+      if (parsed?.black && parsed?.white) {
+        return jsonResponse({ black: parsed.black, white: parsed.white });
+      }
+      return jsonResponse({ black: [], white: [] });
+    }
+
     // Legacy single chat
     if (type === "chat") {
       const { playerMessage, aiName, aiPersonality, aiChatStyle } = body;

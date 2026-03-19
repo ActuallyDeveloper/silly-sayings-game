@@ -128,26 +128,26 @@ const RoomChat = ({ roomId, aiPlayers = [], gamePhase = "", roundNumber = 0, gam
       .on("postgres_changes", {
         event: "*", schema: "public", table: "room_message_reactions",
       }, (payload) => {
+        // Skip own user's changes — already handled optimistically
         if (payload.eventType === "INSERT") {
           const r = payload.new as any;
+          if (r.user_id === user?.id) return;
           setReactions(prev => {
             const map = new Map(prev);
             const existing = map.get(r.message_id) || { messageId: r.message_id, count: 0, liked: false };
-            existing.count++;
-            if (r.user_id === user?.id) existing.liked = true;
-            map.set(r.message_id, existing);
+            map.set(r.message_id, { ...existing, count: existing.count + 1 });
             return map;
           });
         } else if (payload.eventType === "DELETE") {
           const r = payload.old as any;
+          if (r.user_id === user?.id) return;
           setReactions(prev => {
             const map = new Map(prev);
             const existing = map.get(r.message_id);
             if (existing) {
-              existing.count = Math.max(0, existing.count - 1);
-              if (r.user_id === user?.id) existing.liked = false;
-              if (existing.count === 0) map.delete(r.message_id);
-              else map.set(r.message_id, existing);
+              const updated = { ...existing, count: Math.max(0, existing.count - 1) };
+              if (updated.count === 0) map.delete(r.message_id);
+              else map.set(r.message_id, updated);
             }
             return map;
           });
