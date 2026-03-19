@@ -220,10 +220,16 @@ const PlayGame = () => {
           pointsToWin={localPoints} onPointsToWinChange={setLocalPoints} minAi={2} maxAi={7}
           useAiGeneratedCards={useAiCards} onUseAiGeneratedCardsChange={setUseAiCards} />
         <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
-          <Button onClick={() => { setGameStarted(true); game.resetGame(); }}
-            disabled={localPacks.length === 0}
+          <Button onClick={() => {
+              if (useAiCards && !aiCardsGenerated) {
+                generateAiCards().then(() => { setGameStarted(true); game.resetGame(); });
+              } else {
+                setGameStarted(true); game.resetGame();
+              }
+            }}
+            disabled={localPacks.length === 0 || aiCardsLoading}
             className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-lg py-6 disabled:opacity-30">
-            <Play className="w-5 h-5 mr-2" /> Start Game
+            {aiCardsLoading ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Generating Cards...</> : <><Play className="w-5 h-5 mr-2" /> Start Game</>}
           </Button>
           <Button variant="ghost" onClick={() => navigate("/")} className="text-muted-foreground">Back Home</Button>
         </div>
