@@ -464,6 +464,7 @@ const Multiplayer = () => {
                     onClick={() => game.isCzar && game.pickWinner(sub.id)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
                   >
+                    <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
                     {cards.map((c) => (
                       <GameCard key={c.id} text={c.text} type="white" small logo />
                     ))}
@@ -485,6 +486,7 @@ const Multiplayer = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
                   >
+                    <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
                     {cards.map((c) => (
                       <GameCard key={c.id} text={c.text} type="white" small logo />
                     ))}

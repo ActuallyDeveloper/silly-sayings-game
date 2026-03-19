@@ -410,12 +410,10 @@ const PlayGame = () => {
                   {game.aiJudging ? `${game.czarName} is judging...` : "All cards are in!"}
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
-                  {/* Show player's cards only if they submitted (not czar) */}
+                {/* Show player's cards only if they submitted (not czar) — names hidden */}
                   {game.czarId !== -1 && (
                     <div className="text-center">
-                      <p className="text-[10px] sm:text-xs text-accent mb-1 font-bold flex items-center justify-center gap-1">
-                        <User className="w-3 h-3" /> YOU
-                      </p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
                       <div className="flex gap-1">
                         {game.selectedCards.map((c, i) => (
                           <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
@@ -426,50 +424,38 @@ const PlayGame = () => {
                       </div>
                     </div>
                   )}
-                  {game.aiSubmissions.map((sub, subIdx) => {
-                    const aiPlayer = game.aiPlayers.find((a) => a.id === sub.playerId);
-                    return (
-                      <div key={sub.playerId} className="text-center">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold flex items-center justify-center gap-1">
-                          {aiPlayer && <AIIcon icon={aiPlayer.icon} size={12} color={aiPlayer.color} animated={false} />}
-                          {sub.playerName.toUpperCase()}
-                        </p>
-                        <div className="flex gap-1">
-                          {sub.cards.map((c, i) => (
-                            <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.4 }}>
-                              <GameCard text={c.text} type="white" small logo />
-                            </motion.div>
-                          ))}
-                        </div>
+                  {game.aiSubmissions.map((sub, subIdx) => (
+                    <div key={sub.playerId} className="text-center">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
+                      <div className="flex gap-1">
+                        {sub.cards.map((c, i) => (
+                          <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.4 }}>
+                            <GameCard text={c.text} type="white" small logo />
+                          </motion.div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
                 {/* When player is czar, they pick the winner from the submissions */}
                 {game.isCzar && !game.aiPickingCards && game.aiSubmissions.length > 0 && (
                   <div className="mt-2">
                     <p className="text-accent font-bold text-xs uppercase tracking-widest mb-3">You are Czar — Pick the funniest!</p>
                     <div className="flex flex-wrap justify-center gap-3">
-                      {game.aiSubmissions.map((sub) => {
-                        const aiPlayer = game.aiPlayers.find((a) => a.id === sub.playerId);
-                        return (
+                      {game.aiSubmissions.map((sub) => (
                           <motion.div key={sub.playerId}
                             className="text-center cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-2"
                             whileHover={{ scale: 1.05 }}
                             onClick={() => game.pickWinnerManual(sub.playerName)}>
-                            <p className="text-[10px] text-muted-foreground mb-1 font-bold flex items-center justify-center gap-1">
-                              {aiPlayer && <AIIcon icon={aiPlayer.icon} size={12} color={aiPlayer.color} animated={false} />}
-                              {sub.playerName}
-                            </p>
+                            <p className="text-[10px] text-muted-foreground mb-1 font-bold">???</p>
                             <div className="flex gap-1">
-                              {sub.cards.map((c, i) => (
+                              {sub.cards.map((c) => (
                                 <GameCard key={c.id} text={c.text} type="white" small logo />
                               ))}
                             </div>
                           </motion.div>
-                        );
-                      })}
+                      ))}
                     </div>
                   </div>
                 )}
