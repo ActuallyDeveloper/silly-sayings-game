@@ -61,6 +61,37 @@ const PlayGame = () => {
     })();
   }, [user, localPacks]);
 
+  // Generate AI cards when toggle is enabled and game starts
+  const [aiCardsLoading, setAiCardsLoading] = useState(false);
+  const [aiCardsGenerated, setAiCardsGenerated] = useState(false);
+  
+  const generateAiCards = useCallback(async () => {
+    if (!useAiCards || aiCardsGenerated) return;
+    setAiCardsLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("game-ai", {
+        body: { type: "generate_cards", count: 30, style: "classic dark humor" },
+      });
+      if (data?.black?.length && data?.white?.length) {
+        const maxId = 20000;
+        const blacks: BlackCard[] = data.black.map((c: any, i: number) => ({
+          id: maxId + i, text: c.text, pick: c.pick || 1, pack: "custom" as const,
+        }));
+        const whites: WhiteCard[] = data.white.map((c: any, i: number) => ({
+          id: maxId + 500 + i, text: c.text, pack: "custom" as const,
+        }));
+        setCustomCards((prev) => ({
+          blacks: [...(prev?.blacks || []), ...blacks],
+          whites: [...(prev?.whites || []), ...whites],
+        }));
+        setAiCardsGenerated(true);
+      }
+    } catch (e) {
+      console.error("AI card generation failed:", e);
+    }
+    setAiCardsLoading(false);
+  }, [useAiCards, aiCardsGenerated]);
+
   useEffect(() => { setSoundEnabled(soundEnabled); }, [soundEnabled]);
 
   // Auto-pick black card when AI is czar
@@ -189,10 +220,16 @@ const PlayGame = () => {
           pointsToWin={localPoints} onPointsToWinChange={setLocalPoints} minAi={2} maxAi={7}
           useAiGeneratedCards={useAiCards} onUseAiGeneratedCardsChange={setUseAiCards} />
         <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
-          <Button onClick={() => { setGameStarted(true); game.resetGame(); }}
-            disabled={localPacks.length === 0}
+          <Button onClick={() => {
+              if (useAiCards && !aiCardsGenerated) {
+                generateAiCards().then(() => { setGameStarted(true); game.resetGame(); });
+              } else {
+                setGameStarted(true); game.resetGame();
+              }
+            }}
+            disabled={localPacks.length === 0 || aiCardsLoading}
             className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold text-lg py-6 disabled:opacity-30">
-            <Play className="w-5 h-5 mr-2" /> Start Game
+            {aiCardsLoading ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Generating Cards...</> : <><Play className="w-5 h-5 mr-2" /> Start Game</>}
           </Button>
           <Button variant="ghost" onClick={() => navigate("/")} className="text-muted-foreground">Back Home</Button>
         </div>
@@ -381,8 +418,8 @@ const PlayGame = () => {
                       </p>
                       <div className="flex gap-1">
                         {game.selectedCards.map((c, i) => (
-                          <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                            transition={{ delay: i * 0.1, duration: 0.5, type: "spring" }} style={{ perspective: 1000 }}>
+                          <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.1, duration: 0.4 }}>
                             <GameCard text={c.text} type="white" small logo />
                           </motion.div>
                         ))}
@@ -399,9 +436,8 @@ const PlayGame = () => {
                         </p>
                         <div className="flex gap-1">
                           {sub.cards.map((c, i) => (
-                            <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.5, type: "spring" }}
-                              style={{ perspective: 1000 }}>
+                            <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.4 }}>
                               <GameCard text={c.text} type="white" small logo />
                             </motion.div>
                           ))}

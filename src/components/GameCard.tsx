@@ -40,7 +40,7 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
         onAnimationComplete={() => {
           if (showFlip && flipped) setHasFlipped(true);
         }}
-        style={{ transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+        style={{ transformStyle: showFlip ? "preserve-3d" : undefined, backfaceVisibility: showFlip ? "hidden" : undefined }}
       >
         <p className={`font-extrabold leading-tight ${small ? "text-xs sm:text-sm" : "text-base sm:text-lg"}`}>
           {text}
