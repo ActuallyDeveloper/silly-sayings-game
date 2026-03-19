@@ -61,6 +61,37 @@ const PlayGame = () => {
     })();
   }, [user, localPacks]);
 
+  // Generate AI cards when toggle is enabled and game starts
+  const [aiCardsLoading, setAiCardsLoading] = useState(false);
+  const [aiCardsGenerated, setAiCardsGenerated] = useState(false);
+  
+  const generateAiCards = useCallback(async () => {
+    if (!useAiCards || aiCardsGenerated) return;
+    setAiCardsLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("game-ai", {
+        body: { type: "generate_cards", count: 30, style: "classic dark humor" },
+      });
+      if (data?.black?.length && data?.white?.length) {
+        const maxId = 20000;
+        const blacks: BlackCard[] = data.black.map((c: any, i: number) => ({
+          id: maxId + i, text: c.text, pick: c.pick || 1, pack: "custom" as const,
+        }));
+        const whites: WhiteCard[] = data.white.map((c: any, i: number) => ({
+          id: maxId + 500 + i, text: c.text, pack: "custom" as const,
+        }));
+        setCustomCards((prev) => ({
+          blacks: [...(prev?.blacks || []), ...blacks],
+          whites: [...(prev?.whites || []), ...whites],
+        }));
+        setAiCardsGenerated(true);
+      }
+    } catch (e) {
+      console.error("AI card generation failed:", e);
+    }
+    setAiCardsLoading(false);
+  }, [useAiCards, aiCardsGenerated]);
+
   useEffect(() => { setSoundEnabled(soundEnabled); }, [soundEnabled]);
 
   // Auto-pick black card when AI is czar
