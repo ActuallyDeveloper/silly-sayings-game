@@ -436,9 +436,8 @@ const PlayGame = () => {
                         </p>
                         <div className="flex gap-1">
                           {sub.cards.map((c, i) => (
-                            <motion.div key={c.id} initial={{ rotateY: 180, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
-                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.5, type: "spring" }}
-                              style={{ perspective: 1000 }}>
+                            <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.4 }}>
                               <GameCard text={c.text} type="white" small logo />
                             </motion.div>
                           ))}
