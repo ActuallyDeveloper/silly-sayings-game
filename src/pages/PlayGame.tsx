@@ -12,6 +12,8 @@ import PhaseTimer from "@/components/PhaseTimer";
 import Confetti from "@/components/Confetti";
 import GameChat from "@/components/GameChat";
 import AIIcon from "@/components/AIIcon";
+import WinnerReveal from "@/components/WinnerReveal";
+import { showAchievementToast } from "@/components/AchievementToast";
 import { Button } from "@/components/ui/button";
 import { Trophy, RotateCcw, Home, Loader2, Play, User, LogIn, Crown, Skull } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -135,10 +137,52 @@ const PlayGame = () => {
           ai_score: Math.max(...game.aiPlayers.map((a) => a.score), 0),
           rounds_played: game.round, won: game.winner === "You",
           packs_used: localPacks, mode: "singleplayer",
+        }).then(() => {
+          // Check achievements after score is saved
+          checkAchievements();
         });
       }
     }
   }, [game.phase, user]);
+
+  // Achievement checker
+  const checkAchievements = useCallback(async () => {
+    if (!user) return;
+    const [{ data: achData }, { data: earnedData }, { data: scores }] = await Promise.all([
+      (supabase as any).from("achievements").select("*").or("mode.eq.singleplayer,mode.eq.both"),
+      (supabase as any).from("user_achievements").select("*").eq("user_id", user.id).eq("mode", "singleplayer"),
+      (supabase as any).from("game_scores").select("*").eq("user_id", user.id).eq("mode", "singleplayer").order("created_at", { ascending: false }),
+    ]);
+    if (!achData || !scores) return;
+    const earnedIds = new Set((earnedData || []).map((e: any) => e.achievement_id));
+    const totalGames = scores.length;
+    const wins = scores.filter((s: any) => s.won).length;
+    const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
+    let bestStreak = 0, tempStreak = 0;
+    for (const s of scores) {
+      if ((s as any).won) { tempStreak++; if (tempStreak > bestStreak) bestStreak = tempStreak; } else tempStreak = 0;
+    }
+    const maxScore = scores.reduce((max: number, s: any) => Math.max(max, s.player_score), 0);
+    const newAchs: string[] = [];
+    for (const ach of achData) {
+      if (earnedIds.has(ach.id)) continue;
+      let met = false;
+      if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
+      else if (ach.requirement_type === "games_played" || ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "total_points" || ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      else if (ach.requirement_type === "streak") met = bestStreak >= ach.requirement_value;
+      else if (ach.requirement_type === "max_score") met = maxScore >= ach.requirement_value;
+      if (met) newAchs.push(ach.id);
+    }
+    if (newAchs.length > 0) {
+      const inserts = newAchs.map((aid) => ({ user_id: user.id, achievement_id: aid, mode: "singleplayer" }));
+      await (supabase as any).from("user_achievements").insert(inserts);
+      for (const aid of newAchs) {
+        const ach = achData.find((a: any) => a.id === aid);
+        if (ach) showAchievementToast(ach.title, ach.tier);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (game.phase === "result") {
@@ -471,23 +515,23 @@ const PlayGame = () => {
         )}
 
         {game.phase === "result" && (
-          <motion.div key="result" className="flex flex-col items-center gap-3 sm:gap-4 px-4 pb-4 sm:pb-6 py-6"
+          <motion.div key="result" className="flex flex-col items-center gap-3 sm:gap-4 px-4 pb-4 sm:pb-6 py-6 relative"
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <div className="flex items-center gap-2">
-              {game.winner === "You" ? <Crown className="w-6 h-6 text-accent" /> : <Skull className="w-6 h-6 text-destructive" />}
-              <p className={`text-2xl sm:text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
-                {game.winner === "You" ? "You won this round!" : `${game.winner} wins this round!`}
-              </p>
-            </div>
+            <WinnerReveal
+              winnerName={game.winner === "You" ? "You won this round!" : `${game.winner} wins!`}
+              isPlayer={game.winner === "You"}
+            />
             {game.trashTalk && (
               <motion.p className="text-xs sm:text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}>
                 "{game.trashTalk}"
               </motion.p>
             )}
-            <Button onClick={handleNextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
-              Next Round
-            </Button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
+              <Button onClick={handleNextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+                Next Round
+              </Button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

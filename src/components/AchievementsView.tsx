@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Award, Lock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { showAchievementToast } from "@/components/AchievementToast";
 
 interface Achievement {
   id: string;
@@ -47,7 +47,6 @@ interface AchievementsViewProps {
 const AchievementsView = ({ mode }: AchievementsViewProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [earned, setEarned] = useState<UserAchievement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,14 +98,11 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
       }));
       await (supabase as any).from("user_achievements").insert(inserts);
 
-      // Show toast for each new achievement
+      // Show custom achievement toast for each new achievement
       for (const aid of newAchievements) {
         const ach = achList.find(a => a.id === aid);
         if (ach) {
-          toast({
-            title: "🏆 Achievement Unlocked!",
-            description: ach.title,
-          });
+          showAchievementToast(ach.title, ach.tier);
         }
       }
 
@@ -119,7 +115,7 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
     }
 
     return currentEarned;
-  }, [user, mode, toast]);
+  }, [user, mode]);
 
   useEffect(() => {
     (async () => {

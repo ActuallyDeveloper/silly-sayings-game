@@ -23,11 +23,10 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
       <motion.div
         className={`${type === "black" ? "game-card-black" : "game-card-white"} ${
           selected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
-        } ${small ? "p-2.5 sm:p-3" : "p-3 sm:p-5"} flex flex-col justify-between card-flip-inner rounded-xl`}
+        } ${small ? "p-2.5 sm:p-3" : "p-3 sm:p-5"} flex flex-col justify-between rounded-xl`}
         onClick={onClick}
         whileHover={onClick ? { y: -6, scale: 1.02 } : {}}
         whileTap={onClick ? { scale: 0.97 } : {}}
-        layout
         initial={showFlip ? { rotateY: 180, opacity: 0 } : { opacity: 0, y: 20 }}
         animate={showFlip
           ? { rotateY: hasFlipped || !flipped ? 0 : 180, opacity: 1 }
@@ -40,7 +39,7 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
         onAnimationComplete={() => {
           if (showFlip && flipped) setHasFlipped(true);
         }}
-        style={{ transformStyle: showFlip ? "preserve-3d" : undefined, backfaceVisibility: showFlip ? "hidden" : undefined }}
+        style={showFlip ? { transformStyle: "preserve-3d", backfaceVisibility: "hidden" } : undefined}
       >
         <p className={`font-extrabold leading-tight ${small ? "text-xs sm:text-sm" : "text-base sm:text-lg"}`}>
           {text}

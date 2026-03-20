@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,8 +20,10 @@ import { whiteCards } from "@/data/cards";
 import { getAIPersonalities } from "@/data/aiPersonalities";
 import { Users, Copy, ArrowLeft, Crown, Trophy, RotateCcw, Home, Check, Bot, CheckCircle2, Circle } from "lucide-react";
 import StatusIndicator from "@/components/StatusIndicator";
+import WinnerReveal from "@/components/WinnerReveal";
 import { useUserStatus } from "@/hooks/useUserStatus";
 import type { WhiteCard, PackId } from "@/data/cards";
+import { showAchievementToast } from "@/components/AchievementToast";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
@@ -46,6 +48,43 @@ const Multiplayer = () => {
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
+  const mpAchChecked = useRef(false);
+
+  // Check MP achievements when game ends
+  const checkMPAchievements = useCallback(async () => {
+    if (!user || mpAchChecked.current) return;
+    mpAchChecked.current = true;
+    const [{ data: achData }, { data: earnedData }, { data: scores }] = await Promise.all([
+      (supabase as any).from("achievements").select("*").or("mode.eq.multiplayer,mode.eq.both"),
+      (supabase as any).from("user_achievements").select("*").eq("user_id", user.id).eq("mode", "multiplayer"),
+      (supabase as any).from("game_scores").select("*").eq("user_id", user.id).eq("mode", "multiplayer").order("created_at", { ascending: false }),
+    ]);
+    if (!achData || !scores) return;
+    const earnedIds = new Set((earnedData || []).map((e: any) => e.achievement_id));
+    const totalGames = scores.length;
+    const wins = scores.filter((s: any) => s.won).length;
+    const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
+    const newAchs: string[] = [];
+    for (const ach of achData) {
+      if (earnedIds.has(ach.id)) continue;
+      let met = false;
+      if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
+      else if (ach.requirement_type === "games_played" || ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "total_points" || ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      if (met) newAchs.push(ach.id);
+    }
+    if (newAchs.length > 0) {
+      await (supabase as any).from("user_achievements").insert(newAchs.map((aid) => ({ user_id: user.id, achievement_id: aid, mode: "multiplayer" })));
+      for (const aid of newAchs) {
+        const ach = achData.find((a: any) => a.id === aid);
+        if (ach) showAchievementToast(ach.title, ach.tier);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (game.phase === "game_over") checkMPAchievements();
+  }, [game.phase, checkMPAchievements]);
 
   const playerCount = game.players.length;
   const minAi = playerCount <= 2 ? 1 : 0;
@@ -500,22 +539,24 @@ const Multiplayer = () => {
         {game.phase === "round_result" && game.roundWinner && (
           <motion.div
             key="result"
-            className="flex flex-col items-center gap-4 px-4 pb-4"
+            className="flex flex-col items-center gap-4 px-4 pb-4 relative"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="flex items-center gap-2">
-              <Trophy className="w-8 h-8 text-accent" />
-              <p className="text-3xl font-black text-accent">{game.roundWinner.name} wins!</p>
-            </div>
+            <WinnerReveal
+              winnerName={`${game.roundWinner.name} wins!`}
+              isPlayer={game.roundWinner.userId === user?.id}
+            />
             {game.room.created_by === user.id && (
-              <Button
-                onClick={game.nextRound}
-                className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
-              >
-                Next Round →
-              </Button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
+                <Button
+                  onClick={game.nextRound}
+                  className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+                >
+                  Next Round →
+                </Button>
+              </motion.div>
             )}
           </motion.div>
         )}

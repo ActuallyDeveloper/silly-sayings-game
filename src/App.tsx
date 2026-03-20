@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import AchievementToast from "@/components/AchievementToast";
 import Index from "./pages/Index";
 import PlayGame from "./pages/PlayGame";
 import Multiplayer from "./pages/Multiplayer";
@@ -32,6 +33,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <AchievementToast />
       <BrowserRouter>
         <SettingsProvider>
           <AuthProvider>
