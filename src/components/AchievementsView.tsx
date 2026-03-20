@@ -47,7 +47,7 @@ interface AchievementsViewProps {
 const AchievementsView = ({ mode }: AchievementsViewProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [earned, setEarned] = useState<UserAchievement[]>([]);
   const [loading, setLoading] = useState(true);
