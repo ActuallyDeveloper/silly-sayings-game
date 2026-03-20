@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ExoticLogo from "@/components/ExoticLogo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Award, Lock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { showAchievementToast } from "@/components/AchievementToast";
 
 interface Achievement {
   id: string;
