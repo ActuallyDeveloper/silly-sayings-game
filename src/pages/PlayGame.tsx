@@ -12,6 +12,8 @@ import PhaseTimer from "@/components/PhaseTimer";
 import Confetti from "@/components/Confetti";
 import GameChat from "@/components/GameChat";
 import AIIcon from "@/components/AIIcon";
+import WinnerReveal from "@/components/WinnerReveal";
+import { showAchievementToast } from "@/components/AchievementToast";
 import { Button } from "@/components/ui/button";
 import { Trophy, RotateCcw, Home, Loader2, Play, User, LogIn, Crown, Skull } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
