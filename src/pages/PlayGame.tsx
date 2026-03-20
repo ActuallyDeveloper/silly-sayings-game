@@ -515,23 +515,23 @@ const PlayGame = () => {
         )}
 
         {game.phase === "result" && (
-          <motion.div key="result" className="flex flex-col items-center gap-3 sm:gap-4 px-4 pb-4 sm:pb-6 py-6"
+          <motion.div key="result" className="flex flex-col items-center gap-3 sm:gap-4 px-4 pb-4 sm:pb-6 py-6 relative"
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <div className="flex items-center gap-2">
-              {game.winner === "You" ? <Crown className="w-6 h-6 text-accent" /> : <Skull className="w-6 h-6 text-destructive" />}
-              <p className={`text-2xl sm:text-3xl font-black ${game.winner === "You" ? "text-accent" : "text-destructive"}`}>
-                {game.winner === "You" ? "You won this round!" : `${game.winner} wins this round!`}
-              </p>
-            </div>
+            <WinnerReveal
+              winnerName={game.winner === "You" ? "You won this round!" : `${game.winner} wins!`}
+              isPlayer={game.winner === "You"}
+            />
             {game.trashTalk && (
               <motion.p className="text-xs sm:text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}>
                 "{game.trashTalk}"
               </motion.p>
             )}
-            <Button onClick={handleNextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
-              Next Round
-            </Button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
+              <Button onClick={handleNextRound} className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold">
+                Next Round
+              </Button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

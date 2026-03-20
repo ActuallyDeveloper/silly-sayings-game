@@ -500,22 +500,24 @@ const Multiplayer = () => {
         {game.phase === "round_result" && game.roundWinner && (
           <motion.div
             key="result"
-            className="flex flex-col items-center gap-4 px-4 pb-4"
+            className="flex flex-col items-center gap-4 px-4 pb-4 relative"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="flex items-center gap-2">
-              <Trophy className="w-8 h-8 text-accent" />
-              <p className="text-3xl font-black text-accent">{game.roundWinner.name} wins!</p>
-            </div>
+            <WinnerReveal
+              winnerName={`${game.roundWinner.name} wins!`}
+              isPlayer={game.roundWinner.userId === user?.id}
+            />
             {game.room.created_by === user.id && (
-              <Button
-                onClick={game.nextRound}
-                className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
-              >
-                Next Round →
-              </Button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
+                <Button
+                  onClick={game.nextRound}
+                  className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold"
+                >
+                  Next Round →
+                </Button>
+              </motion.div>
             )}
           </motion.div>
         )}
