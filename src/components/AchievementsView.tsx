@@ -115,7 +115,7 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
     }
 
     return currentEarned;
-  }, [user, mode, toast]);
+  }, [user, mode]);
 
   useEffect(() => {
     (async () => {
