@@ -137,10 +137,52 @@ const PlayGame = () => {
           ai_score: Math.max(...game.aiPlayers.map((a) => a.score), 0),
           rounds_played: game.round, won: game.winner === "You",
           packs_used: localPacks, mode: "singleplayer",
+        }).then(() => {
+          // Check achievements after score is saved
+          checkAchievements();
         });
       }
     }
   }, [game.phase, user]);
+
+  // Achievement checker
+  const checkAchievements = useCallback(async () => {
+    if (!user) return;
+    const [{ data: achData }, { data: earnedData }, { data: scores }] = await Promise.all([
+      (supabase as any).from("achievements").select("*").or("mode.eq.singleplayer,mode.eq.both"),
+      (supabase as any).from("user_achievements").select("*").eq("user_id", user.id).eq("mode", "singleplayer"),
+      (supabase as any).from("game_scores").select("*").eq("user_id", user.id).eq("mode", "singleplayer").order("created_at", { ascending: false }),
+    ]);
+    if (!achData || !scores) return;
+    const earnedIds = new Set((earnedData || []).map((e: any) => e.achievement_id));
+    const totalGames = scores.length;
+    const wins = scores.filter((s: any) => s.won).length;
+    const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
+    let bestStreak = 0, tempStreak = 0;
+    for (const s of scores) {
+      if ((s as any).won) { tempStreak++; if (tempStreak > bestStreak) bestStreak = tempStreak; } else tempStreak = 0;
+    }
+    const maxScore = scores.reduce((max: number, s: any) => Math.max(max, s.player_score), 0);
+    const newAchs: string[] = [];
+    for (const ach of achData) {
+      if (earnedIds.has(ach.id)) continue;
+      let met = false;
+      if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
+      else if (ach.requirement_type === "games_played" || ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "total_points" || ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      else if (ach.requirement_type === "streak") met = bestStreak >= ach.requirement_value;
+      else if (ach.requirement_type === "max_score") met = maxScore >= ach.requirement_value;
+      if (met) newAchs.push(ach.id);
+    }
+    if (newAchs.length > 0) {
+      const inserts = newAchs.map((aid) => ({ user_id: user.id, achievement_id: aid, mode: "singleplayer" }));
+      await (supabase as any).from("user_achievements").insert(inserts);
+      for (const aid of newAchs) {
+        const ach = achData.find((a: any) => a.id === aid);
+        if (ach) showAchievementToast(ach.title, ach.tier);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (game.phase === "result") {
