@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import AchievementToast from "@/components/AchievementToast";
-import { SettingsProvider } from "@/contexts/SettingsContext";
+import Index from "./pages/Index";
 import Index from "./pages/Index";
 import PlayGame from "./pages/PlayGame";
 import Multiplayer from "./pages/Multiplayer";
