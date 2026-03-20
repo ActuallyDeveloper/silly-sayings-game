@@ -98,14 +98,11 @@ const AchievementsView = ({ mode }: AchievementsViewProps) => {
       }));
       await (supabase as any).from("user_achievements").insert(inserts);
 
-      // Show toast for each new achievement
+      // Show custom achievement toast for each new achievement
       for (const aid of newAchievements) {
         const ach = achList.find(a => a.id === aid);
         if (ach) {
-          toast({
-            title: "🏆 Achievement Unlocked!",
-            description: ach.title,
-          });
+          showAchievementToast(ach.title, ach.tier);
         }
       }
 
