@@ -23,6 +23,7 @@ import StatusIndicator from "@/components/StatusIndicator";
 import WinnerReveal from "@/components/WinnerReveal";
 import { useUserStatus } from "@/hooks/useUserStatus";
 import type { WhiteCard, PackId } from "@/data/cards";
+import { showAchievementToast } from "@/components/AchievementToast";
 
 const Multiplayer = () => {
   const navigate = useNavigate();
