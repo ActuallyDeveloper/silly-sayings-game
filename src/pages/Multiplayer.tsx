@@ -48,6 +48,43 @@ const Multiplayer = () => {
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
+  const mpAchChecked = useRef(false);
+
+  // Check MP achievements when game ends
+  const checkMPAchievements = useCallback(async () => {
+    if (!user || mpAchChecked.current) return;
+    mpAchChecked.current = true;
+    const [{ data: achData }, { data: earnedData }, { data: scores }] = await Promise.all([
+      (supabase as any).from("achievements").select("*").or("mode.eq.multiplayer,mode.eq.both"),
+      (supabase as any).from("user_achievements").select("*").eq("user_id", user.id).eq("mode", "multiplayer"),
+      (supabase as any).from("game_scores").select("*").eq("user_id", user.id).eq("mode", "multiplayer").order("created_at", { ascending: false }),
+    ]);
+    if (!achData || !scores) return;
+    const earnedIds = new Set((earnedData || []).map((e: any) => e.achievement_id));
+    const totalGames = scores.length;
+    const wins = scores.filter((s: any) => s.won).length;
+    const totalPoints = scores.reduce((sum: number, s: any) => sum + s.player_score, 0);
+    const newAchs: string[] = [];
+    for (const ach of achData) {
+      if (earnedIds.has(ach.id)) continue;
+      let met = false;
+      if (ach.requirement_type === "wins") met = wins >= ach.requirement_value;
+      else if (ach.requirement_type === "games_played" || ach.requirement_type === "games") met = totalGames >= ach.requirement_value;
+      else if (ach.requirement_type === "total_points" || ach.requirement_type === "points") met = totalPoints >= ach.requirement_value;
+      if (met) newAchs.push(ach.id);
+    }
+    if (newAchs.length > 0) {
+      await (supabase as any).from("user_achievements").insert(newAchs.map((aid) => ({ user_id: user.id, achievement_id: aid, mode: "multiplayer" })));
+      for (const aid of newAchs) {
+        const ach = achData.find((a: any) => a.id === aid);
+        if (ach) showAchievementToast(ach.title, ach.tier);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (game.phase === "game_over") checkMPAchievements();
+  }, [game.phase, checkMPAchievements]);
 
   const playerCount = game.players.length;
   const minAi = playerCount <= 2 ? 1 : 0;
