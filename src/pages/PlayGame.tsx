@@ -370,12 +370,9 @@ const PlayGame = () => {
                 <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">You are Czar — Choose a black card</p>
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
                   {game.blackCardChoices.map((card, i) => (
-                    <motion.div key={card.id}
-                      initial={{ opacity: 0, rotateY: 180, scale: 0.8 }} animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-                      transition={{ delay: i * 0.2, duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
-                      style={{ perspective: 1000 }}>
-                      <GameCard text={card.text} type="black" logo onClick={() => { playCardSelect(); game.chooseBlackCard(card); }} />
-                    </motion.div>
+                    <GameCard key={card.id} text={card.text} type="black" logo
+                      onClick={() => { playCardSelect(); game.chooseBlackCard(card); }}
+                      flipped flipDelay={i * 0.3} />
                   ))}
                 </div>
               </>
