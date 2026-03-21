@@ -451,7 +451,7 @@ const Multiplayer = () => {
 
       {/* Black card */}
       <div className="flex justify-center py-4 sm:py-6 px-4">
-        {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo />}
+        {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo flipped flipDelay={0.1} />}
       </div>
 
       {/* Phase-specific content */}
@@ -492,7 +492,7 @@ const Multiplayer = () => {
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-              {roundSubs.map((sub) => {
+              {roundSubs.map((sub, sIdx) => {
                 const cards = sub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
                   .filter(Boolean) as WhiteCard[];
@@ -504,13 +504,13 @@ const Multiplayer = () => {
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    {cards.map((c, i) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx * 2 + i} />
                     ))}
                   </motion.div>
                 );
               })}
-              {/* AI submissions (local state) */}
+              {/* AI submissions */}
               {game.aiSubmissions.map((aiSub, idx) => {
                 const cards = aiSub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
@@ -526,8 +526,8 @@ const Multiplayer = () => {
                     transition={{ delay: idx * 0.1 }}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    {cards.map((c, i) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={(roundSubs.length + idx) * 2 + i} />
                     ))}
                   </motion.div>
                 );
@@ -591,7 +591,7 @@ const Multiplayer = () => {
             </Button>
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 pt-1">
-            {game.myHand.map((card) => (
+            {game.myHand.map((card, i) => (
               <GameCard
                 key={card.id}
                 text={card.text}
@@ -600,6 +600,8 @@ const Multiplayer = () => {
                 selected={selectedCards.includes(card.id)}
                 onClick={() => handleSelectCard(card.id)}
                 logo
+                dealDelay={i}
+                shuffle
               />
             ))}
           </div>

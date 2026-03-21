@@ -10,13 +10,34 @@ interface GameCardProps {
   logo?: boolean;
   flipped?: boolean;
   flipDelay?: number;
+  dealDelay?: number;
+  shuffle?: boolean;
 }
 
-const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDelay = 0 }: GameCardProps) => {
+const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDelay = 0, dealDelay, shuffle }: GameCardProps) => {
   const [hasFlipped, setHasFlipped] = useState(false);
 
-  // If flipped prop is used, show card back initially then flip to reveal
   const showFlip = flipped !== undefined;
+
+  // Shuffle: slide in from random offset with rotation
+  const shuffleInitial = shuffle
+    ? { opacity: 0, x: (Math.random() - 0.5) * 120, y: -60, rotateZ: (Math.random() - 0.5) * 30, scale: 0.8 }
+    : undefined;
+  const shuffleAnimate = shuffle
+    ? { opacity: 1, x: 0, y: 0, rotateZ: 0, scale: 1 }
+    : undefined;
+
+  // Deal: fan in from bottom
+  const dealInitial = dealDelay !== undefined && !shuffle
+    ? { opacity: 0, y: 60, rotateZ: -8 + (dealDelay * 3), scale: 0.85 }
+    : undefined;
+  const dealAnimate = dealDelay !== undefined && !shuffle
+    ? { opacity: 1, y: 0, rotateZ: 0, scale: 1 }
+    : undefined;
+
+  const customInitial = shuffleInitial || dealInitial;
+  const customAnimate = shuffleAnimate || dealAnimate;
+  const customDelay = dealDelay !== undefined ? dealDelay * 0.07 : 0;
 
   return (
     <div className={`perspective-1000 shrink-0 ${small ? "w-[130px] h-[160px] sm:w-[150px] sm:h-[180px]" : "w-[180px] h-[230px] sm:w-[220px] sm:h-[270px]"}`}>
@@ -27,14 +48,22 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
         onClick={onClick}
         whileHover={onClick ? { y: -6, scale: 1.02 } : {}}
         whileTap={onClick ? { scale: 0.97 } : {}}
-        initial={showFlip ? { rotateY: 180, opacity: 0 } : { opacity: 0, y: 20 }}
-        animate={showFlip
-          ? { rotateY: hasFlipped || !flipped ? 0 : 180, opacity: 1 }
-          : { opacity: 1, y: 0 }
+        initial={
+          showFlip
+            ? { rotateY: 180, opacity: 0 }
+            : customInitial || { opacity: 0, y: 20 }
         }
-        transition={showFlip
-          ? { duration: 0.6, delay: flipDelay, type: "spring", stiffness: 200, damping: 20 }
-          : { duration: 0.3 }
+        animate={
+          showFlip
+            ? { rotateY: hasFlipped || !flipped ? 0 : 180, opacity: 1 }
+            : customAnimate || { opacity: 1, y: 0 }
+        }
+        transition={
+          showFlip
+            ? { duration: 0.6, delay: flipDelay, type: "spring", stiffness: 200, damping: 20 }
+            : customInitial
+              ? { duration: 0.5, delay: customDelay, type: "spring", stiffness: 180, damping: 18 }
+              : { duration: 0.3 }
         }
         onAnimationComplete={() => {
           if (showFlip && flipped) setHasFlipped(true);
