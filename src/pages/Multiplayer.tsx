@@ -552,7 +552,7 @@ const Multiplayer = () => {
             <motion.div className="flex gap-2 justify-center mt-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
               {(() => {
                 const winningSub = roundSubs.find(s => s.user_id === game.roundWinner!.userId);
-                const aiWinSub = !winningSub ? game.aiSubmissions.find(a => a.display_name === game.roundWinner!.name) : null;
+                const aiWinSub = !winningSub ? game.aiSubmissions.find(a => a.aiName === game.roundWinner!.name) : null;
                 const winnerCardIds = winningSub?.white_card_ids || aiWinSub?.white_card_ids || [];
                 const winnerCards = winnerCardIds
                   .map((id: number) => whiteCards.find((c) => c.id === id))
