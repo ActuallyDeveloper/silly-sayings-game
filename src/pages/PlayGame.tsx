@@ -421,12 +421,9 @@ const PlayGame = () => {
                 </div>
                 <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-3 sm:pb-5 pt-1">
                   {game.hand.map((card, i) => (
-                    <motion.div key={card.id} initial={{ opacity: 0, y: 40, rotateZ: -5 }}
-                      animate={{ opacity: 1, y: 0, rotateZ: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
-                      <GameCard text={card.text} type="white" small
-                        selected={!!game.selectedCards.find((c) => c.id === card.id)}
-                        onClick={() => handleSelectCard(card)} logo />
-                    </motion.div>
+                    <GameCard key={card.id} text={card.text} type="white" small
+                      selected={!!game.selectedCards.find((c) => c.id === card.id)}
+                      onClick={() => handleSelectCard(card)} logo dealDelay={i} shuffle />
                   ))}
                 </div>
               </div>
