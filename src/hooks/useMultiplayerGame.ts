@@ -69,25 +69,39 @@ export function useMultiplayerGame() {
   const myHand: WhiteCard[] = (myPlayer?.hand || [])
     .map((id: number) => whiteCards.find((c) => c.id === id))
     .filter(Boolean) as WhiteCard[];
-  const mySubmission = submissions.find(
-    (s) => s.user_id === user?.id && s.round_number === room?.current_round
-  );
+  const mySubmission = submissions.find((s) => s.user_id === user?.id && s.round_number === room?.current_round);
 
   const aiPlayerCount = room?.ai_player_count || 0;
   const humanNonCzar = players.filter((p) => p.user_id !== room?.czar_user_id);
   const currentRoundSubs = submissions.filter((s) => s.round_number === room?.current_round);
-  const allSubmitted = room?.status === "playing" &&
+  const allSubmitted =
+    room?.status === "playing" &&
     humanNonCzar.length > 0 &&
     currentRoundSubs.length >= humanNonCzar.length &&
     (aiPlayerCount === 0 || aiSubmissions.length >= aiPlayerCount);
 
   // Derive phase
   useEffect(() => {
-    if (!room) { setPhase("lobby"); return; }
-    if (room.status === "waiting") { setPhase("lobby"); return; }
-    if (room.status === "finished") { setPhase("game_over"); return; }
-    if (roundWinner) { setPhase("round_result"); return; }
-    if (allSubmitted) { setPhase("judging"); return; }
+    if (!room) {
+      setPhase("lobby");
+      return;
+    }
+    if (room.status === "waiting") {
+      setPhase("lobby");
+      return;
+    }
+    if (room.status === "finished") {
+      setPhase("game_over");
+      return;
+    }
+    if (roundWinner) {
+      setPhase("round_result");
+      return;
+    }
+    if (allSubmitted) {
+      setPhase("judging");
+      return;
+    }
     setPhase("submitting");
   }, [room, allSubmitted, roundWinner]);
 
@@ -95,11 +109,13 @@ export function useMultiplayerGame() {
   const fetchPlayers = useCallback(async (roomId: string) => {
     const { data: ps } = await supabase.from("room_players").select("*").eq("room_id", roomId);
     if (ps) {
-      setPlayers(ps.map((p: any) => ({
-        ...p,
-        hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"),
-        ready: !!p.ready,
-      })));
+      setPlayers(
+        ps.map((p: any) => ({
+          ...p,
+          hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"),
+          ready: !!p.ready,
+        })),
+      );
     }
   }, []);
 
@@ -107,10 +123,12 @@ export function useMultiplayerGame() {
   const fetchSubmissions = useCallback(async (roomId: string) => {
     const { data: subs } = await supabase.from("room_submissions").select("*").eq("room_id", roomId);
     if (subs) {
-      setSubmissions(subs.map((s: any) => ({
-        ...s,
-        white_card_ids: Array.isArray(s.white_card_ids) ? s.white_card_ids : JSON.parse(s.white_card_ids || "[]"),
-      })));
+      setSubmissions(
+        subs.map((s: any) => ({
+          ...s,
+          white_card_ids: Array.isArray(s.white_card_ids) ? s.white_card_ids : JSON.parse(s.white_card_ids || "[]"),
+        })),
+      );
     }
   }, []);
 
@@ -126,49 +144,93 @@ export function useMultiplayerGame() {
 
     const channel = supabase
       .channel(`room-${room.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_rooms", filter: `id=eq.${room.id}` },
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "game_rooms", filter: `id=eq.${room.id}` },
         (payload) => {
           if (payload.eventType === "UPDATE") {
             const newRoom = payload.new as any;
-            setRoom((prev) => prev ? {
-              ...prev,
-              ...newRoom,
-              used_black_card_ids: Array.isArray(newRoom.used_black_card_ids) ? newRoom.used_black_card_ids : JSON.parse(newRoom.used_black_card_ids || "[]"),
-              used_white_card_ids: Array.isArray(newRoom.used_white_card_ids) ? newRoom.used_white_card_ids : JSON.parse(newRoom.used_white_card_ids || "[]"),
-              ai_players_data: Array.isArray(newRoom.ai_players_data) ? newRoom.ai_players_data : JSON.parse(newRoom.ai_players_data || "[]"),
-            } : prev);
+            setRoom((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    ...newRoom,
+                    used_black_card_ids: Array.isArray(newRoom.used_black_card_ids)
+                      ? newRoom.used_black_card_ids
+                      : JSON.parse(newRoom.used_black_card_ids || "[]"),
+                    used_white_card_ids: Array.isArray(newRoom.used_white_card_ids)
+                      ? newRoom.used_white_card_ids
+                      : JSON.parse(newRoom.used_white_card_ids || "[]"),
+                    ai_players_data: Array.isArray(newRoom.ai_players_data)
+                      ? newRoom.ai_players_data
+                      : JSON.parse(newRoom.ai_players_data || "[]"),
+                  }
+                : prev,
+            );
           }
-        }
+        },
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` },
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` },
         (payload) => {
           if (payload.eventType === "INSERT") {
             const p = payload.new as any;
             setPlayers((prev) => {
-              if (prev.some(x => x.user_id === p.user_id)) return prev;
-              return [...prev, { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready }];
+              if (prev.some((x) => x.user_id === p.user_id)) return prev;
+              return [
+                ...prev,
+                { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready },
+              ];
             });
           } else if (payload.eventType === "UPDATE") {
             const p = payload.new as any;
-            setPlayers((prev) => prev.map((x) => x.id === p.id ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready } : x));
+            setPlayers((prev) =>
+              prev.map((x) =>
+                x.id === p.id
+                  ? { ...p, hand: Array.isArray(p.hand) ? p.hand : JSON.parse(p.hand || "[]"), ready: !!p.ready }
+                  : x,
+              ),
+            );
           } else if (payload.eventType === "DELETE") {
             setPlayers((prev) => prev.filter((x) => x.id !== (payload.old as any).id));
           }
-        }
+        },
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_submissions", filter: `room_id=eq.${room.id}` },
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_submissions", filter: `room_id=eq.${room.id}` },
         (payload) => {
           if (payload.eventType === "INSERT") {
             const s = payload.new as any;
             setSubmissions((prev) => {
-              if (prev.some(x => x.id === s.id)) return prev;
-              return [...prev, { ...s, white_card_ids: Array.isArray(s.white_card_ids) ? s.white_card_ids : JSON.parse(s.white_card_ids || "[]") }];
+              if (prev.some((x) => x.id === s.id)) return prev;
+              return [
+                ...prev,
+                {
+                  ...s,
+                  white_card_ids: Array.isArray(s.white_card_ids)
+                    ? s.white_card_ids
+                    : JSON.parse(s.white_card_ids || "[]"),
+                },
+              ];
             });
           } else if (payload.eventType === "UPDATE") {
             const s = payload.new as any;
-            setSubmissions((prev) => prev.map((x) => x.id === s.id ? { ...s, white_card_ids: Array.isArray(s.white_card_ids) ? s.white_card_ids : JSON.parse(s.white_card_ids || "[]") } : x));
+            setSubmissions((prev) =>
+              prev.map((x) =>
+                x.id === s.id
+                  ? {
+                      ...s,
+                      white_card_ids: Array.isArray(s.white_card_ids)
+                        ? s.white_card_ids
+                        : JSON.parse(s.white_card_ids || "[]"),
+                    }
+                  : x,
+              ),
+            );
           }
-        }
+        },
       )
       // Listen for AI submissions broadcast from host
       .on("broadcast", { event: "ai_submissions" }, (payload) => {
@@ -185,7 +247,9 @@ export function useMultiplayerGame() {
       .subscribe();
 
     channelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [room?.id, fetchPlayers, fetchSubmissions]);
 
   // Re-fetch players periodically while in lobby to catch any missed updates
@@ -200,37 +264,40 @@ export function useMultiplayerGame() {
     if (!room || room.status !== "playing" || !user || room.created_by !== user.id) return;
     if (aiPlayerCount <= 0 || !currentBlackCard) return;
 
-    const timeout = setTimeout(() => {
-      const pick = currentBlackCard.pick || 1;
-      const usedWhites = [...room.used_white_card_ids];
-      const handsInUse = players.flatMap(p => p.hand);
-      const newAiSubs: AISubmissionMP[] = [];
+    const timeout = setTimeout(
+      () => {
+        const pick = currentBlackCard.pick || 1;
+        const usedWhites = [...room.used_white_card_ids];
+        const handsInUse = players.flatMap((p) => p.hand);
+        const newAiSubs: AISubmissionMP[] = [];
 
-      for (let i = 0; i < aiPlayerCount; i++) {
-        const available = whiteCards.filter(
-          (c) => !usedWhites.includes(c.id) && !handsInUse.includes(c.id)
-        );
-        const picked = shuffle(available).slice(0, pick).map((c) => c.id);
-        usedWhites.push(...picked);
-        
-        const aiData = room.ai_players_data?.[i];
-        newAiSubs.push({
-          aiIndex: i,
-          aiName: aiData?.name || `AI Player ${i + 1}`,
-          white_card_ids: picked,
-        });
-      }
+        for (let i = 0; i < aiPlayerCount; i++) {
+          const available = whiteCards.filter((c) => !usedWhites.includes(c.id) && !handsInUse.includes(c.id));
+          const picked = shuffle(available)
+            .slice(0, pick)
+            .map((c) => c.id);
+          usedWhites.push(...picked);
 
-      setAiSubmissions(newAiSubs);
-      // Broadcast AI submissions to all players in the room
-      if (channelRef.current) {
-        channelRef.current.send({
-          type: "broadcast",
-          event: "ai_submissions",
-          payload: { submissions: newAiSubs },
-        });
-      }
-    }, 1500 + Math.random() * 1000);
+          const aiData = room.ai_players_data?.[i];
+          newAiSubs.push({
+            aiIndex: i,
+            aiName: aiData?.name || `AI Player ${i + 1}`,
+            white_card_ids: picked,
+          });
+        }
+
+        setAiSubmissions(newAiSubs);
+        // Broadcast AI submissions to all players in the room
+        if (channelRef.current) {
+          channelRef.current.send({
+            type: "broadcast",
+            event: "ai_submissions",
+            payload: { submissions: newAiSubs },
+          });
+        }
+      },
+      1500 + Math.random() * 1000,
+    );
 
     return () => clearTimeout(timeout);
   }, [room?.current_round, room?.status, aiPlayerCount, currentBlackCard?.id]);
@@ -261,7 +328,11 @@ export function useMultiplayerGame() {
 
       const { error: joinErr } = await supabase
         .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
+        .insert({
+          room_id: r.id,
+          user_id: user.id,
+          display_name: mpProfile?.username || mpProfile?.display_name || "Player",
+        });
       if (joinErr) throw joinErr;
 
       // Players will be fetched by the realtime effect when room is set
@@ -271,38 +342,49 @@ export function useMultiplayerGame() {
     setLoading(false);
   }, [user, mpProfile]);
 
-  const joinRoom = useCallback(async (code: string) => {
-    if (!user || !mpProfile) return;
-    setLoading(true);
-    setError("");
-    try {
-      const { data: roomData, error: roomErr } = await supabase
-        .from("game_rooms")
-        .select("*")
-        .eq("room_code", code.toUpperCase())
-        .single();
-      if (roomErr) throw new Error("Room not found");
-      if (roomData.status !== "waiting") throw new Error("Game already started");
+  const joinRoom = useCallback(
+    async (code: string) => {
+      if (!user || !mpProfile) return;
+      setLoading(true);
+      setError("");
+      try {
+        const { data: roomData, error: roomErr } = await supabase
+          .from("game_rooms")
+          .select("*")
+          .eq("room_code", code.toUpperCase())
+          .single();
+        if (roomErr) throw new Error("Room not found");
+        if (roomData.status !== "waiting") throw new Error("Game already started");
 
-      const r = roomData as any;
-      setRoom({
-        ...r,
-        used_black_card_ids: Array.isArray(r.used_black_card_ids) ? r.used_black_card_ids : JSON.parse(r.used_black_card_ids || "[]"),
-        used_white_card_ids: Array.isArray(r.used_white_card_ids) ? r.used_white_card_ids : JSON.parse(r.used_white_card_ids || "[]"),
-        ai_players_data: Array.isArray(r.ai_players_data) ? r.ai_players_data : JSON.parse(r.ai_players_data || "[]"),
-      });
+        const r = roomData as any;
+        setRoom({
+          ...r,
+          used_black_card_ids: Array.isArray(r.used_black_card_ids)
+            ? r.used_black_card_ids
+            : JSON.parse(r.used_black_card_ids || "[]"),
+          used_white_card_ids: Array.isArray(r.used_white_card_ids)
+            ? r.used_white_card_ids
+            : JSON.parse(r.used_white_card_ids || "[]"),
+          ai_players_data: Array.isArray(r.ai_players_data) ? r.ai_players_data : JSON.parse(r.ai_players_data || "[]"),
+        });
 
-      const { error: joinErr } = await supabase
-        .from("room_players")
-        .insert({ room_id: r.id, user_id: user.id, display_name: mpProfile?.username || mpProfile?.display_name || "Player" });
-      if (joinErr && !joinErr.message.includes("duplicate")) throw joinErr;
+        const { error: joinErr } = await supabase
+          .from("room_players")
+          .insert({
+            room_id: r.id,
+            user_id: user.id,
+            display_name: mpProfile?.username || mpProfile?.display_name || "Player",
+          });
+        if (joinErr && !joinErr.message.includes("duplicate")) throw joinErr;
 
-      // Players will be fetched by the realtime effect when room is set
-    } catch (e: any) {
-      setError(e.message);
-    }
-    setLoading(false);
-  }, [user, mpProfile]);
+        // Players will be fetched by the realtime effect when room is set
+      } catch (e: any) {
+        setError(e.message);
+      }
+      setLoading(false);
+    },
+    [user, mpProfile],
+  );
 
   const startGame = useCallback(async () => {
     if (!room || !user || players.length < 1) return;
@@ -344,62 +426,74 @@ export function useMultiplayerGame() {
     setLoading(false);
   }, [room, user, players]);
 
-  const submitCards = useCallback(async (cardIds: number[]) => {
-    if (!room || !user) return;
-    try {
-      await supabase.from("room_submissions").insert({
-        room_id: room.id,
-        round_number: room.current_round,
-        user_id: user.id,
-        white_card_ids: cardIds as any,
-      });
-
-      if (myPlayer) {
-        const newHand = myPlayer.hand.filter((id) => !cardIds.includes(id));
-        await supabase.from("room_players").update({ hand: newHand as any }).eq("id", myPlayer.id);
-      }
-    } catch (e: any) {
-      setError(e.message);
-    }
-  }, [room, user, myPlayer]);
-
-  const pickWinner = useCallback(async (submissionId: string) => {
-    if (!room || !isCzar) return;
-    try {
-      let winner: { userId: string; name: string };
-
-      if (submissionId.startsWith("ai-")) {
-        const aiIndex = parseInt(submissionId.replace("ai-", ""));
-        const aiSub = aiSubmissions[aiIndex];
-        if (aiSub) {
-          winner = { userId: `ai-${aiIndex}`, name: aiSub.aiName };
-        } else return;
-      } else {
-        await supabase.from("room_submissions").update({ is_winner: true }).eq("id", submissionId);
-
-        const winnerSub = submissions.find((s) => s.id === submissionId);
-        if (!winnerSub) return;
-
-        const winnerPlayer = players.find((p) => p.user_id === winnerSub.user_id);
-        if (winnerPlayer) {
-          await supabase.from("room_players").update({ score: winnerPlayer.score + 1 }).eq("id", winnerPlayer.id);
-        }
-        winner = { userId: winnerSub.user_id, name: winnerPlayer?.display_name || "Unknown" };
-      }
-
-      setRoundWinner(winner);
-      // Broadcast winner to all players
-      if (channelRef.current) {
-        channelRef.current.send({
-          type: "broadcast",
-          event: "round_winner",
-          payload: { winner },
+  const submitCards = useCallback(
+    async (cardIds: number[]) => {
+      if (!room || !user) return;
+      try {
+        await supabase.from("room_submissions").insert({
+          room_id: room.id,
+          round_number: room.current_round,
+          user_id: user.id,
+          white_card_ids: cardIds as any,
         });
+
+        if (myPlayer) {
+          const newHand = myPlayer.hand.filter((id) => !cardIds.includes(id));
+          await supabase
+            .from("room_players")
+            .update({ hand: newHand as any })
+            .eq("id", myPlayer.id);
+        }
+      } catch (e: any) {
+        setError(e.message);
       }
-    } catch (e: any) {
-      setError(e.message);
-    }
-  }, [room, isCzar, submissions, players, aiSubmissions]);
+    },
+    [room, user, myPlayer],
+  );
+
+  const pickWinner = useCallback(
+    async (submissionId: string) => {
+      if (!room || !isCzar) return;
+      try {
+        let winner: { userId: string; name: string };
+
+        if (submissionId.startsWith("ai-")) {
+          const aiIndex = parseInt(submissionId.replace("ai-", ""));
+          const aiSub = aiSubmissions[aiIndex];
+          if (aiSub) {
+            winner = { userId: `ai-${aiIndex}`, name: aiSub.aiName };
+          } else return;
+        } else {
+          await supabase.from("room_submissions").update({ is_winner: true }).eq("id", submissionId);
+
+          const winnerSub = submissions.find((s) => s.id === submissionId);
+          if (!winnerSub) return;
+
+          const winnerPlayer = players.find((p) => p.user_id === winnerSub.user_id);
+          if (winnerPlayer) {
+            await supabase
+              .from("room_players")
+              .update({ score: winnerPlayer.score + 1 })
+              .eq("id", winnerPlayer.id);
+          }
+          winner = { userId: winnerSub.user_id, name: winnerPlayer?.display_name || "Unknown" };
+        }
+
+        setRoundWinner(winner);
+        // Broadcast winner to all players
+        if (channelRef.current) {
+          channelRef.current.send({
+            type: "broadcast",
+            event: "round_winner",
+            payload: { winner },
+          });
+        }
+      } catch (e: any) {
+        setError(e.message);
+      }
+    },
+    [room, isCzar, submissions, players, aiSubmissions],
+  );
 
   const nextRound = useCallback(async () => {
     if (!room) return;
@@ -410,12 +504,12 @@ export function useMultiplayerGame() {
     if (nextRoundNum > room.max_rounds) {
       // Save scores for all players
       for (const player of players) {
-        const topScore = Math.max(...players.map(p => p.score));
+        const topScore = Math.max(...players.map((p) => p.score));
         const won = player.score === topScore;
         await supabase.rpc("save_multiplayer_score", {
           _user_id: player.user_id,
           _player_score: player.score,
-          _ai_score: Math.max(...players.filter(p => p.user_id !== player.user_id).map(p => p.score), 0),
+          _ai_score: Math.max(...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), 0),
           _rounds: room.current_round,
           _won: won,
         });
@@ -425,14 +519,14 @@ export function useMultiplayerGame() {
     }
 
     // Check if someone hit points_to_win
-    const maxScore = Math.max(...players.map(p => p.score));
+    const maxScore = Math.max(...players.map((p) => p.score));
     if (maxScore >= room.points_to_win) {
       for (const player of players) {
         const won = player.score === maxScore;
         await supabase.rpc("save_multiplayer_score", {
           _user_id: player.user_id,
           _player_score: player.score,
-          _ai_score: Math.max(...players.filter(p => p.user_id !== player.user_id).map(p => p.score), 0),
+          _ai_score: Math.max(...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), 0),
           _rounds: room.current_round,
           _won: won,
         });
@@ -454,20 +548,28 @@ export function useMultiplayerGame() {
       if (currentHand.length < HAND_SIZE) {
         const availableWhites = whiteCards.filter((c) => !usedWhites.includes(c.id) && !currentHand.includes(c.id));
         const needed = HAND_SIZE - currentHand.length;
-        const newCards = shuffle(availableWhites).slice(0, needed).map((c) => c.id);
+        const newCards = shuffle(availableWhites)
+          .slice(0, needed)
+          .map((c) => c.id);
         const newHand = [...currentHand, ...newCards];
         usedWhites.push(...newCards);
-        await supabase.from("room_players").update({ hand: newHand as any }).eq("id", player.id);
+        await supabase
+          .from("room_players")
+          .update({ hand: newHand as any })
+          .eq("id", player.id);
       }
     }
 
-    await supabase.from("game_rooms").update({
-      current_round: nextRoundNum,
-      czar_user_id: nextCzar,
-      current_black_card_id: nextBlack.id,
-      used_black_card_ids: [...usedBlacks, nextBlack.id] as any,
-      used_white_card_ids: usedWhites as any,
-    }).eq("id", room.id);
+    await supabase
+      .from("game_rooms")
+      .update({
+        current_round: nextRoundNum,
+        czar_user_id: nextCzar,
+        current_black_card_id: nextBlack.id,
+        used_black_card_ids: [...usedBlacks, nextBlack.id] as any,
+        used_white_card_ids: usedWhites as any,
+      })
+      .eq("id", room.id);
   }, [room, players]);
 
   const leaveRoom = useCallback(async () => {
@@ -484,23 +586,44 @@ export function useMultiplayerGame() {
   const toggleReady = useCallback(async () => {
     if (!myPlayer) return;
     const newReady = !myPlayer.ready;
-    setPlayers((prev) => prev.map((p) => p.id === myPlayer.id ? { ...p, ready: newReady } : p));
+    setPlayers((prev) => prev.map((p) => (p.id === myPlayer.id ? { ...p, ready: newReady } : p)));
     const { error } = await (supabase as any).from("room_players").update({ ready: newReady }).eq("id", myPlayer.id);
     if (error) {
       console.error("Toggle ready error:", error);
       setError("Failed to toggle ready state");
-      setPlayers((prev) => prev.map((p) => p.id === myPlayer.id ? { ...p, ready: !newReady } : p));
+      setPlayers((prev) => prev.map((p) => (p.id === myPlayer.id ? { ...p, ready: !newReady } : p)));
     }
   }, [myPlayer]);
 
   const allReady = players.length >= 1 && players.every((p) => p.ready);
   const totalParticipants = players.length + (room?.ai_player_count || 0);
-  const canStart = allReady && players.length >= 2 && totalParticipants >= 3;
+  const canStart = allReady && players.length >= 2 && totalParticipants >= 2;
 
   return {
-    room, players, submissions, aiSubmissions, phase, error, loading,
-    isCzar, myPlayer, myHand, currentBlackCard, mySubmission, allSubmitted, roundWinner,
-    allReady, canStart, totalParticipants,
-    createRoom, joinRoom, startGame, submitCards, pickWinner, nextRound, leaveRoom, toggleReady,
+    room,
+    players,
+    submissions,
+    aiSubmissions,
+    phase,
+    error,
+    loading,
+    isCzar,
+    myPlayer,
+    myHand,
+    currentBlackCard,
+    mySubmission,
+    allSubmitted,
+    roundWinner,
+    allReady,
+    canStart,
+    totalParticipants,
+    createRoom,
+    joinRoom,
+    startGame,
+    submitCards,
+    pickWinner,
+    nextRound,
+    leaveRoom,
+    toggleReady,
   };
 }
