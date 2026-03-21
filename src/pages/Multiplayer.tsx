@@ -591,7 +591,7 @@ const Multiplayer = () => {
             </Button>
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 pt-1">
-            {game.myHand.map((card) => (
+            {game.myHand.map((card, i) => (
               <GameCard
                 key={card.id}
                 text={card.text}
@@ -600,6 +600,8 @@ const Multiplayer = () => {
                 selected={selectedCards.includes(card.id)}
                 onClick={() => handleSelectCard(card.id)}
                 logo
+                dealDelay={i}
+                shuffle
               />
             ))}
           </div>
