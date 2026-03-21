@@ -492,7 +492,7 @@ const Multiplayer = () => {
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-              {roundSubs.map((sub) => {
+              {roundSubs.map((sub, sIdx) => {
                 const cards = sub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
                   .filter(Boolean) as WhiteCard[];
@@ -504,13 +504,13 @@ const Multiplayer = () => {
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    {cards.map((c, i) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx * 2 + i} />
                     ))}
                   </motion.div>
                 );
               })}
-              {/* AI submissions (local state) */}
+              {/* AI submissions */}
               {game.aiSubmissions.map((aiSub, idx) => {
                 const cards = aiSub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
@@ -526,8 +526,8 @@ const Multiplayer = () => {
                     transition={{ delay: idx * 0.1 }}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo />
+                    {cards.map((c, i) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={(roundSubs.length + idx) * 2 + i} />
                     ))}
                   </motion.div>
                 );
