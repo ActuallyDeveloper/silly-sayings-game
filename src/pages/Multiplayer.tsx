@@ -548,6 +548,20 @@ const Multiplayer = () => {
               winnerName={`${game.roundWinner.name} wins!`}
               isPlayer={game.roundWinner.userId === user?.id}
             />
+            {/* Show the winning card */}
+            <motion.div className="flex gap-2 justify-center mt-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+              {(() => {
+                const winningSub = roundSubs.find(s => s.user_id === game.roundWinner!.userId);
+                const winnerCardIds = winningSub?.white_card_ids || 
+                  game.aiSubmissions.find((_, idx) => `ai-${idx}` === game.roundWinner!.subId)?.white_card_ids || [];
+                const winnerCards = winnerCardIds
+                  .map((id: number) => whiteCards.find((c) => c.id === id))
+                  .filter(Boolean) as WhiteCard[];
+                return winnerCards.map((c) => (
+                  <GameCard key={c.id} text={c.text} type="white" small logo />
+                ));
+              })()}
+            </motion.div>
             {game.room.created_by === user.id && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>
                 <Button
