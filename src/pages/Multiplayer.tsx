@@ -451,7 +451,7 @@ const Multiplayer = () => {
 
       {/* Black card */}
       <div className="flex justify-center py-4 sm:py-6 px-4">
-        {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo />}
+        {game.currentBlackCard && <GameCard text={game.currentBlackCard.text} type="black" logo flipped flipDelay={0.1} />}
       </div>
 
       {/* Phase-specific content */}
