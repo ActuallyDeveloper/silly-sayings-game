@@ -459,24 +459,18 @@ const PlayGame = () => {
                     <div className="text-center">
                       <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
                       <div className="flex gap-1">
-                        {game.selectedCards.map((c, i) => (
-                          <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.1, duration: 0.4 }}>
-                            <GameCard text={c.text} type="white" small logo />
-                          </motion.div>
+                        {game.selectedCards.map((c) => (
+                          <GameCard key={c.id} text={c.text} type="white" small logo />
                         ))}
                       </div>
                     </div>
                   )}
-                  {game.aiSubmissions.map((sub, subIdx) => (
+                  {game.aiSubmissions.map((sub) => (
                     <div key={sub.playerId} className="text-center">
                       <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
                       <div className="flex gap-1">
-                        {sub.cards.map((c, i) => (
-                          <motion.div key={c.id} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.3 + subIdx * 0.2 + i * 0.1, duration: 0.4 }}>
-                            <GameCard text={c.text} type="white" small logo />
-                          </motion.div>
+                        {sub.cards.map((c) => (
+                          <GameCard key={c.id} text={c.text} type="white" small logo />
                         ))}
                       </div>
                     </div>
@@ -521,6 +515,17 @@ const PlayGame = () => {
               winnerName={game.winner === "You" ? "You won this round!" : `${game.winner} wins!`}
               isPlayer={game.winner === "You"}
             />
+            {/* Show the winning card */}
+            <motion.div className="flex gap-2 justify-center mt-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+              {(() => {
+                const winnerCards = game.winner === "You"
+                  ? game.selectedCards
+                  : game.aiSubmissions.find(s => s.playerName === game.winner)?.cards || [];
+                return winnerCards.map((c) => (
+                  <GameCard key={c.id} text={c.text} type="white" small logo />
+                ));
+              })()}
+            </motion.div>
             {game.trashTalk && (
               <motion.p className="text-xs sm:text-sm text-muted-foreground italic max-w-md text-center bg-secondary/50 px-4 py-2 rounded-lg"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}>

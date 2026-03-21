@@ -25,7 +25,7 @@ const ToggleButton = ({
 }) => (
   <div className="flex gap-2">
     <button
-      onClick={() => !isActive && onToggle()}
+      onClick={() => isActive && onToggle()}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold min-h-[48px] transition-all active:scale-95 ${
         !isActive
           ? "bg-accent text-accent-foreground shadow-md"
@@ -36,7 +36,7 @@ const ToggleButton = ({
       {inactiveLabel}
     </button>
     <button
-      onClick={() => isActive && onToggle()}
+      onClick={() => !isActive && onToggle()}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold min-h-[48px] transition-all active:scale-95 ${
         isActive
           ? "bg-accent text-accent-foreground shadow-md"
