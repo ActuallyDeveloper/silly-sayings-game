@@ -298,9 +298,7 @@ const Multiplayer = () => {
           <p className="text-muted-foreground/50 text-sm">
             {game.players.length < 2
               ? "Need at least 2 human players to start"
-              : game.totalParticipants < 3
-                ? "Need at least 3 total participants (add AI bots or more players)"
-                : "Waiting for all players to ready up"}
+              : "Waiting for all players to ready up"}
           </p>
         )}
 
