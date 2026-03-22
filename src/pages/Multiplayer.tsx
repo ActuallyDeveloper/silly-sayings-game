@@ -49,7 +49,12 @@ const Multiplayer = () => {
   const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
   const mpAchChecked = useRef(false);
+  const gameRef = useRef(game);
 
+  // Keep gameRef in sync with game object
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
   // Check MP achievements when game ends
   const checkMPAchievements = useCallback(async () => {
     if (!user || mpAchChecked.current) return;
