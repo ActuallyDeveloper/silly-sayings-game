@@ -49,6 +49,12 @@ const Multiplayer = () => {
   const [useAiCards, setUseAiCards] = useState(false);
   const [countdownActive, setCountdownActive] = useState(false);
   const mpAchChecked = useRef(false);
+  const gameRef = useRef(game);
+
+  // Keep gameRef in sync with game object
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
 
   // Check MP achievements when game ends
   const checkMPAchievements = useCallback(async () => {
@@ -100,7 +106,7 @@ const Multiplayer = () => {
 
   const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
-    if (game.room?.created_by === user?.id) {
+    if (gameRef.current.room?.created_by === user?.id) {
       const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
       if (effectiveAiCount > 0) {
         const aiPersonalities = getAIPersonalities(effectiveAiCount);
@@ -109,17 +115,17 @@ const Multiplayer = () => {
           ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
           max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
-        }).eq("id", game.room.id);
+        }).eq("id", gameRef.current.room.id);
       } else {
         await (supabase as any).from("game_rooms").update({
           max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
-        }).eq("id", game.room!.id);
+        }).eq("id", gameRef.current.room!.id);
       }
       // Await startGame to ensure all players receive the game state update via realtime before phase changes
-      await game.startGame();
+      await gameRef.current.startGame();
     }
-  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
+  }, [user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
 
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
