@@ -114,18 +114,17 @@ const Multiplayer = () => {
           ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
           max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
-        }).eq("id", game.room.id);
+     }).eq("id", gameRef.current.room.id);
       } else {
         await (supabase as any).from("game_rooms").update({
           max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
-        }).eq("id", game.room!.id);
+     }).eq("id", gameRef.current.room!.id);
       }
        // Await startGame to ensure all players receive the game state update via realtime before phase changes
-      await game.startGame();
-    }
-  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
-
+      await gameRef.current.startGame();
+      }
+      }, [user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
   const handleLobbyTogglePack = (packId: PackId) => {
     setLobbyPacks((prev) => {
       if (prev.includes(packId)) {
