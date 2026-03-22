@@ -105,7 +105,7 @@ const Multiplayer = () => {
 
   const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
-    if (game.room?.created_by === user?.id) {
+      if (gameRef.current.room?.created_by === user?.id) {
       const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
       if (effectiveAiCount > 0) {
         const aiPersonalities = getAIPersonalities(effectiveAiCount);
