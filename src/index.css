@@ -131,11 +131,6 @@
     color: hsl(var(--card-white-foreground));
     box-shadow: 0 2px 15px rgba(0,0,0,0.3);
   }
-  .game-card-white:hover {
-    box-shadow: 0 4px 25px rgba(0,0,0,0.4);
-    transform: translateY(-4px);
-    transition: all 0.2s ease;
-  }
   .exotic-glow {
     text-shadow: 0 0 40px hsl(43 100% 50% / 0.3);
   }

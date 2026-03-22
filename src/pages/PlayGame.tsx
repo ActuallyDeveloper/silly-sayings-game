@@ -447,49 +447,53 @@ const PlayGame = () => {
                 <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
                   {game.aiJudging ? `${game.czarName} is judging...` : game.isCzar ? "Pick the funniest answer!" : "All cards are in!"}
                 </p>
-                {/* When player is NOT czar — show all submissions non-interactive */}
-                {!game.isCzar && (
+
+                {/* Player's cards (when not czar) */}
+                {!game.isCzar && game.czarId !== -1 && (
                   <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
-                    {game.czarId !== -1 && (
-                      <div className="text-center">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
-                        <div className="flex gap-1">
-                          {game.selectedCards.map((c, i) => (
-                            <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={i} />
-                          ))}
-                        </div>
+                    <div className="text-center">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
+                      <div className="flex gap-1">
+                        {game.selectedCards.map((c) => (
+                          <GameCard key={c.id} text={c.text} type="white" small logo />
+                        ))}
                       </div>
-                    )}
+                    </div>
                     {game.aiSubmissions.map((sub, sIdx) => (
                       <div key={sub.playerId} className="text-center">
                         <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 font-bold">???</p>
                         <div className="flex gap-1">
-                          {sub.cards.map((c, i) => (
-                            <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx * 2 + i} />
+                          {sub.cards.map((c) => (
+                            <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx} />
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-                {/* When player IS czar — show interactive picker only */}
+
+                {/* Czar picks winner — ALL AI submissions shown as interactive */}
                 {game.isCzar && !game.aiPickingCards && game.aiSubmissions.length > 0 && (
                   <div className="flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
                     {game.aiSubmissions.map((sub, sIdx) => (
                       <motion.div key={sub.playerId}
                         className="text-center cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-2"
                         whileHover={{ scale: 1.05 }}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: sIdx * 0.15, duration: 0.3 }}
                         onClick={() => game.pickWinnerManual(sub.playerName)}>
                         <p className="text-[10px] text-muted-foreground mb-1 font-bold">???</p>
                         <div className="flex gap-1">
-                          {sub.cards.map((c, i) => (
-                            <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx * 2 + i} />
+                          {sub.cards.map((c) => (
+                            <GameCard key={c.id} text={c.text} type="white" small logo />
                           ))}
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 )}
+
                 {game.isAICzar && !game.aiJudging && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin" />

@@ -26,7 +26,17 @@ export function useBlockReport() {
 
   useEffect(() => {
     fetchBlocks();
-  }, [fetchBlocks]);
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-blocks-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks", filter: `blocker_id=eq.${user.id}` }, () => {
+        fetchBlocks();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchBlocks, user]);
 
   const blockUser = async (blockedId: string) => {
     if (!user) return;

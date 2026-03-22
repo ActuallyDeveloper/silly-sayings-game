@@ -298,9 +298,7 @@ const Multiplayer = () => {
           <p className="text-muted-foreground/50 text-sm">
             {game.players.length < 2
               ? "Need at least 2 human players to start"
-              : game.totalParticipants < 3
-                ? "Need at least 3 total participants (add AI bots or more players)"
-                : "Waiting for all players to ready up"}
+              : "Waiting for all players to ready up"}
           </p>
         )}
 
@@ -328,10 +326,8 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        {game.allReady && !game.canStart && (
-          <p className="text-muted-foreground/50 text-xs">
-            {game.players.length < 2 ? "Need at least 2 human players." : "Need at least 3 total participants."}
-          </p>
+        {game.allReady && !game.canStart && game.players.length < 2 && (
+          <p className="text-muted-foreground/50 text-xs">Need at least 2 human players.</p>
         )}
         {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
@@ -492,6 +488,7 @@ const Multiplayer = () => {
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+              {/* Human player submissions */}
               {roundSubs.map((sub, sIdx) => {
                 const cards = sub.white_card_ids
                   .map((id) => whiteCards.find((c) => c.id === id))
@@ -502,10 +499,13 @@ const Multiplayer = () => {
                     className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
                     onClick={() => game.isCzar && game.pickWinner(sub.id)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: sIdx * 0.15, duration: 0.3 }}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c, i) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={sIdx * 2 + i} />
+                    {cards.map((c) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo />
                     ))}
                   </motion.div>
                 );
@@ -521,13 +521,13 @@ const Multiplayer = () => {
                     className={`flex flex-col gap-1 ${game.isCzar ? "cursor-pointer hover:ring-2 hover:ring-accent rounded-lg p-1" : ""}`}
                     onClick={() => game.isCzar && game.pickWinner(`ai-${idx}`)}
                     whileHover={game.isCzar ? { scale: 1.05 } : {}}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
+                    transition={{ delay: (roundSubs.length + idx) * 0.15, duration: 0.3 }}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1 font-bold text-center">???</p>
-                    {cards.map((c, i) => (
-                      <GameCard key={c.id} text={c.text} type="white" small logo dealDelay={(roundSubs.length + idx) * 2 + i} />
+                    {cards.map((c) => (
+                      <GameCard key={c.id} text={c.text} type="white" small logo />
                     ))}
                   </motion.div>
                 );
