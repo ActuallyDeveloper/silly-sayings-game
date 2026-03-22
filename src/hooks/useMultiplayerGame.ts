@@ -597,7 +597,8 @@ export function useMultiplayerGame() {
 
   const allReady = players.length >= 1 && players.every((p) => p.ready);
   const totalParticipants = players.length + (room?.ai_player_count || 0);
-  const canStart = allReady && players.length >= 2 && totalParticipants >= 2;
+  // canStart: 2+ humans all ready — AI count is configured locally in lobby and applied on start
+  const canStart = allReady && players.length >= 2;
 
   return {
     room,

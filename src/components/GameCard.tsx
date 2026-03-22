@@ -29,10 +29,10 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
 
   // Deal: fan in from bottom
   const dealInitial = dealDelay !== undefined && !shuffle
-    ? { opacity: 0, y: 60, rotateZ: -8 + (dealDelay * 3), scale: 0.85 }
+    ? { opacity: 0, y: 40, scale: 0.9 }
     : undefined;
   const dealAnimate = dealDelay !== undefined && !shuffle
-    ? { opacity: 1, y: 0, rotateZ: 0, scale: 1 }
+    ? { opacity: 1, y: 0, scale: 1 }
     : undefined;
 
   const customInitial = shuffleInitial || dealInitial;
@@ -62,13 +62,16 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
           showFlip
             ? { duration: 0.6, delay: flipDelay, type: "spring", stiffness: 200, damping: 20 }
             : customInitial
-              ? { duration: 0.5, delay: customDelay, type: "spring", stiffness: 180, damping: 18 }
+              ? { duration: 0.4, delay: customDelay, type: "spring", stiffness: 200, damping: 22 }
               : { duration: 0.3 }
         }
         onAnimationComplete={() => {
           if (showFlip && flipped) setHasFlipped(true);
         }}
-        style={showFlip ? { transformStyle: "preserve-3d", backfaceVisibility: "hidden" } : undefined}
+        style={{
+          ...(showFlip ? { transformStyle: "preserve-3d" as const, backfaceVisibility: "hidden" as const } : {}),
+          visibility: "visible" as const,
+        }}
       >
         <p className={`font-extrabold leading-tight ${small ? "text-xs sm:text-sm" : "text-base sm:text-lg"}`}>
           {text}
