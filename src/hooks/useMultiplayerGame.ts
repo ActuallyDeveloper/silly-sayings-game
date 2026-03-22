@@ -49,6 +49,18 @@ type Phase = "lobby" | "submitting" | "judging" | "round_result" | "game_over";
 
 const HAND_SIZE = 7;
 
+function parseAiSubmissionsFromRoom(room: Room | null): AISubmissionMP[] {
+  if (!room?.ai_players_data?.length) return [];
+
+  return room.ai_players_data
+    .filter((ai: any) => ai?.submission_round === room.current_round && Array.isArray(ai?.current_submission_ids) && ai.current_submission_ids.length > 0)
+    .map((ai: any, index: number) => ({
+      aiIndex: typeof ai.id === "number" ? ai.id - 1 : index,
+      aiName: ai.name || `AI Player ${index + 1}`,
+      white_card_ids: ai.current_submission_ids,
+    }));
+}
+
 export function useMultiplayerGame() {
   const { user, mpProfile } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
@@ -131,6 +143,10 @@ export function useMultiplayerGame() {
       );
     }
   }, []);
+
+  useEffect(() => {
+    setAiSubmissions(parseAiSubmissionsFromRoom(room));
+  }, [room?.current_round, room?.ai_players_data, room?.status]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -264,18 +280,34 @@ export function useMultiplayerGame() {
     if (!room || room.status !== "playing" || !user || room.created_by !== user.id) return;
     if (aiPlayerCount <= 0 || !currentBlackCard) return;
 
+    const persistedAiSubmissions = parseAiSubmissionsFromRoom(room);
+    if (persistedAiSubmissions.length >= aiPlayerCount) {
+      if (aiSubmissions.length !== persistedAiSubmissions.length) {
+        setAiSubmissions(persistedAiSubmissions);
+      }
+      return;
+    }
+
     const timeout = setTimeout(
-      () => {
+      async () => {
         const pick = currentBlackCard.pick || 1;
         const usedWhites = [...room.used_white_card_ids];
         const handsInUse = players.flatMap((p) => p.hand);
         const newAiSubs: AISubmissionMP[] = [];
+        const roundReservedIds = new Set<number>([...handsInUse]);
 
         for (let i = 0; i < aiPlayerCount; i++) {
-          const available = whiteCards.filter((c) => !usedWhites.includes(c.id) && !handsInUse.includes(c.id));
-          const picked = shuffle(available)
+          const availableUnused = whiteCards.filter(
+            (c) => !usedWhites.includes(c.id) && !roundReservedIds.has(c.id),
+          );
+          const supplement = whiteCards.filter(
+            (c) => !roundReservedIds.has(c.id) && !availableUnused.some((entry) => entry.id === c.id),
+          );
+          const picked = shuffle([...availableUnused, ...supplement])
             .slice(0, pick)
             .map((c) => c.id);
+
+          picked.forEach((id) => roundReservedIds.add(id));
           usedWhites.push(...picked);
 
           const aiData = room.ai_players_data?.[i];
@@ -286,7 +318,21 @@ export function useMultiplayerGame() {
           });
         }
 
+        const nextAiPlayersData = (room.ai_players_data || []).map((ai: any, index: number) => ({
+          ...ai,
+          current_submission_ids: newAiSubs[index]?.white_card_ids || [],
+          submission_round: room.current_round,
+        }));
+
         setAiSubmissions(newAiSubs);
+        await supabase
+          .from("game_rooms")
+          .update({
+            ai_players_data: nextAiPlayersData as any,
+            used_white_card_ids: usedWhites as any,
+          })
+          .eq("id", room.id);
+
         // Broadcast AI submissions to all players in the room
         if (channelRef.current) {
           channelRef.current.send({
@@ -300,7 +346,7 @@ export function useMultiplayerGame() {
     );
 
     return () => clearTimeout(timeout);
-  }, [room?.current_round, room?.status, aiPlayerCount, currentBlackCard?.id]);
+  }, [room?.current_round, room?.status, aiPlayerCount, currentBlackCard?.id, room?.ai_players_data, players, user?.id, aiSubmissions.length]);
 
   const createRoom = useCallback(async () => {
     if (!user || !mpProfile) return;
@@ -418,6 +464,11 @@ export function useMultiplayerGame() {
           current_black_card_id: firstBlack.id,
           used_black_card_ids: [firstBlack.id] as any,
           used_white_card_ids: usedWhiteIds as any,
+          ai_players_data: (room.ai_players_data || []).map((ai: any) => ({
+            ...ai,
+            current_submission_ids: [],
+            submission_round: null,
+          })) as any,
         })
         .eq("id", room.id);
     } catch (e: any) {
@@ -568,6 +619,11 @@ export function useMultiplayerGame() {
         current_black_card_id: nextBlack.id,
         used_black_card_ids: [...usedBlacks, nextBlack.id] as any,
         used_white_card_ids: usedWhites as any,
+        ai_players_data: (room.ai_players_data || []).map((ai: any) => ({
+          ...ai,
+          current_submission_ids: [],
+          submission_round: null,
+        })) as any,
       })
       .eq("id", room.id);
   }, [room, players]);

@@ -74,6 +74,70 @@ function getCzarFromOrder(order: number[], index: number, aiPlayers: AIPlayerSta
   return { czarId, czarName };
 }
 
+function normalizeCardText(text: string) {
+  return text.trim().replace(/^["'`]+|["'`]+$/g, "").replace(/\s+/g, " ").toLowerCase();
+}
+
+function getFullWhitePool(packs: PackId[], customCards?: CustomCardsInput) {
+  const { whites } = getCardsByPacks(packs);
+  return [...whites, ...(customCards?.whites || [])];
+}
+
+function buildAiCandidateHand(
+  primaryPool: WhiteCard[],
+  fallbackPool: WhiteCard[],
+  reservedIds: Set<number>,
+  candidateSize: number,
+) {
+  const hand: WhiteCard[] = [];
+
+  for (const card of primaryPool) {
+    if (hand.length >= candidateSize) break;
+    if (!reservedIds.has(card.id) && !hand.some((entry) => entry.id === card.id)) {
+      hand.push(card);
+    }
+  }
+
+  if (hand.length < candidateSize) {
+    for (const card of fallbackPool) {
+      if (hand.length >= candidateSize) break;
+      if (!reservedIds.has(card.id) && !hand.some((entry) => entry.id === card.id)) {
+        hand.push(card);
+      }
+    }
+  }
+
+  hand.forEach((card) => reservedIds.add(card.id));
+  return hand;
+}
+
+function resolveAiPickedCards(hand: WhiteCard[], requestedCards: string[] | undefined, pick: number) {
+  const picked: WhiteCard[] = [];
+  const usedIds = new Set<number>();
+
+  for (const requested of requestedCards || []) {
+    const normalizedRequested = normalizeCardText(requested);
+    const match = hand.find(
+      (card) => !usedIds.has(card.id) && normalizeCardText(card.text) === normalizedRequested,
+    );
+    if (match) {
+      picked.push(match);
+      usedIds.add(match.id);
+    }
+    if (picked.length >= pick) break;
+  }
+
+  for (const card of hand) {
+    if (picked.length >= pick) break;
+    if (!usedIds.has(card.id)) {
+      picked.push(card);
+      usedIds.add(card.id);
+    }
+  }
+
+  return picked.slice(0, pick);
+}
+
 function createInitialState(
   maxRounds: number, packs: PackId[], aiPlayerCount: number, pointsToWin: number, customCards?: CustomCardsInput
 ): GameState {
@@ -165,12 +229,13 @@ export function useGameState(
 
     // ALL AI players submit cards (including when player is czar — all AIs play)
     const nonCzarAIs = prev.aiPlayers.filter(ai => ai.id !== prev.czarId);
-    const deckCopy = [...prev.whiteDeck];
-    const aiHands = nonCzarAIs.map((ai) => {
-      const handSize = Math.min(HAND_SIZE, deckCopy.length);
-      const hand = deckCopy.splice(0, handSize);
-      return { ai, hand };
-    });
+    const candidateSize = Math.max(pick + 2, 3);
+    const fallbackWhitePool = getFullWhitePool(packsRef.current, customCardsRef.current);
+    const reservedIds = new Set<number>(prev.hand.map((card) => card.id));
+    const aiHands = nonCzarAIs.map((ai) => ({
+      ai,
+      hand: buildAiCandidateHand(prev.whiteDeck, fallbackWhitePool, reservedIds, candidateSize),
+    }));
 
     try {
       const { data } = await supabase.functions.invoke("game-ai", {
@@ -188,28 +253,29 @@ export function useGameState(
 
       const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => {
         const aiPick = data?.picks?.find((p: any) => p.name === ai.name);
-        let selectedCards: WhiteCard[];
-        if (aiPick?.selectedCards) {
-          selectedCards = aiPick.selectedCards
-            .map((text: string) => hand.find((c) => c.text === text))
-            .filter(Boolean)
-            .slice(0, pick);
-          while (selectedCards.length < pick) {
-            const remaining = hand.filter((c) => !selectedCards.includes(c));
-            if (remaining.length > 0) selectedCards.push(remaining[0]); else break;
-          }
-        } else {
-          selectedCards = hand.slice(0, pick);
-        }
+        const selectedCards = resolveAiPickedCards(hand, aiPick?.selectedCards, pick);
         return { playerId: ai.id, playerName: ai.name, cards: selectedCards };
       });
 
-      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      const usedAiCardIds = new Set(aiSubmissions.flatMap((submission) => submission.cards.map((card) => card.id)));
+
+      setState((s) => ({
+        ...s,
+        aiSubmissions,
+        aiPickingCards: false,
+        whiteDeck: s.whiteDeck.filter((card) => !usedAiCardIds.has(card.id)),
+      }));
     } catch {
       const aiSubmissions: AISubmission[] = aiHands.map(({ ai, hand }) => ({
         playerId: ai.id, playerName: ai.name, cards: hand.slice(0, pick),
       }));
-      setState((s) => ({ ...s, aiSubmissions, aiPickingCards: false, whiteDeck: deckCopy }));
+      const usedAiCardIds = new Set(aiSubmissions.flatMap((submission) => submission.cards.map((card) => card.id)));
+      setState((s) => ({
+        ...s,
+        aiSubmissions,
+        aiPickingCards: false,
+        whiteDeck: s.whiteDeck.filter((card) => !usedAiCardIds.has(card.id)),
+      }));
     }
   }, []);
 
