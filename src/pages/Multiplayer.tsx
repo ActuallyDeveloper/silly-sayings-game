@@ -116,7 +116,8 @@ const Multiplayer = () => {
           points_to_win: lobbyPoints,
         }).eq("id", game.room!.id);
       }
-      game.startGame();
+      // Await startGame to ensure all players receive the game state update via realtime before phase changes
+      await game.startGame();
     }
   }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
 
