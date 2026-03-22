@@ -326,10 +326,8 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        {game.allReady && !game.canStart && (
-          <p className="text-muted-foreground/50 text-xs">
-            {game.players.length < 2 ? "Need at least 2 human players." : "Need at least 3 total participants."}
-          </p>
+        {game.allReady && !game.canStart && game.players.length < 2 && (
+          <p className="text-muted-foreground/50 text-xs">Need at least 2 human players.</p>
         )}
         {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>
