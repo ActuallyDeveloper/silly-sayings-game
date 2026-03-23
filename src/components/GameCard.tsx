@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
 
 interface GameCardProps {
   text: string;
@@ -8,17 +7,11 @@ interface GameCardProps {
   onClick?: () => void;
   small?: boolean;
   logo?: boolean;
-  flipped?: boolean;
-  flipDelay?: number;
   dealDelay?: number;
   shuffle?: boolean;
 }
 
-const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDelay = 0, dealDelay, shuffle }: GameCardProps) => {
-  const [hasFlipped, setHasFlipped] = useState(false);
-
-  const showFlip = flipped !== undefined;
-
+const GameCard = ({ text, type, selected, onClick, small, logo, dealDelay, shuffle }: GameCardProps) => {
   // Shuffle: slide in from random offset with rotation
   const shuffleInitial = shuffle
     ? { opacity: 0, x: (Math.random() - 0.5) * 120, y: -60, rotateZ: (Math.random() - 0.5) * 30, scale: 0.8 }
@@ -40,7 +33,7 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
   const customDelay = dealDelay !== undefined ? dealDelay * 0.07 : 0;
 
   return (
-    <div className={`perspective-1000 shrink-0 ${small ? "w-[130px] h-[160px] sm:w-[150px] sm:h-[180px]" : "w-[180px] h-[230px] sm:w-[220px] sm:h-[270px]"}`}>
+    <div className={`shrink-0 ${small ? "w-[130px] h-[160px] sm:w-[150px] sm:h-[180px]" : "w-[180px] h-[230px] sm:w-[220px] sm:h-[270px]"}`}>
       <motion.div
         className={`${type === "black" ? "game-card-black" : "game-card-white"} ${
           selected ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""
@@ -48,30 +41,13 @@ const GameCard = ({ text, type, selected, onClick, small, logo, flipped, flipDel
         onClick={onClick}
         whileHover={onClick ? { y: -6, scale: 1.02 } : {}}
         whileTap={onClick ? { scale: 0.97 } : {}}
-        initial={
-          showFlip
-            ? { rotateY: 180, opacity: 0 }
-            : customInitial || { opacity: 0, y: 20 }
-        }
-        animate={
-          showFlip
-            ? { rotateY: hasFlipped || !flipped ? 0 : 180, opacity: 1 }
-            : customAnimate || { opacity: 1, y: 0 }
-        }
+        initial={customInitial || { opacity: 0, y: 20 }}
+        animate={customAnimate || { opacity: 1, y: 0 }}
         transition={
-          showFlip
-            ? { duration: 0.6, delay: flipDelay, type: "spring", stiffness: 200, damping: 20 }
-            : customInitial
-              ? { duration: 0.4, delay: customDelay, type: "spring", stiffness: 200, damping: 22 }
-              : { duration: 0.3 }
+          customInitial
+            ? { duration: 0.4, delay: customDelay, type: "spring", stiffness: 200, damping: 22 }
+            : { duration: 0.3 }
         }
-        onAnimationComplete={() => {
-          if (showFlip && flipped) setHasFlipped(true);
-        }}
-        style={{
-          ...(showFlip ? { transformStyle: "preserve-3d" as const, backfaceVisibility: "hidden" as const } : {}),
-          visibility: "visible" as const,
-        }}
       >
         <p className={`font-extrabold leading-tight ${small ? "text-xs sm:text-sm" : "text-base sm:text-lg"}`}>
           {text}
