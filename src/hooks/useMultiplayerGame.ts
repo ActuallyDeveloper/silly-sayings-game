@@ -71,6 +71,7 @@ export function useMultiplayerGame() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [roundWinner, setRoundWinner] = useState<{ userId: string; name: string } | null>(null);
+  const [countdownStarted, setCountdownStarted] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const isCzar = room?.czar_user_id === user?.id;
@@ -259,6 +260,10 @@ export function useMultiplayerGame() {
         if (payload.payload?.winner) {
           setRoundWinner(payload.payload.winner);
         }
+      })
+      // Listen for countdown broadcast from host
+      .on("broadcast", { event: "countdown_start" }, () => {
+        setCountdownStarted(true);
       })
       .subscribe();
 
@@ -656,6 +661,24 @@ export function useMultiplayerGame() {
   // canStart: 2+ humans all ready — AI count is configured locally in lobby and applied on start
   const canStart = allReady && players.length >= 2;
 
+  const broadcastCountdown = useCallback(() => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "countdown_start",
+        payload: {},
+      });
+    }
+    setCountdownStarted(true);
+  }, []);
+
+  // Reset countdown flag when game starts
+  useEffect(() => {
+    if (room?.status === "playing") {
+      setCountdownStarted(false);
+    }
+  }, [room?.status]);
+
   return {
     room,
     players,
@@ -674,6 +697,7 @@ export function useMultiplayerGame() {
     allReady,
     canStart,
     totalParticipants,
+    countdownStarted,
     createRoom,
     joinRoom,
     startGame,
@@ -682,5 +706,6 @@ export function useMultiplayerGame() {
     nextRound,
     leaveRoom,
     toggleReady,
+    broadcastCountdown,
   };
 }

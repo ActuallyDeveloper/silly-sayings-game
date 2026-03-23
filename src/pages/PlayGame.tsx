@@ -372,7 +372,7 @@ const PlayGame = () => {
                   {game.blackCardChoices.map((card, i) => (
                     <GameCard key={card.id} text={card.text} type="black" logo
                       onClick={() => { playCardSelect(); game.chooseBlackCard(card); }}
-                      flipped flipDelay={i * 0.3} />
+                      dealDelay={i * 4} />
                   ))}
                 </div>
               </>
