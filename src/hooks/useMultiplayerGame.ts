@@ -71,6 +71,7 @@ export function useMultiplayerGame() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [roundWinner, setRoundWinner] = useState<{ userId: string; name: string } | null>(null);
+  const [countdownStarted, setCountdownStarted] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const isCzar = room?.czar_user_id === user?.id;
