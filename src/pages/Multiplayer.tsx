@@ -309,7 +309,7 @@ const Multiplayer = () => {
           </Button>
           {isHost && (
             <Button
-              onClick={() => setCountdownActive(true)}
+              onClick={() => game.broadcastCountdown()}
               disabled={!game.canStart || game.loading || countdownActive}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
             >
