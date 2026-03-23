@@ -478,6 +478,23 @@ const Multiplayer = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
+            {game.isCzar && (
+              <PhaseTimer
+                duration={30}
+                onExpire={() => {
+                  // Auto-pick a random submission
+                  const allIds: string[] = [
+                    ...roundSubs.map(s => s.id),
+                    ...game.aiSubmissions.map((_, idx) => `ai-${idx}`),
+                  ];
+                  if (allIds.length > 0) {
+                    game.pickWinner(allIds[Math.floor(Math.random() * allIds.length)]);
+                  }
+                }}
+                active={game.phase === "judging" && game.isCzar}
+                phaseKey={`judge-${game.room!.current_round}`}
+              />
+            )}
             <p className="text-accent font-bold text-xs sm:text-sm uppercase tracking-widest">
               {game.isCzar ? "Pick the funniest answer!" : "The Card Czar is judging..."}
             </p>
