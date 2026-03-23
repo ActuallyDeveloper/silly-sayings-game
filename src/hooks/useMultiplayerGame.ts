@@ -260,6 +260,10 @@ export function useMultiplayerGame() {
           setRoundWinner(payload.payload.winner);
         }
       })
+      // Listen for countdown broadcast from host
+      .on("broadcast", { event: "countdown_start" }, () => {
+        setCountdownStarted(true);
+      })
       .subscribe();
 
     channelRef.current = channel;
