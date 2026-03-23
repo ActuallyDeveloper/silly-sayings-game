@@ -661,6 +661,24 @@ export function useMultiplayerGame() {
   // canStart: 2+ humans all ready — AI count is configured locally in lobby and applied on start
   const canStart = allReady && players.length >= 2;
 
+  const broadcastCountdown = useCallback(() => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "countdown_start",
+        payload: {},
+      });
+    }
+    setCountdownStarted(true);
+  }, []);
+
+  // Reset countdown flag when game starts
+  useEffect(() => {
+    if (room?.status === "playing") {
+      setCountdownStarted(false);
+    }
+  }, [room?.status]);
+
   return {
     room,
     players,
@@ -679,6 +697,7 @@ export function useMultiplayerGame() {
     allReady,
     canStart,
     totalParticipants,
+    countdownStarted,
     createRoom,
     joinRoom,
     startGame,
@@ -687,5 +706,6 @@ export function useMultiplayerGame() {
     nextRound,
     leaveRoom,
     toggleReady,
+    broadcastCountdown,
   };
 }
