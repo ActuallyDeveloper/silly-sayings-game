@@ -93,7 +93,7 @@ const Multiplayer = () => {
   const countdownActive = game.countdownStarted;
 
   const handleCountdownComplete = useCallback(async () => {
-    setCountdownActive(false);
+    // countdown complete — host starts the game
     if (game.room?.created_by === user?.id) {
       const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
       if (effectiveAiCount > 0) {
