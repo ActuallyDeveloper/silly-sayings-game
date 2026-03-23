@@ -47,7 +47,6 @@ const Multiplayer = () => {
   const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
-  const [countdownActive, setCountdownActive] = useState(false);
   const mpAchChecked = useRef(false);
 
   // Check MP achievements when game ends
