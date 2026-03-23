@@ -90,12 +90,7 @@ const Multiplayer = () => {
   const maxAi = playerCount <= 2 ? 6 : 5;
   const aiRequired = playerCount <= 2;
 
-  // Cancel countdown if not all ready
-  useEffect(() => {
-    if (!game.allReady && countdownActive) {
-      setCountdownActive(false);
-    }
-  }, [game.allReady, countdownActive]);
+  const countdownActive = game.countdownStarted;
 
   const handleCountdownComplete = useCallback(async () => {
     setCountdownActive(false);
