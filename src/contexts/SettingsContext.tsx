@@ -8,6 +8,7 @@ interface Settings {
   maxRounds: number;
   theme: Theme;
   selectedPacks: PackId[];
+  judgingTimer: number; // seconds
 }
 
 interface SettingsContextType extends Settings {
@@ -16,6 +17,8 @@ interface SettingsContextType extends Settings {
   setTheme: (v: Theme) => void;
   setSelectedPacks: (v: PackId[]) => void;
   togglePack: (pack: PackId) => void;
+  selectPack: (pack: PackId) => void;
+  setJudgingTimer: (v: number) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -27,6 +30,7 @@ const defaultSettings: Settings = {
   maxRounds: 10,
   theme: "dark",
   selectedPacks: ["classic"],
+  judgingTimer: 30,
 };
 
 function loadSettings(): Settings {
@@ -57,11 +61,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((s) => {
       const current = s.selectedPacks;
       if (current.includes(pack)) {
-        if (current.length <= 1) return s; // Must have at least 1
+        if (current.length <= 1) return s;
         return { ...s, selectedPacks: current.filter((p) => p !== pack) };
       }
       return { ...s, selectedPacks: [...current, pack] };
     });
+  };
+
+  // Single-select mode: only one pack at a time
+  const selectPack = (pack: PackId) => {
+    setSettings((s) => ({ ...s, selectedPacks: [pack] }));
   };
 
   return (
@@ -73,6 +82,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setTheme: (v) => setSettings((s) => ({ ...s, theme: v })),
         setSelectedPacks: (v) => setSettings((s) => ({ ...s, selectedPacks: v })),
         togglePack,
+        selectPack,
+        setJudgingTimer: (v) => setSettings((s) => ({ ...s, judgingTimer: v })),
       }}
     >
       {children}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ShieldBan, Flag, X } from "lucide-react";
+import { ShieldBan, Flag, X, MessageCircle, Gamepad2, UserX } from "lucide-react";
 
 interface BlockReportDialogProps {
   username: string;
@@ -12,6 +12,10 @@ interface BlockReportDialogProps {
   onUnblock: () => void;
   onReport: (reason: string, details?: string) => void;
   onClose: () => void;
+  onOpenDM?: () => void;
+  onInviteToGame?: () => void;
+  onRemoveFriend?: () => void;
+  isFriend?: boolean;
 }
 
 const REPORT_REASONS = [
@@ -22,7 +26,10 @@ const REPORT_REASONS = [
   { value: "other", label: "Other" },
 ];
 
-const BlockReportDialog = ({ username, userId, isBlocked, onBlock, onUnblock, onReport, onClose }: BlockReportDialogProps) => {
+const BlockReportDialog = ({
+  username, userId, isBlocked, onBlock, onUnblock, onReport, onClose,
+  onOpenDM, onInviteToGame, onRemoveFriend, isFriend,
+}: BlockReportDialogProps) => {
   const [view, setView] = useState<"menu" | "report">("menu");
   const [selectedReason, setSelectedReason] = useState("inappropriate");
   const [details, setDetails] = useState("");
@@ -36,64 +43,102 @@ const BlockReportDialog = ({ username, userId, isBlocked, onBlock, onUnblock, on
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-4 sm:pb-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="bg-card border border-border rounded-xl w-full max-w-sm p-5 space-y-4"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-background border border-border rounded-2xl w-full max-w-sm overflow-hidden"
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-black text-foreground text-lg">@{username}</h3>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-            <X className="w-4 h-4" />
-          </Button>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <h3 className="font-black text-foreground text-lg">@{username}</h3>
+            <p className="text-xs text-muted-foreground">Player Options</p>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/80 transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
 
         <AnimatePresence mode="wait">
           {view === "menu" && !reported && (
-            <motion.div key="menu" className="space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+            <motion.div key="menu" className="p-3 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Social actions */}
+              {onOpenDM && !isBlocked && (
+                <button
+                  onClick={() => { onOpenDM(); onClose(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-accent/10 transition-colors active:scale-[0.98]"
+                >
+                  <MessageCircle className="w-4 h-4 text-accent" />
+                  Send Message
+                </button>
+              )}
+              {onInviteToGame && !isBlocked && (
+                <button
+                  onClick={() => { onInviteToGame(); onClose(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-accent/10 transition-colors active:scale-[0.98]"
+                >
+                  <Gamepad2 className="w-4 h-4 text-accent" />
+                  Invite to Game
+                </button>
+              )}
+              {onRemoveFriend && isFriend && (
+                <button
+                  onClick={() => { onRemoveFriend(); onClose(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-destructive/10 transition-colors active:scale-[0.98]"
+                >
+                  <UserX className="w-4 h-4 text-destructive" />
+                  Remove Friend
+                </button>
+              )}
+
+              <div className="h-px bg-border my-1" />
+
+              {/* Block */}
+              <button
                 onClick={() => {
                   if (isBlocked) onUnblock();
                   else onBlock();
                   onClose();
                 }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-[0.98]"
               >
                 <ShieldBan className="w-4 h-4" />
                 {isBlocked ? "Unblock User" : "Block User"}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 border-border text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+              </button>
+
+              {/* Report */}
+              <button
                 onClick={() => setView("report")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-[0.98]"
               >
                 <Flag className="w-4 h-4" />
                 Report User
-              </Button>
+              </button>
+
               {isBlocked && (
-                <p className="text-xs text-muted-foreground">This user is currently blocked. They cannot message you or see your status.</p>
+                <p className="text-xs text-muted-foreground px-4 py-2">This user is blocked. They cannot message you or see your status.</p>
               )}
             </motion.div>
           )}
 
           {view === "report" && !reported && (
-            <motion.div key="report" className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <p className="text-sm text-muted-foreground">Why are you reporting this user?</p>
+            <motion.div key="report" className="p-4 space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <p className="text-sm text-muted-foreground font-bold">Why are you reporting this user?</p>
               <div className="space-y-1">
                 {REPORT_REASONS.map((r) => (
                   <button
                     key={r.value}
                     onClick={() => setSelectedReason(r.value)}
-                    className={`w-full text-left text-sm px-3 py-2 rounded-md transition-colors ${
+                    className={`w-full text-left text-sm px-3 py-2.5 rounded-lg transition-colors ${
                       selectedReason === r.value
                         ? "bg-accent text-accent-foreground font-bold"
                         : "text-foreground hover:bg-secondary"
@@ -125,7 +170,7 @@ const BlockReportDialog = ({ username, userId, isBlocked, onBlock, onUnblock, on
           )}
 
           {reported && (
-            <motion.div key="done" className="text-center py-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div key="done" className="text-center py-8 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <p className="text-accent font-bold">Report submitted. Thank you.</p>
             </motion.div>
           )}

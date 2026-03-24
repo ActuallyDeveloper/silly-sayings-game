@@ -4,9 +4,8 @@ import { useSettings } from "@/contexts/SettingsContext";
 import ExoticLogo from "@/components/ExoticLogo";
 import PackSelector from "@/components/PackSelector";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Volume2, VolumeX, Hash, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX, Sun, Moon, Timer } from "lucide-react";
 
 const ToggleButton = ({
   activeLabel,
@@ -49,9 +48,11 @@ const ToggleButton = ({
   </div>
 );
 
+const TIMER_OPTIONS = [15, 30, 45, 60];
+
 const Settings = () => {
   const navigate = useNavigate();
-  const { soundEnabled, setSoundEnabled, maxRounds, setMaxRounds, theme, setTheme, selectedPacks, togglePack } = useSettings();
+  const { soundEnabled, setSoundEnabled, theme, setTheme, selectedPacks, selectPack, judgingTimer, setJudgingTimer } = useSettings();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -109,32 +110,31 @@ const Settings = () => {
             />
           </div>
 
-          {/* Rounds slider */}
-          <div className="bg-secondary rounded-lg p-4 space-y-4">
-            <div className="flex items-center gap-3">
-              <Hash className="w-5 h-5 text-accent" />
-              <div>
-                <Label className="text-foreground font-bold text-base">Game Rounds</Label>
-                <p className="text-xs text-muted-foreground">Number of rounds per game</p>
-              </div>
-              <span className="ml-auto text-2xl font-black text-accent">{maxRounds}</span>
-            </div>
-            <Slider
-              value={[maxRounds]}
-              onValueChange={([v]) => setMaxRounds(v)}
-              min={3}
-              max={20}
-              step={1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>3</span>
-              <span>20</span>
+          {/* Judging Timer */}
+          <div className="space-y-3">
+            <Label className="text-foreground font-bold text-base flex items-center gap-2">
+              <Timer className="w-5 h-5 text-accent" />
+              Judging Timer
+            </Label>
+            <div className="grid grid-cols-4 gap-2">
+              {TIMER_OPTIONS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setJudgingTimer(t)}
+                  className={`py-2.5 rounded-lg text-sm font-bold min-h-[44px] transition-all active:scale-95 ${
+                    judgingTimer === t
+                      ? "bg-accent text-accent-foreground shadow-md"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {t}s
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Card Packs */}
-          <PackSelector selectedPacks={selectedPacks} onTogglePack={togglePack} />
+          {/* Game Mode (single-select pack) */}
+          <PackSelector selectedPacks={selectedPacks} onSelectPack={selectPack} singleSelect />
         </motion.div>
       </div>
     </div>
