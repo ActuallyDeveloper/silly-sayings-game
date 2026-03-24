@@ -7,7 +7,8 @@ import DMView from "@/components/DMView";
 import PrivacySettingsView from "@/components/PrivacySettingsView";
 import { Button } from "@/components/ui/button";
 import { useGameInvites } from "@/hooks/useGameInvites";
-import { ArrowLeft, Users, MessageCircle, Shield, Settings } from "lucide-react";
+import { ArrowLeft, Users, Shield } from "lucide-react";
+import { toast } from "sonner";
 
 const MPSocial = () => {
   const navigate = useNavigate();
@@ -38,6 +39,11 @@ const MPSocial = () => {
   const handleOpenDM = (userId: string, username: string) => {
     setDmUser({ id: userId, username });
     setView("dm");
+  };
+
+  const handleInviteToGame = (userId: string) => {
+    sendInvite(userId);
+    toast.success("Game invite sent!");
   };
 
   if (view === "dm" && dmUser) {
@@ -79,7 +85,7 @@ const MPSocial = () => {
         {view === "friends" && (
           <FriendsList
             onOpenDM={handleOpenDM}
-            onInviteToGame={(userId) => sendInvite(userId)}
+            onInviteToGame={handleInviteToGame}
           />
         )}
         {view === "privacy" && <PrivacySettingsView />}

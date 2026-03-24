@@ -27,14 +27,16 @@ const TIMER_PLAY = 45;
 
 const PlayGame = () => {
   const navigate = useNavigate();
-  const { soundEnabled, selectedPacks } = useSettings();
+  const { soundEnabled, selectedPacks, judgingTimer } = useSettings();
   const [gameStarted, setGameStarted] = useState(false);
   const [localPacks, setLocalPacks] = useState<PackId[]>(selectedPacks);
   const [localAiCount, setLocalAiCount] = useState(3);
-  const [localRounds, setLocalRounds] = useState(10);
   const [localPoints, setLocalPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
   const [customCards, setCustomCards] = useState<CustomCardsInput | undefined>();
+
+  // maxRounds = pointsToWin * 3 as a reasonable limit
+  const localRounds = localPoints * 3;
 
   const game = useGameState(localRounds, localPacks, localAiCount, localPoints, customCards);
   const { user, spProfile: profile, loading: authLoading } = useAuth();
@@ -42,7 +44,7 @@ const PlayGame = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBigConfetti, setShowBigConfetti] = useState(false);
 
-  const { ensureMode, setActiveMode } = useAuth();
+  const { ensureMode } = useAuth();
 
   useEffect(() => {
     ensureMode("singleplayer").then((canProceed) => {
@@ -63,7 +65,6 @@ const PlayGame = () => {
     })();
   }, [user, localPacks]);
 
-  // Generate AI cards when toggle is enabled and game starts
   const [aiCardsLoading, setAiCardsLoading] = useState(false);
   const [aiCardsGenerated, setAiCardsGenerated] = useState(false);
   
@@ -138,14 +139,12 @@ const PlayGame = () => {
           rounds_played: game.round, won: game.winner === "You",
           packs_used: localPacks, mode: "singleplayer",
         }).then(() => {
-          // Check achievements after score is saved
           checkAchievements();
         });
       }
     }
   }, [game.phase, user]);
 
-  // Achievement checker
   const checkAchievements = useCallback(async () => {
     if (!user) return;
     const [{ data: achData }, { data: earnedData }, { data: scores }] = await Promise.all([
@@ -197,11 +196,8 @@ const PlayGame = () => {
 
   const handleReset = () => { scoreSaved.current = false; setShowBigConfetti(false); setGameStarted(false); game.resetGame(); };
 
-  const handleLocalTogglePack = (packId: PackId) => {
-    setLocalPacks((prev) => {
-      if (prev.includes(packId)) { if (prev.length <= 1) return prev; return prev.filter((p) => p !== packId); }
-      return [...prev, packId];
-    });
+  const handleLocalSelectPack = (packId: PackId) => {
+    setLocalPacks([packId]);
   };
 
   const handleBlackTimerExpire = useCallback(() => {
@@ -257,10 +253,9 @@ const PlayGame = () => {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 sm:gap-6 px-4 py-6">
         <ExoticLogo size="sm" />
         <h2 className="text-2xl sm:text-3xl font-black text-foreground">Play vs AI</h2>
-        <p className="text-muted-foreground text-sm text-center">Configure your game</p>
-        <PackSelector selectedPacks={localPacks} onTogglePack={handleLocalTogglePack} />
+        <p className="text-muted-foreground text-sm text-center">Choose a game mode and configure</p>
+        <PackSelector selectedPacks={localPacks} onSelectPack={handleLocalSelectPack} singleSelect />
         <GameConfig aiPlayerCount={localAiCount} onAiPlayerCountChange={setLocalAiCount}
-          rounds={localRounds} onRoundsChange={setLocalRounds}
           pointsToWin={localPoints} onPointsToWinChange={setLocalPoints} minAi={2} maxAi={7}
           useAiGeneratedCards={useAiCards} onUseAiGeneratedCardsChange={setUseAiCards} />
         <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
@@ -444,6 +439,22 @@ const PlayGame = () => {
               </div>
             ) : (
               <>
+                {/* Judging timer for human czar in SP */}
+                {game.isCzar && !game.aiJudging && game.aiSubmissions.length > 0 && (
+                  <PhaseTimer
+                    duration={judgingTimer}
+                    onExpire={() => {
+                      // Auto-pick random AI submission
+                      if (game.aiSubmissions.length > 0) {
+                        const randomSub = game.aiSubmissions[Math.floor(Math.random() * game.aiSubmissions.length)];
+                        game.pickWinnerManual(randomSub.playerName);
+                      }
+                    }}
+                    active={game.phase === "judging" && game.isCzar}
+                    phaseKey={`judge-${game.round}`}
+                  />
+                )}
+
                 <p className="text-muted-foreground font-bold text-xs sm:text-sm uppercase tracking-widest">
                   {game.aiJudging ? `${game.czarName} is judging...` : game.isCzar ? "Pick the funniest answer!" : "All cards are in!"}
                 </p>
@@ -512,7 +523,6 @@ const PlayGame = () => {
               winnerName={game.winner === "You" ? "You won this round!" : `${game.winner} wins!`}
               isPlayer={game.winner === "You"}
             />
-            {/* Show the winning card */}
             <motion.div className="flex gap-2 justify-center mt-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
               {(() => {
                 const winnerCards = game.winner === "You"
@@ -538,7 +548,6 @@ const PlayGame = () => {
         )}
       </AnimatePresence>
 
-      {/* Game Chat with AI - NO media features for singleplayer */}
       {gameStarted && (
         <GameChat
           aiPlayers={game.aiPlayers.map((a) => a.personality)}

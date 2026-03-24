@@ -9,13 +9,25 @@ const packIcons: Record<string, LucideIcon> = {
 
 interface PackSelectorProps {
   selectedPacks: PackId[];
-  onTogglePack: (packId: PackId) => void;
+  onTogglePack?: (packId: PackId) => void;
+  onSelectPack?: (packId: PackId) => void;
+  singleSelect?: boolean;
 }
 
-const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
+const PackSelector = ({ selectedPacks, onTogglePack, onSelectPack, singleSelect = false }: PackSelectorProps) => {
+  const handleClick = (packId: PackId) => {
+    if (singleSelect && onSelectPack) {
+      onSelectPack(packId);
+    } else if (onTogglePack) {
+      onTogglePack(packId);
+    }
+  };
+
   return (
     <div className="space-y-3 w-full max-w-sm">
-      <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Card Packs</p>
+      <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
+        {singleSelect ? "Game Mode" : "Card Packs"}
+      </p>
       <div className="grid grid-cols-2 gap-2">
         {cardPacks.map((pack) => {
           const isSelected = selectedPacks.includes(pack.id);
@@ -23,7 +35,7 @@ const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
           return (
             <motion.button
               key={pack.id}
-              onClick={() => onTogglePack(pack.id)}
+              onClick={() => handleClick(pack.id)}
               className={`relative rounded-lg p-3 text-left transition-all border-2 ${
                 isSelected
                   ? "border-accent bg-accent/10"
@@ -40,12 +52,15 @@ const PackSelector = ({ selectedPacks, onTogglePack }: PackSelectorProps) => {
               <Badge variant="outline" className="mt-2 text-[10px] border-muted-foreground/30">
                 {pack.blackCount}B / {pack.whiteCount}W
               </Badge>
+              {singleSelect && isSelected && (
+                <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-accent" />
+              )}
             </motion.button>
           );
         })}
       </div>
       {selectedPacks.length === 0 && (
-        <p className="text-xs text-destructive text-center">Select at least one pack</p>
+        <p className="text-xs text-destructive text-center">Select {singleSelect ? "a game mode" : "at least one pack"}</p>
       )}
     </div>
   );

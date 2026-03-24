@@ -29,7 +29,6 @@ const Multiplayer = () => {
   const navigate = useNavigate();
   const { user, ensureMode } = useAuth();
 
-  // Set active mode to multiplayer
   useEffect(() => {
     ensureMode("multiplayer").then((canProceed) => {
       if (!canProceed) navigate("/mp/auth");
@@ -37,14 +36,13 @@ const Multiplayer = () => {
   }, []);
   const game = useMultiplayerGame();
   const { getStatus } = useUserStatus();
+  const { selectedPacks, judgingTimer } = useSettings();
   const [joinCode, setJoinCode] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [copied, setCopied] = useState(false);
-  const { selectedPacks } = useSettings();
   const [lobbyPacks, setLobbyPacks] = useState<PackId[]>(selectedPacks);
   const [enableAiBots, setEnableAiBots] = useState(false);
   const [aiCount, setAiCount] = useState(1);
-  const [lobbyRounds, setLobbyRounds] = useState(10);
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
   const mpAchChecked = useRef(false);
@@ -93,7 +91,6 @@ const Multiplayer = () => {
   const countdownActive = game.countdownStarted;
 
   const handleCountdownComplete = useCallback(async () => {
-    // countdown complete — host starts the game
     if (game.room?.created_by === user?.id) {
       const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
       if (effectiveAiCount > 0) {
@@ -101,27 +98,21 @@ const Multiplayer = () => {
         await (supabase as any).from("game_rooms").update({
           ai_player_count: effectiveAiCount,
           ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
-          max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
+          max_rounds: lobbyPoints * 3,
         }).eq("id", game.room.id);
       } else {
         await (supabase as any).from("game_rooms").update({
-          max_rounds: lobbyRounds,
           points_to_win: lobbyPoints,
+          max_rounds: lobbyPoints * 3,
         }).eq("id", game.room!.id);
       }
       game.startGame();
     }
-  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyRounds, lobbyPoints]);
+  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyPoints]);
 
-  const handleLobbyTogglePack = (packId: PackId) => {
-    setLobbyPacks((prev) => {
-      if (prev.includes(packId)) {
-        if (prev.length <= 1) return prev;
-        return prev.filter((p) => p !== packId);
-      }
-      return [...prev, packId];
-    });
+  const handleLobbySelectPack = (packId: PackId) => {
+    setLobbyPacks([packId]);
   };
 
   if (!user) {
@@ -233,7 +224,6 @@ const Multiplayer = () => {
               {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
             </motion.div>
           ))}
-          {/* Show AI players in lobby - always shown as ready */}
           {(aiRequired || enableAiBots) && getAIPersonalities(Math.max(aiCount, minAi)).map((ai) => (
             <motion.div
               key={`ai-${ai.id}`}
@@ -251,22 +241,19 @@ const Multiplayer = () => {
 
         {isHost && (
           <>
-            <PackSelector selectedPacks={lobbyPacks} onTogglePack={handleLobbyTogglePack} />
+            <PackSelector selectedPacks={lobbyPacks} onSelectPack={handleLobbySelectPack} singleSelect />
 
-            {/* Game config */}
             <div className="w-full max-w-sm space-y-3">
-            <GameConfig
-              aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
-              onAiPlayerCountChange={(v) => setAiCount(v)}
-              rounds={lobbyRounds}
-              onRoundsChange={setLobbyRounds}
-              pointsToWin={lobbyPoints}
-              onPointsToWinChange={setLobbyPoints}
-              minAi={Math.max(minAi, 1)}
-              maxAi={maxAi}
-              useAiGeneratedCards={useAiCards}
-              onUseAiGeneratedCardsChange={setUseAiCards}
-            />
+              <GameConfig
+                aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
+                onAiPlayerCountChange={(v) => setAiCount(v)}
+                pointsToWin={lobbyPoints}
+                onPointsToWinChange={setLobbyPoints}
+                minAi={Math.max(minAi, 1)}
+                maxAi={maxAi}
+                useAiGeneratedCards={useAiCards}
+                onUseAiGeneratedCardsChange={setUseAiCards}
+              />
 
               {!aiRequired && (
                 <div className="flex items-center justify-between bg-secondary rounded-lg p-3">
@@ -287,7 +274,6 @@ const Multiplayer = () => {
           </>
         )}
 
-        {/* Info about minimum players */}
         {!game.canStart && (
           <p className="text-muted-foreground/50 text-sm">
             {game.players.length < 2
@@ -480,9 +466,8 @@ const Multiplayer = () => {
           >
             {game.isCzar && (
               <PhaseTimer
-                duration={30}
+                duration={judgingTimer}
                 onExpire={() => {
-                  // Auto-pick a random submission
                   const allIds: string[] = [
                     ...roundSubs.map(s => s.id),
                     ...game.aiSubmissions.map((_, idx) => `ai-${idx}`),
@@ -559,7 +544,6 @@ const Multiplayer = () => {
               winnerName={`${game.roundWinner.name} wins!`}
               isPlayer={game.roundWinner.userId === user?.id}
             />
-            {/* Show the winning card */}
             <motion.div className="flex gap-2 justify-center mt-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
               {(() => {
                 const winningSub = roundSubs.find(s => s.user_id === game.roundWinner!.userId);

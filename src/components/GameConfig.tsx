@@ -1,13 +1,11 @@
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Users, Hash, Target, Sparkles } from "lucide-react";
+import { Users, Target, Sparkles } from "lucide-react";
 
 interface GameConfigProps {
   aiPlayerCount: number;
   onAiPlayerCountChange: (v: number) => void;
-  rounds: number;
-  onRoundsChange: (v: number) => void;
   pointsToWin: number;
   onPointsToWinChange: (v: number) => void;
   minAi?: number;
@@ -15,18 +13,18 @@ interface GameConfigProps {
   aiRequired?: boolean;
   useAiGeneratedCards?: boolean;
   onUseAiGeneratedCardsChange?: (v: boolean) => void;
+  // Keep rounds for backward compat but optional
+  rounds?: number;
+  onRoundsChange?: (v: number) => void;
 }
 
 const GameConfig = ({
   aiPlayerCount,
   onAiPlayerCountChange,
-  rounds,
-  onRoundsChange,
   pointsToWin,
   onPointsToWinChange,
   minAi = 2,
   maxAi = 7,
-  aiRequired = true,
   useAiGeneratedCards = false,
   onUseAiGeneratedCardsChange,
 }: GameConfigProps) => {
@@ -51,26 +49,6 @@ const GameConfig = ({
         <div className="flex justify-between text-[10px] text-muted-foreground">
           <span>{minAi}</span>
           <span>{maxAi}</span>
-        </div>
-      </div>
-
-      {/* Rounds */}
-      <div className="bg-secondary rounded-lg p-3 space-y-3">
-        <div className="flex items-center gap-2">
-          <Hash className="w-4 h-4 text-accent" />
-          <Label className="text-foreground font-bold text-sm">Rounds</Label>
-          <span className="ml-auto text-xl font-black text-accent">{rounds}</span>
-        </div>
-        <Slider
-          value={[rounds]}
-          onValueChange={([v]) => onRoundsChange(v)}
-          min={2}
-          max={20}
-          step={1}
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>2</span>
-          <span>20</span>
         </div>
       </div>
 

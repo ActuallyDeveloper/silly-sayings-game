@@ -13,6 +13,7 @@ import {
   UserPlus, UserCheck, UserX, Search, Users, MessageCircle,
   Gamepad2, Check, X, Clock, Send, ShieldBan, MoreVertical,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface FriendsListProps {
   onOpenDM: (userId: string, username: string) => void;
@@ -22,14 +23,19 @@ interface FriendsListProps {
 const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   const { user } = useAuth();
   const { friends, pendingReceived, pendingSent, sendRequest, acceptRequest, declineRequest, removeFriend, searchUsers } = useFriends();
-  const { received: invitesReceived, acceptInvite, declineInvite } = useGameInvites();
+  const { received: invitesReceived, acceptInvite, declineInvite, sendInvite } = useGameInvites();
   const { getStatus } = useUserStatus();
   const { blockUser, unblockUser, reportUser, isBlocked } = useBlockReport();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [tab, setTab] = useState<"friends" | "requests" | "invites">("friends");
-  const [blockReportTarget, setBlockReportTarget] = useState<{ userId: string; username: string } | null>(null);
+  const [menuTarget, setMenuTarget] = useState<{
+    userId: string;
+    username: string;
+    isFriend: boolean;
+    friendshipId?: string;
+  } | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -43,6 +49,15 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
     return friends.some(f => f.friend_profile?.user_id === userId) ||
       pendingSent.some(f => f.friend_profile?.user_id === userId) ||
       pendingReceived.some(f => f.friend_profile?.user_id === userId);
+  };
+
+  const handleSendInvite = (userId: string) => {
+    if (onInviteToGame) {
+      onInviteToGame(userId);
+    } else {
+      sendInvite(userId);
+    }
+    toast.success("Game invite sent!");
   };
 
   return (
@@ -80,13 +95,13 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                   {isFriendOrPending(u.user_id) ? (
                     <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
                   ) : !isBlocked(u.user_id) && (
-                    <Button size="sm" variant="ghost" onClick={() => sendRequest(u.user_id)}
+                    <Button size="sm" variant="ghost" onClick={() => { sendRequest(u.user_id); toast.success("Friend request sent!"); }}
                       className="text-accent active:scale-95 transition-transform">
                       <UserPlus className="w-4 h-4" />
                     </Button>
                   )}
                   <Button size="sm" variant="ghost"
-                    onClick={() => setBlockReportTarget({ userId: u.user_id, username: u.username || u.display_name || "" })}
+                    onClick={() => setMenuTarget({ userId: u.user_id, username: u.username || u.display_name || "", isFriend: false })}
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                     <MoreVertical className="w-3 h-3" />
                   </Button>
@@ -131,20 +146,15 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-accent">
                       <MessageCircle className="w-4 h-4" />
                     </Button>
-                    {onInviteToGame && (
-                      <Button size="sm" variant="ghost" onClick={() => onInviteToGame(f.friend_profile!.user_id)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent">
-                        <Gamepad2 className="w-4 h-4" />
-                      </Button>
-                    )}
                     <Button size="sm" variant="ghost"
-                      onClick={() => setBlockReportTarget({ userId: f.friend_profile!.user_id, username: f.friend_profile!.username || f.friend_profile!.display_name || "" })}
+                      onClick={() => setMenuTarget({
+                        userId: f.friend_profile!.user_id,
+                        username: f.friend_profile!.username || f.friend_profile!.display_name || "",
+                        isFriend: true,
+                        friendshipId: f.id,
+                      })}
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                       <MoreVertical className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => removeFriend(f.id)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
-                      <UserX className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
@@ -166,7 +176,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                       <span className="font-bold text-foreground text-sm">@{f.friend_profile?.username || f.friend_profile?.display_name}</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" onClick={() => acceptRequest(f.id)}
+                      <Button size="sm" onClick={() => { acceptRequest(f.id); toast.success("Friend request accepted!"); }}
                         className="bg-accent text-accent-foreground h-8 active:scale-95 transition-transform">
                         <Check className="w-3 h-3" />
                       </Button>
@@ -205,7 +215,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" onClick={() => acceptInvite(inv.id)}
+                  <Button size="sm" onClick={() => { acceptInvite(inv.id); toast.success("Invite accepted!"); }}
                     className="bg-accent text-accent-foreground h-8 active:scale-95 transition-transform">
                     <Check className="w-3 h-3 mr-1" /> Join
                   </Button>
@@ -221,15 +231,19 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {blockReportTarget && (
+        {menuTarget && (
           <BlockReportDialog
-            username={blockReportTarget.username}
-            userId={blockReportTarget.userId}
-            isBlocked={isBlocked(blockReportTarget.userId)}
-            onBlock={() => blockUser(blockReportTarget.userId)}
-            onUnblock={() => unblockUser(blockReportTarget.userId)}
-            onReport={(reason, details) => reportUser(blockReportTarget.userId, reason, details)}
-            onClose={() => setBlockReportTarget(null)}
+            username={menuTarget.username}
+            userId={menuTarget.userId}
+            isBlocked={isBlocked(menuTarget.userId)}
+            isFriend={menuTarget.isFriend}
+            onBlock={() => { blockUser(menuTarget.userId); toast.success("User blocked"); }}
+            onUnblock={() => { unblockUser(menuTarget.userId); toast.success("User unblocked"); }}
+            onReport={(reason, details) => reportUser(menuTarget.userId, reason, details)}
+            onClose={() => setMenuTarget(null)}
+            onOpenDM={() => onOpenDM(menuTarget.userId, menuTarget.username)}
+            onInviteToGame={() => handleSendInvite(menuTarget.userId)}
+            onRemoveFriend={menuTarget.friendshipId ? () => { removeFriend(menuTarget.friendshipId!); toast.success("Friend removed"); } : undefined}
           />
         )}
       </AnimatePresence>
