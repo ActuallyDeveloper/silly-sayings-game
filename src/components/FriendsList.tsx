@@ -51,14 +51,14 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
       pendingReceived.some(f => f.friend_profile?.user_id === userId);
   };
 
-  const handleSendInvite = (userId: string) => {
+  const handleSendInvite = async (userId: string) => {
     try {
       if (onInviteToGame) {
-        onInviteToGame(userId);
+        await onInviteToGame(userId);
       } else {
-        sendInvite(userId);
+        await sendInvite(userId);
+        toast.success("Game invite sent!");
       }
-      toast.success("Game invite sent!");
     } catch (error: any) {
       toast.error(error.message || "Unable to send game invite.");
     }
@@ -253,7 +253,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
             onReport={(reason, details) => reportUser(menuTarget.userId, reason, details)}
             onClose={() => setMenuTarget(null)}
             onOpenDM={() => onOpenDM(menuTarget.userId, menuTarget.username)}
-            onInviteToGame={() => handleSendInvite(menuTarget.userId)}
+            onInviteToGame={() => { void handleSendInvite(menuTarget.userId); }}
             onRemoveFriend={menuTarget.friendshipId ? () => { removeFriend(menuTarget.friendshipId!); toast.success("Friend removed"); } : undefined}
           />
         )}
