@@ -338,18 +338,28 @@ const Multiplayer = () => {
 
   // GAME OVER
   if (game.phase === "game_over") {
-    const sorted = [...game.players].sort((a, b) => b.score - a.score);
-    const winner = sorted[0];
+    const aiEntries = (game.room.ai_players_data || []).map((ai: any) => ({
+      id: `ai-${ai.id}`,
+      display_name: ai.name,
+      score: ai.score || 0,
+      isAi: true,
+    }));
+    const allParticipants = [
+      ...game.players.map((p) => ({ id: p.id, display_name: p.display_name, score: p.score, isAi: false })),
+      ...aiEntries,
+    ].sort((a, b) => b.score - a.score);
+    const winner = allParticipants[0];
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
         <Trophy className="w-16 h-16 text-accent" />
         <h1 className="text-5xl font-black text-foreground">{winner?.display_name} Wins!</h1>
 
         <div className="w-full max-w-sm space-y-2">
-          {sorted.map((p, i) => (
-            <div key={p.id} className="flex items-center justify-between bg-secondary rounded-lg px-4 py-3">
+          {allParticipants.map((p, i) => (
+            <div key={p.id} className={`flex items-center justify-between rounded-lg px-4 py-3 ${p.isAi ? "bg-secondary/60 border border-border/50" : "bg-secondary"}`}>
               <div className="flex items-center gap-3">
                 <span className={`font-black text-lg ${i === 0 ? "text-accent" : "text-muted-foreground"}`}>#{i + 1}</span>
+                {p.isAi && <Bot className="w-4 h-4 text-accent" />}
                 <span className="font-bold text-foreground">{p.display_name}</span>
               </div>
               <span className="font-black text-foreground">{p.score}</span>
@@ -380,7 +390,10 @@ const Multiplayer = () => {
           aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
           gamePhase={game.phase}
           roundNumber={game.room.current_round}
-          gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+          gameScores={[
+            ...game.players.map(p => ({ name: p.display_name, score: p.score })),
+            ...(game.room.ai_players_data || []).map((ai: any) => ({ name: ai.name, score: ai.score || 0 })),
+          ]}
         />
       </div>
     );
@@ -432,6 +445,16 @@ const Multiplayer = () => {
             <StatusIndicator status={(getStatus(p.user_id)?.status as any) || "invisible"} size={7} />
             <span>{p.display_name}</span>
             <span className="opacity-60">{p.score}</span>
+          </div>
+        ))}
+        {(game.room!.ai_players_data || []).map((ai: any) => (
+          <div
+            key={`ai-score-${ai.id}`}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0 bg-secondary/60 text-foreground border border-border/50"
+          >
+            <Bot className="w-3 h-3 text-accent" />
+            <span>{ai.name}</span>
+            <span className="opacity-60">{ai.score || 0}</span>
           </div>
         ))}
       </div>
@@ -618,7 +641,10 @@ const Multiplayer = () => {
         aiPlayers={enableAiBots ? getAIPersonalities(aiCount) : []}
         gamePhase={game.phase}
         roundNumber={game.room.current_round}
-        gameScores={game.players.map(p => ({ name: p.display_name, score: p.score }))}
+        gameScores={[
+          ...game.players.map(p => ({ name: p.display_name, score: p.score })),
+          ...(game.room.ai_players_data || []).map((ai: any) => ({ name: ai.name, score: ai.score || 0 })),
+        ]}
         lastBlackCard={game.currentBlackCard?.text}
       />
     </div>
