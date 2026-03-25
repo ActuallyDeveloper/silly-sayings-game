@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 interface FriendsListProps {
   onOpenDM: (userId: string, username: string) => void;
-  onInviteToGame?: (userId: string) => void;
+  onInviteToGame?: (userId: string) => void | Promise<void>;
 }
 
 const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
@@ -51,13 +51,17 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
       pendingReceived.some(f => f.friend_profile?.user_id === userId);
   };
 
-  const handleSendInvite = (userId: string) => {
-    if (onInviteToGame) {
-      onInviteToGame(userId);
-    } else {
-      sendInvite(userId);
+  const handleSendInvite = async (userId: string) => {
+    try {
+      if (onInviteToGame) {
+        await onInviteToGame(userId);
+      } else {
+        await sendInvite(userId);
+        toast.success("Game invite sent!");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Unable to send game invite.");
     }
-    toast.success("Game invite sent!");
   };
 
   return (
@@ -95,7 +99,14 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                   {isFriendOrPending(u.user_id) ? (
                     <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
                   ) : !isBlocked(u.user_id) && (
-                    <Button size="sm" variant="ghost" onClick={() => { sendRequest(u.user_id); toast.success("Friend request sent!"); }}
+                    <Button size="sm" variant="ghost" onClick={async () => {
+                      try {
+                        await sendRequest(u.user_id);
+                        toast.success("Friend request sent!");
+                      } catch (error: any) {
+                        toast.error(error.message || "Unable to send friend request.");
+                      }
+                    }}
                       className="text-accent active:scale-95 transition-transform">
                       <UserPlus className="w-4 h-4" />
                     </Button>
@@ -242,7 +253,7 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
             onReport={(reason, details) => reportUser(menuTarget.userId, reason, details)}
             onClose={() => setMenuTarget(null)}
             onOpenDM={() => onOpenDM(menuTarget.userId, menuTarget.username)}
-            onInviteToGame={() => handleSendInvite(menuTarget.userId)}
+            onInviteToGame={() => { void handleSendInvite(menuTarget.userId); }}
             onRemoveFriend={menuTarget.friendshipId ? () => { removeFriend(menuTarget.friendshipId!); toast.success("Friend removed"); } : undefined}
           />
         )}

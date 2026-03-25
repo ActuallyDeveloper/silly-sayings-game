@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBlockReport } from "@/hooks/useBlockReport";
+import { canReceiveGameInvites, fetchRelationshipContext } from "@/lib/socialPrivacy";
 
 export interface GameInvite {
   id: string;
@@ -76,6 +77,13 @@ export function useGameInvites() {
 
   const sendInvite = async (receiverId: string, roomId?: string) => {
     if (!user) return;
+    const relationship = await fetchRelationshipContext(user.id, receiverId);
+    if (relationship.blockedByMe) throw new Error("Unblock this user before inviting them.");
+    if (relationship.blockedByThem) throw new Error("This user is unavailable right now.");
+    if (!canReceiveGameInvites(relationship.privacy, relationship.isFriend)) {
+      throw new Error("This user only accepts game invites from friends.");
+    }
+
     await (supabase as any).from("game_invites").insert({
       sender_id: user.id, receiver_id: receiverId, room_id: roomId || null,
     });

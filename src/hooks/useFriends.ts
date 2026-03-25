@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBlockReport } from "@/hooks/useBlockReport";
+import { canReceiveFriendRequests, canViewProfile, fetchRelationshipContext, fetchViewerRelationshipMaps } from "@/lib/socialPrivacy";
 
 export interface Friendship {
   id: string;
@@ -71,6 +72,11 @@ export function useFriends() {
 
   const sendRequest = async (addresseeId: string) => {
     if (!user) return;
+    const relationship = await fetchRelationshipContext(user.id, addresseeId);
+    if (relationship.blockedByMe) throw new Error("Unblock this user before sending a friend request.");
+    if (relationship.blockedByThem) throw new Error("This user is unavailable right now.");
+    if (!canReceiveFriendRequests(relationship.privacy)) throw new Error("This user is not accepting friend requests.");
+
     await (supabase as any).from("friendships").insert({
       requester_id: user.id, addressee_id: addresseeId, status: "pending",
     });
@@ -96,7 +102,17 @@ export function useFriends() {
       .neq("user_id", user.id)
       .ilike("username", `%${query}%`)
       .limit(10);
-    return (data || []).filter((u: any) => !isBlocked(u.user_id));
+
+    const users = data || [];
+    const { blockedIds, friendIds, privacyMap } = await fetchViewerRelationshipMaps(
+      user.id,
+      users.map((entry: any) => entry.user_id),
+    );
+
+    return users.filter((entry: any) => {
+      if (isBlocked(entry.user_id) || blockedIds.has(entry.user_id)) return false;
+      return canViewProfile(privacyMap.get(entry.user_id) || null, friendIds.has(entry.user_id));
+    });
   };
 
   const isFriend = (userId: string) => friends.some(

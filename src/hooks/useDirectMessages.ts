@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { canReceiveDirectMessages, fetchRelationshipContext } from "@/lib/socialPrivacy";
 
 export interface DirectMessage {
   id: string;
@@ -80,6 +81,13 @@ export function useDirectMessages(otherUserId: string | null) {
 
   const sendMessage = async (text: string, type = "text", mediaUrl?: string, replyToId?: string) => {
     if (!user || !otherUserId) return;
+    const relationship = await fetchRelationshipContext(user.id, otherUserId);
+    if (relationship.blockedByMe) throw new Error("Unblock this user to send messages.");
+    if (relationship.blockedByThem) throw new Error("This user is unavailable right now.");
+    if (!canReceiveDirectMessages(relationship.privacy, relationship.isFriend)) {
+      throw new Error("This user only accepts direct messages from friends.");
+    }
+
     await (supabase as any).from("direct_messages").insert({
       sender_id: user.id, receiver_id: otherUserId,
       message: text || null, message_type: type,

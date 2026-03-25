@@ -45,6 +45,13 @@ export interface AISubmissionMP {
   white_card_ids: number[];
 }
 
+interface StartGameOptions {
+  aiPlayerCount?: number;
+  aiPlayersData?: any[];
+  maxRounds?: number;
+  pointsToWin?: number;
+}
+
 type Phase = "lobby" | "submitting" | "judging" | "round_result" | "game_over";
 
 const HAND_SIZE = 7;
@@ -437,13 +444,18 @@ export function useMultiplayerGame() {
     [user, mpProfile],
   );
 
-  const startGame = useCallback(async () => {
+  const startGame = useCallback(async (options?: StartGameOptions) => {
     if (!room || !user || players.length < 1) return;
     setLoading(true);
     try {
       const shuffledBlack = shuffle(blackCards);
       const firstBlack = shuffledBlack[0];
       const czar = players[0].user_id;
+      const nextAiPlayersData = (options?.aiPlayersData ?? room.ai_players_data ?? []).map((ai: any) => ({
+        ...ai,
+        current_submission_ids: [],
+        submission_round: null,
+      }));
 
       const shuffledWhite = shuffle(whiteCards);
       let cardIndex = 0;
@@ -467,13 +479,12 @@ export function useMultiplayerGame() {
           current_round: 1,
           czar_user_id: czar,
           current_black_card_id: firstBlack.id,
+          ai_player_count: options?.aiPlayerCount ?? room.ai_player_count,
           used_black_card_ids: [firstBlack.id] as any,
           used_white_card_ids: usedWhiteIds as any,
-          ai_players_data: (room.ai_players_data || []).map((ai: any) => ({
-            ...ai,
-            current_submission_ids: [],
-            submission_round: null,
-          })) as any,
+          ai_players_data: nextAiPlayersData as any,
+          points_to_win: options?.pointsToWin ?? room.points_to_win,
+          max_rounds: options?.maxRounds ?? room.max_rounds,
         })
         .eq("id", room.id);
     } catch (e: any) {
