@@ -24,7 +24,8 @@ const LobbyCountdown = ({ active, onComplete }: LobbyCountdownProps) => {
     const t2 = setTimeout(() => setCount(1), 2000);
     const t3 = setTimeout(() => setCount("GO!"), 3000);
     const t4 = setTimeout(() => onCompleteRef.current(), 3800);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    const t5 = setTimeout(() => setCount(null), 4300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
   }, [active]);
 
   if (!active || count === null) return null;
