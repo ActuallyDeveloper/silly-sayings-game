@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 interface FriendsListProps {
   onOpenDM: (userId: string, username: string) => void;
-  onInviteToGame?: (userId: string) => void;
+  onInviteToGame?: (userId: string) => void | Promise<void>;
 }
 
 const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {

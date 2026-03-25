@@ -41,10 +41,13 @@ const MPSocial = () => {
     setView("dm");
   };
 
-  const handleInviteToGame = (userId: string) => {
-    sendInvite(userId)
-      .then(() => toast.success("Game invite sent!"))
-      .catch((error: any) => toast.error(error.message || "Unable to send game invite."));
+  const handleInviteToGame = async (userId: string) => {
+    try {
+      await sendInvite(userId);
+      toast.success("Game invite sent!");
+    } catch (error: any) {
+      toast.error(error.message || "Unable to send game invite.");
+    }
   };
 
   if (view === "dm" && dmUser) {
