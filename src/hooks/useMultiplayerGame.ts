@@ -479,21 +479,27 @@ export function useMultiplayerGame() {
           .eq("id", player.id);
       }
 
+      const updatedFields = {
+        status: "playing" as const,
+        current_round: 1,
+        czar_user_id: czar,
+        current_black_card_id: firstBlack.id,
+        ai_player_count: options?.aiPlayerCount ?? room.ai_player_count,
+        used_black_card_ids: [firstBlack.id],
+        used_white_card_ids: usedWhiteIds,
+        ai_players_data: nextAiPlayersData,
+        points_to_win: options?.pointsToWin ?? room.points_to_win,
+        max_rounds: options?.maxRounds ?? room.max_rounds,
+      };
+
       await supabase
         .from("game_rooms")
-        .update({
-          status: "playing",
-          current_round: 1,
-          czar_user_id: czar,
-          current_black_card_id: firstBlack.id,
-          ai_player_count: options?.aiPlayerCount ?? room.ai_player_count,
-          used_black_card_ids: [firstBlack.id] as any,
-          used_white_card_ids: usedWhiteIds as any,
-          ai_players_data: nextAiPlayersData as any,
-          points_to_win: options?.pointsToWin ?? room.points_to_win,
-          max_rounds: options?.maxRounds ?? room.max_rounds,
-        })
+        .update(updatedFields as any)
         .eq("id", room.id);
+
+      // Immediately update local room state so the phase transitions
+      // without waiting for the realtime subscription to deliver the update
+      setRoom((prev) => prev ? { ...prev, ...updatedFields } : prev);
     } catch (e: any) {
       setError(e.message);
     }
