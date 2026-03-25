@@ -100,6 +100,13 @@ export function useMultiplayerGame() {
     currentRoundSubs.length >= humanNonCzar.length &&
     (aiPlayerCount === 0 || aiSubmissions.length >= aiPlayerCount);
 
+  // Reset countdown when room transitions out of waiting
+  useEffect(() => {
+    if (room && room.status !== "waiting") {
+      setCountdownStarted(false);
+    }
+  }, [room?.status]);
+
   // Derive phase
   useEffect(() => {
     if (!room) {
