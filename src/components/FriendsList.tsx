@@ -52,12 +52,16 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
   };
 
   const handleSendInvite = (userId: string) => {
-    if (onInviteToGame) {
-      onInviteToGame(userId);
-    } else {
-      sendInvite(userId);
+    try {
+      if (onInviteToGame) {
+        onInviteToGame(userId);
+      } else {
+        sendInvite(userId);
+      }
+      toast.success("Game invite sent!");
+    } catch (error: any) {
+      toast.error(error.message || "Unable to send game invite.");
     }
-    toast.success("Game invite sent!");
   };
 
   return (
@@ -95,7 +99,14 @@ const FriendsList = ({ onOpenDM, onInviteToGame }: FriendsListProps) => {
                   {isFriendOrPending(u.user_id) ? (
                     <span className="text-xs text-accent flex items-center gap-1"><Check className="w-3 h-3" /> Added</span>
                   ) : !isBlocked(u.user_id) && (
-                    <Button size="sm" variant="ghost" onClick={() => { sendRequest(u.user_id); toast.success("Friend request sent!"); }}
+                    <Button size="sm" variant="ghost" onClick={async () => {
+                      try {
+                        await sendRequest(u.user_id);
+                        toast.success("Friend request sent!");
+                      } catch (error: any) {
+                        toast.error(error.message || "Unable to send friend request.");
+                      }
+                    }}
                       className="text-accent active:scale-95 transition-transform">
                       <UserPlus className="w-4 h-4" />
                     </Button>

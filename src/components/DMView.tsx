@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Send, Heart, Reply, User, ShieldBan } from "lucide-react";
 import StatusIndicator from "@/components/StatusIndicator";
 import { useUserStatus } from "@/hooks/useUserStatus";
+import { toast } from "sonner";
 
 interface DMViewProps {
   otherUserId: string;
@@ -34,17 +35,25 @@ const DMView = ({ otherUserId, otherUsername, onBack }: DMViewProps) => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    await sendMessage(input.trim(), "text", undefined, replyTo || undefined);
-    setInput("");
-    setReplyTo(null);
+    try {
+      await sendMessage(input.trim(), "text", undefined, replyTo || undefined);
+      setInput("");
+      setReplyTo(null);
+    } catch (error: any) {
+      toast.error(error.message || "Unable to send message.");
+    }
   };
 
   const handleMediaCapture = async (file: File, type: "voice" | "video" | "image") => {
     setUploading(true);
     const url = await uploadMedia(file, type);
     if (url) {
-      await sendMessage("", type, url, replyTo || undefined);
-      setReplyTo(null);
+      try {
+        await sendMessage("", type, url, replyTo || undefined);
+        setReplyTo(null);
+      } catch (error: any) {
+        toast.error(error.message || "Unable to send media.");
+      }
     }
     setUploading(false);
   };

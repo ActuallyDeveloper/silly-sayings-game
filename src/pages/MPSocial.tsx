@@ -42,8 +42,9 @@ const MPSocial = () => {
   };
 
   const handleInviteToGame = (userId: string) => {
-    sendInvite(userId);
-    toast.success("Game invite sent!");
+    sendInvite(userId)
+      .then(() => toast.success("Game invite sent!"))
+      .catch((error: any) => toast.error(error.message || "Unable to send game invite."));
   };
 
   if (view === "dm" && dmUser) {

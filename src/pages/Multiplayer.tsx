@@ -46,6 +46,7 @@ const Multiplayer = () => {
   const [lobbyPoints, setLobbyPoints] = useState(10);
   const [useAiCards, setUseAiCards] = useState(false);
   const mpAchChecked = useRef(false);
+  const countdownHandledRef = useRef<string | null>(null);
 
   // Check MP achievements when game ends
   const checkMPAchievements = useCallback(async () => {
@@ -87,29 +88,34 @@ const Multiplayer = () => {
   const minAi = playerCount <= 2 ? 1 : 0;
   const maxAi = playerCount <= 2 ? 6 : 5;
   const aiRequired = playerCount <= 2;
+  const projectedAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
+  const readyToStart = game.allReady && game.players.length >= 2 && game.players.length + projectedAiCount >= 3;
 
   const countdownActive = game.countdownStarted;
 
-  const handleCountdownComplete = useCallback(async () => {
-    if (game.room?.created_by === user?.id) {
-      const effectiveAiCount = (aiRequired || enableAiBots) ? Math.max(aiCount, minAi) : 0;
-      if (effectiveAiCount > 0) {
-        const aiPersonalities = getAIPersonalities(effectiveAiCount);
-        await (supabase as any).from("game_rooms").update({
-          ai_player_count: effectiveAiCount,
-          ai_players_data: aiPersonalities.map(ai => ({ id: ai.id, name: ai.name })),
-          points_to_win: lobbyPoints,
-          max_rounds: lobbyPoints * 3,
-        }).eq("id", game.room.id);
-      } else {
-        await (supabase as any).from("game_rooms").update({
-          points_to_win: lobbyPoints,
-          max_rounds: lobbyPoints * 3,
-        }).eq("id", game.room!.id);
-      }
-      game.startGame();
+  useEffect(() => {
+    if (game.room?.status !== "waiting") {
+      countdownHandledRef.current = null;
     }
-  }, [game, user, aiRequired, enableAiBots, aiCount, minAi, lobbyPoints]);
+  }, [game.room?.status, game.room?.id]);
+
+  const handleCountdownComplete = useCallback(async () => {
+    if (!game.room || game.room.created_by !== user?.id) return;
+    if (countdownHandledRef.current === game.room.id) return;
+
+    countdownHandledRef.current = game.room.id;
+    const effectiveAiCount = projectedAiCount;
+    const aiPlayersData = effectiveAiCount > 0
+      ? getAIPersonalities(effectiveAiCount).map((ai) => ({ id: ai.id, name: ai.name }))
+      : [];
+
+    await game.startGame({
+      aiPlayerCount: effectiveAiCount,
+      aiPlayersData,
+      pointsToWin: lobbyPoints,
+      maxRounds: lobbyPoints * 3,
+    });
+  }, [game, user?.id, projectedAiCount, lobbyPoints]);
 
   const handleLobbySelectPack = (packId: PackId) => {
     setLobbyPacks([packId]);
@@ -203,7 +209,7 @@ const Multiplayer = () => {
         <p className="text-muted-foreground text-sm">Share the code with your friends!</p>
 
         <div className="w-full max-w-sm space-y-2">
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Players ({game.players.length}{(aiRequired || enableAiBots) ? ` + ${Math.max(aiCount, minAi)} AI` : ""})</p>
+           <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Players ({game.players.length}{projectedAiCount ? ` + ${projectedAiCount} AI` : ""})</p>
           {game.players.map((p) => (
             <motion.div
               key={p.id}
@@ -224,7 +230,7 @@ const Multiplayer = () => {
               {p.user_id === game.room.created_by && <Crown className="w-4 h-4 text-accent" />}
             </motion.div>
           ))}
-          {(aiRequired || enableAiBots) && getAIPersonalities(Math.max(aiCount, minAi)).map((ai) => (
+          {(aiRequired || enableAiBots) && getAIPersonalities(projectedAiCount).map((ai) => (
             <motion.div
               key={`ai-${ai.id}`}
               className="flex items-center gap-3 bg-secondary/60 rounded-lg px-4 py-3 border border-border/50"
@@ -245,7 +251,7 @@ const Multiplayer = () => {
 
             <div className="w-full max-w-sm space-y-3">
               <GameConfig
-                aiPlayerCount={aiRequired || enableAiBots ? Math.max(aiCount, minAi) : 0}
+                 aiPlayerCount={projectedAiCount}
                 onAiPlayerCountChange={(v) => setAiCount(v)}
                 pointsToWin={lobbyPoints}
                 onPointsToWinChange={setLobbyPoints}
@@ -274,11 +280,13 @@ const Multiplayer = () => {
           </>
         )}
 
-        {!game.canStart && (
+        {!readyToStart && (
           <p className="text-muted-foreground/50 text-sm">
             {game.players.length < 2
               ? "Need at least 2 human players to start"
-              : "Waiting for all players to ready up"}
+              : game.players.length + projectedAiCount < 3
+                ? "Need at least 3 total participants including AI"
+                : "Waiting for all players to ready up"}
           </p>
         )}
 
@@ -296,7 +304,7 @@ const Multiplayer = () => {
           {isHost && (
             <Button
               onClick={() => game.broadcastCountdown()}
-              disabled={!game.canStart || game.loading || countdownActive}
+              disabled={!readyToStart || game.loading || countdownActive}
               className="bg-accent text-accent-foreground hover:bg-exotic-gold-dim font-bold disabled:opacity-30"
             >
               Start Game
@@ -306,8 +314,11 @@ const Multiplayer = () => {
             Leave Room
           </Button>
         </div>
-        {game.allReady && !game.canStart && game.players.length < 2 && (
+        {game.allReady && !readyToStart && game.players.length < 2 && (
           <p className="text-muted-foreground/50 text-xs">Need at least 2 human players.</p>
+        )}
+        {game.allReady && !readyToStart && game.players.length >= 2 && game.players.length + projectedAiCount < 3 && (
+          <p className="text-muted-foreground/50 text-xs">Add at least one AI or one more human player.</p>
         )}
         {!game.allReady && game.players.length >= 1 && (
           <p className="text-muted-foreground/50 text-xs">Waiting for all players to ready up...</p>

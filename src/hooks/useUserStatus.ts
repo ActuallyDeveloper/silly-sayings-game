@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { canViewStatus, fetchViewerRelationshipMaps } from "@/lib/socialPrivacy";
 
 export type UserStatusType = "available" | "away" | "busy" | "invisible";
 
@@ -16,16 +17,28 @@ export function useUserStatus() {
   const [statuses, setStatuses] = useState<Map<string, UserStatus>>(new Map());
 
   const fetchStatuses = useCallback(async (userIds?: string[]) => {
+    if (!user) return;
+
     const query = (supabase as any).from("user_status").select("*");
     if (userIds && userIds.length > 0) {
       query.in("user_id", userIds);
     }
     const { data } = await query;
     if (data) {
+      const visibleTargetIds = (data as any[])
+        .map((status) => status.user_id)
+        .filter((userId) => userId !== user.id);
+      const { blockedIds, friendIds, privacyMap } = await fetchViewerRelationshipMaps(user.id, visibleTargetIds);
       const map = new Map<string, UserStatus>();
-      data.forEach((s: any) => map.set(s.user_id, s));
+      data.forEach((s: any) => {
+        const isSelf = s.user_id === user.id;
+        const isFriend = friendIds.has(s.user_id);
+        if (!blockedIds.has(s.user_id) && canViewStatus(privacyMap.get(s.user_id) || null, isFriend, isSelf)) {
+          map.set(s.user_id, s);
+        }
+      });
       setStatuses(map);
-      if (user && map.has(user.id)) {
+      if (map.has(user.id)) {
         setMyStatus(map.get(user.id)!.status as UserStatusType);
       }
     }
@@ -53,6 +66,15 @@ export function useUserStatus() {
     const channel = supabase
       .channel("user-status-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => {
+        fetchStatuses();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_privacy_settings" }, () => {
+        fetchStatuses();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => {
+        fetchStatuses();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks" }, () => {
         fetchStatuses();
       })
       .subscribe();

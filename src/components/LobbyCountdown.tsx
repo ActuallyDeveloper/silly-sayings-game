@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface LobbyCountdownProps {
@@ -8,6 +8,11 @@ interface LobbyCountdownProps {
 
 const LobbyCountdown = ({ active, onComplete }: LobbyCountdownProps) => {
   const [count, setCount] = useState<number | string | null>(null);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!active) {
@@ -18,9 +23,9 @@ const LobbyCountdown = ({ active, onComplete }: LobbyCountdownProps) => {
     const t1 = setTimeout(() => setCount(2), 1000);
     const t2 = setTimeout(() => setCount(1), 2000);
     const t3 = setTimeout(() => setCount("GO!"), 3000);
-    const t4 = setTimeout(() => onComplete(), 3800);
+    const t4 = setTimeout(() => onCompleteRef.current(), 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
-  }, [active, onComplete]);
+  }, [active]);
 
   if (!active || count === null) return null;
 
