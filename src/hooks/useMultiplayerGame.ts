@@ -460,6 +460,7 @@ export function useMultiplayerGame() {
       const czar = players[0].user_id;
       const nextAiPlayersData = (options?.aiPlayersData ?? room.ai_players_data ?? []).map((ai: any) => ({
         ...ai,
+        score: 0,
         current_submission_ids: [],
         submission_round: null,
       }));
@@ -542,6 +543,15 @@ export function useMultiplayerGame() {
           const aiSub = aiSubmissions[aiIndex];
           if (aiSub) {
             winner = { userId: `ai-${aiIndex}`, name: aiSub.aiName };
+            // Increment AI player score in ai_players_data
+            const updatedAiData = (room.ai_players_data || []).map((ai: any) =>
+              ai.name === aiSub.aiName ? { ...ai, score: (ai.score || 0) + 1 } : ai
+            );
+            await supabase
+              .from("game_rooms")
+              .update({ ai_players_data: updatedAiData as any })
+              .eq("id", room.id);
+            setRoom((prev) => prev ? { ...prev, ai_players_data: updatedAiData } : prev);
           } else return;
         } else {
           await supabase.from("room_submissions").update({ is_winner: true }).eq("id", submissionId);
@@ -581,15 +591,17 @@ export function useMultiplayerGame() {
     setAiSubmissions([]);
 
     const nextRoundNum = room.current_round + 1;
+    const allAiScores = (room.ai_players_data || []).map((ai: any) => ai.score || 0);
     if (nextRoundNum > room.max_rounds) {
-      // Save scores for all players
+      // Save scores for all players (include AI scores in top score calc)
+      const topScore = Math.max(...players.map((p) => p.score), ...allAiScores);
       for (const player of players) {
-        const topScore = Math.max(...players.map((p) => p.score));
         const won = player.score === topScore;
+        const otherScores = [...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), ...allAiScores];
         await supabase.rpc("save_multiplayer_score", {
           _user_id: player.user_id,
           _player_score: player.score,
-          _ai_score: Math.max(...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), 0),
+          _ai_score: Math.max(...otherScores, 0),
           _rounds: room.current_round,
           _won: won,
         });
@@ -598,15 +610,17 @@ export function useMultiplayerGame() {
       return;
     }
 
-    // Check if someone hit points_to_win
-    const maxScore = Math.max(...players.map((p) => p.score));
+    // Check if someone hit points_to_win (include AI scores)
+    const aiScores = (room.ai_players_data || []).map((ai: any) => ai.score || 0);
+    const maxScore = Math.max(...players.map((p) => p.score), ...aiScores);
     if (maxScore >= room.points_to_win) {
       for (const player of players) {
         const won = player.score === maxScore;
+        const otherScores = [...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), ...aiScores];
         await supabase.rpc("save_multiplayer_score", {
           _user_id: player.user_id,
           _player_score: player.score,
-          _ai_score: Math.max(...players.filter((p) => p.user_id !== player.user_id).map((p) => p.score), 0),
+          _ai_score: Math.max(...otherScores, 0),
           _rounds: room.current_round,
           _won: won,
         });
